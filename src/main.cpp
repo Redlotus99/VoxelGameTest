@@ -85,14 +85,6 @@ int main(int argc, char* argv[]) {
             bool jump = false;
             if (jumpKey) {
                 jump = true;
-                
-                // Print player state once per second while space is held
-                static Uint32 lastPrintTime = 0;
-                Uint32 now = SDL_GetTicks();
-                if (now - lastPrintTime > 1000) {
-                    std::cout << "onGround: " << player.onGround << ", velocity.y: " << player.velocity.y << std::endl;
-                    lastPrintTime = now;
-                }
             }
             
             player.update(deltaTime, world, moveDir, jump);
