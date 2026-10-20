@@ -1,6 +1,7 @@
 #include "world/World.h"
 #include "render/Shader.h"
 #include <algorithm>
+#include <glm/gtc/matrix_transform.hpp>
 
 World::World() = default;
 
@@ -31,9 +32,10 @@ Chunk* World::getChunk(glm::ivec3 position) {
     return nullptr;
 }
 
-void World::draw(Shader& shader, const glm::mat4& viewProj) {
-    // Set the view-projection matrix
-    shader.setMat4("uViewProj", viewProj);
+void World::draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection) {
+    // Set the view and projection matrices
+    shader.setMat4("view", view);
+    shader.setMat4("projection", projection);
     
     // Draw each chunk
     for (auto& pair : m_chunks) {
@@ -53,7 +55,7 @@ void World::draw(Shader& shader, const glm::mat4& viewProj) {
         glm::mat4 model = glm::translate(glm::mat4(1.0f), chunkPos);
         
         // Set the model matrix
-        shader.setMat4("uModel", model);
+        shader.setMat4("model", model);
         
         // Draw the mesh
         meshIt->second.draw();
