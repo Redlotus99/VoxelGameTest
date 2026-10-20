@@ -169,8 +169,8 @@ void World::generateCornerCutTestArrangement() {
     // Deliberately opt-in, elevated test platform so the normal terrain stays
     // unchanged unless the executable is launched with --shape-test.
     constexpr int platformY = 40;
-    for (int z = 4; z <= 12; ++z) {
-        for (int x = 5; x <= 12; ++x) {
+    for (int z = 4; z <= 16; ++z) {
+        for (int x = 5; x <= 16; ++x) {
             setBlockWorld(x, platformY, z, BlockType::Stone);
         }
     }
@@ -199,10 +199,32 @@ void World::generateCornerCutTestArrangement() {
     setBlockWorld(11, platformY + 1, 11, BlockType::Stone);
     setBlockShapeWorld(11, platformY + 1, 11, BlockShape::CornerCutTopSouthWest);
 
-    // Complementary wedge: keep both front corners and one back corner,
-    // removing the top northeast corner. Compare it with the shape at (11, 41, 11).
+    // Isolated complementary wedge reference: remove the top northeast corner.
     setBlockWorld(12, platformY + 1, 7, BlockType::Stone);
     setBlockShapeWorld(12, platformY + 1, 7, BlockShape::CornerCutTopNorthEast);
+
+    // Rotated junction references. Each center cut should match the two
+    // perpendicular ramps around it, proving all four orientations render.
+    setBlockWorld(13, platformY + 1, 10, BlockType::Stone);
+    setBlockShapeWorld(13, platformY + 1, 10, BlockShape::RampSouth);
+    setBlockWorld(14, platformY + 1, 11, BlockType::Stone);
+    setBlockShapeWorld(14, platformY + 1, 11, BlockShape::RampEast);
+    setBlockWorld(14, platformY + 1, 10, BlockType::Stone);
+    setBlockShapeWorld(14, platformY + 1, 10, BlockShape::CornerCutTopNorthWest);
+
+    setBlockWorld(11, platformY + 1, 14, BlockType::Stone);
+    setBlockShapeWorld(11, platformY + 1, 14, BlockShape::RampSouth);
+    setBlockWorld(10, platformY + 1, 15, BlockType::Stone);
+    setBlockShapeWorld(10, platformY + 1, 15, BlockShape::RampWest);
+    setBlockWorld(10, platformY + 1, 14, BlockType::Stone);
+    setBlockShapeWorld(10, platformY + 1, 14, BlockShape::CornerCutTopNorthEast);
+
+    setBlockWorld(14, platformY + 1, 13, BlockType::Stone);
+    setBlockShapeWorld(14, platformY + 1, 13, BlockShape::RampWest);
+    setBlockWorld(15, platformY + 1, 14, BlockType::Stone);
+    setBlockShapeWorld(15, platformY + 1, 14, BlockShape::RampNorth);
+    setBlockWorld(14, platformY + 1, 14, BlockType::Stone);
+    setBlockShapeWorld(14, platformY + 1, 14, BlockShape::CornerCutTopSouthEast);
 }
 
 bool World::raycast(glm::vec3 origin, glm::vec3 dir, float maxDist, glm::ivec3& hitBlock, glm::ivec3& prevBlock) const {
