@@ -3,6 +3,7 @@
 #include "render/Shader.h"
 #include "render/Camera.h"
 #include "world/World.h"
+#include "game/Player.h"
 #include <glad/glad.h>
 #include <iostream>
 #include <glm/glm.hpp>
@@ -29,6 +30,9 @@ int main(int argc, char* argv[]) {
         // Camera setup
         Camera camera(glm::vec3(8.0f, 16.0f, 24.0f));
         
+        // Create player
+        Player player;
+        
         // Main loop
         Uint32 lastTime = SDL_GetTicks();
         while (!window.shouldClose()) {
@@ -50,9 +54,26 @@ int main(int argc, char* argv[]) {
             bool right = window.isKeyDown(SDL_SCANCODE_D);
             bool up = window.isKeyDown(SDL_SCANCODE_SPACE);
             bool down = window.isKeyDown(SDL_SCANCODE_LSHIFT);
+            bool jump = window.isKeyDown(SDL_SCANCODE_X);
             
+            // Create movement direction vector
+            glm::vec3 moveDir(0.0f);
+            if (forward) moveDir.z -= 1.0f;
+            if (back) moveDir.z += 1.0f;
+            if (left) moveDir.x -= 1.0f;
+            if (right) moveDir.x += 1.0f;
+            
+            // Normalize the movement direction to maintain consistent speed
+            if (moveDir != glm::vec3(0.0f)) {
+                moveDir = glm::normalize(moveDir);
+            }
+            
+            // Update player
+            player.update(deltaTime, world, moveDir, jump);
+            
+            // Update camera to follow player
+            camera.Position = player.getEyePosition();
             camera.processMouse(mouseDX, mouseDY);
-            camera.processKeyboard(forward, back, left, right, up, down, deltaTime);
             
             window.clear();
             
