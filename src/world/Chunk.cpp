@@ -1,5 +1,6 @@
 #include "world/Chunk.h"
 #include <vector>
+#include <glm/glm.hpp>
 
 Chunk::Chunk() {
     // Fill with Air by default
