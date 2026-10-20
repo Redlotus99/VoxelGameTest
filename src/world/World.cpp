@@ -145,6 +145,50 @@ void World::setBlockWorld(int wx, int wy, int wz, BlockType type) {
     }
 }
 
+
+void World::setBlockShapeWorld(int wx, int wy, int wz, BlockShape shape) {
+    if (wy < 0 || wy >= Chunk::SIZE_Y) {
+        return;
+    }
+
+    const int cx = static_cast<int>(std::floor(static_cast<float>(wx) / Chunk::SIZE_X));
+    const int cz = static_cast<int>(std::floor(static_cast<float>(wz) / Chunk::SIZE_Z));
+    const int lx = wx - cx * Chunk::SIZE_X;
+    const int lz = wz - cz * Chunk::SIZE_Z;
+    const glm::ivec3 chunkPos(cx, 0, cz);
+    Chunk* chunk = getChunk(chunkPos);
+    if (chunk == nullptr || chunk->getBlock(lx, wy, lz) == BlockType::Air) {
+        return;
+    }
+
+    chunk->setBlockShape(lx, wy, lz, shape);
+    m_meshes.erase(packCoordinates(chunkPos));
+}
+
+void World::generateCornerCutTestArrangement() {
+    // Deliberately opt-in, elevated test platform so the normal terrain stays
+    // unchanged unless the executable is launched with --shape-test.
+    constexpr int platformY = 40;
+    for (int z = 4; z <= 12; ++z) {
+        for (int x = 5; x <= 12; ++x) {
+            setBlockWorld(x, platformY, z, BlockType::Stone);
+        }
+    }
+
+    // One cut joined to cubes, plus two separated examples for viewing the
+    // diagonal surface from different angles.
+    setBlockWorld(7, platformY + 1, 7, BlockType::Stone);
+    setBlockShapeWorld(7, platformY + 1, 7, BlockShape::CornerCutSouthWest);
+    setBlockWorld(8, platformY + 1, 7, BlockType::Stone);
+    setBlockWorld(7, platformY + 1, 8, BlockType::Stone);
+
+    setBlockWorld(10, platformY + 1, 7, BlockType::Stone);
+    setBlockShapeWorld(10, platformY + 1, 7, BlockShape::CornerCutSouthWest);
+
+    setBlockWorld(10, platformY + 1, 9, BlockType::Stone);
+    setBlockShapeWorld(10, platformY + 1, 9, BlockShape::CornerCutSouthWest);
+}
+
 bool World::raycast(glm::vec3 origin, glm::vec3 dir, float maxDist, glm::ivec3& hitBlock, glm::ivec3& prevBlock) const {
     // Normalize direction
     dir = glm::normalize(dir);
