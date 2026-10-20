@@ -29,6 +29,9 @@ enum class BlockShape : std::uint8_t {
     CornerCutTopNorthEast,
     CornerCutTopNorthWest,
     CornerCutTopSouthEast,
+    // Saddle profiles keep opposite corners high and the other two low.
+    SaddleSouthWestNorthEast,
+    SaddleSouthEastNorthWest,
     Count
 };
 
@@ -108,11 +111,17 @@ inline constexpr BlockShapeData getBlockShapeData(BlockShape shape) {
             return {{{0.0f, 0.0f, 1.0f, 0.0f}}};
         case BlockShape::CornerWedgeNorthWest:
             return {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+        case BlockShape::SaddleSouthWestNorthEast:
+            return {{{1.0f, 0.0f, 1.0f, 0.0f}}};
+        case BlockShape::SaddleSouthEastNorthWest:
+            return {{{0.0f, 1.0f, 0.0f, 1.0f}}};
         case BlockShape::CornerCutSouthWest:
         case BlockShape::CornerCutTopSouthWest:
         case BlockShape::CornerCutTopNorthEast:
         case BlockShape::CornerCutTopNorthWest:
         case BlockShape::CornerCutTopSouthEast:
+        case BlockShape::SaddleSouthWestNorthEast:
+        case BlockShape::SaddleSouthEastNorthWest:
         case BlockShape::Count:
             break;
     }
