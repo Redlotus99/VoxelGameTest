@@ -15,6 +15,9 @@ enum class BlockShape : std::uint8_t {
     CornerRampSouthEast,
     CornerRampNorthEast,
     CornerRampNorthWest,
+    // Explicit mesh-template shape: removes the bottom southwest corner
+    // with a diagonal plane. Unlike a corner ramp, this is a true cutout.
+    CornerCutSouthWest,
     Count
 };
 
@@ -23,11 +26,15 @@ enum class BlockShape : std::uint8_t {
 // 2 = northeast (x=1,z=1), 3 = northwest (x=0,z=1).
 //
 // Heights describe the top profile of a solid cell whose bottom is y=0.
-// A value of 1 at every corner is a full cube. Keep this canonical data
-// shared by meshing, collision, picking, and placement code.
+// A value of 1 at every corner is a full cube. Shapes that remove material
+// from a corner use explicit mesh geometry instead of this height profile.
 struct BlockShapeData {
     std::array<float, 4> topHeights;
 };
+
+inline constexpr bool usesExplicitBlockShapeGeometry(BlockShape shape) {
+    return shape == BlockShape::CornerCutSouthWest;
+}
 
 inline constexpr BlockShapeData getBlockShapeData(BlockShape shape) {
     switch (shape) {
@@ -42,8 +49,7 @@ inline constexpr BlockShapeData getBlockShapeData(BlockShape shape) {
         case BlockShape::RampWest:
             return {{{1.0f, 0.0f, 0.0f, 1.0f}}};
         // Corner ramps rise toward the three high corners, leaving one
-        // low corner. These are useful transition wedges where two slopes
-        // meet around a block corner.
+        // low corner. These are transition wedges where slopes meet.
         case BlockShape::CornerRampSouthWest:
             return {{{0.0f, 1.0f, 1.0f, 1.0f}}};
         case BlockShape::CornerRampSouthEast:
@@ -52,6 +58,7 @@ inline constexpr BlockShapeData getBlockShapeData(BlockShape shape) {
             return {{{1.0f, 1.0f, 0.0f, 1.0f}}};
         case BlockShape::CornerRampNorthWest:
             return {{{1.0f, 1.0f, 1.0f, 0.0f}}};
+        case BlockShape::CornerCutSouthWest:
         case BlockShape::Count:
             break;
     }
