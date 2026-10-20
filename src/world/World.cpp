@@ -16,7 +16,7 @@ void World::generate(int radius) {
             
             if (m_chunks.find(packed) == m_chunks.end()) {
                 auto chunk = std::make_unique<Chunk>(chunkPos);
-                chunk->generateFlat();
+                chunk->generateTerrain();
                 m_chunks[packed] = std::move(chunk);
             }
         }
