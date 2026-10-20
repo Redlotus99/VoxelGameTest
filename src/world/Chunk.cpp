@@ -51,7 +51,6 @@ void Chunk::generateFlat() {
 Mesh Chunk::buildMesh() const {
     std::vector<float> vertices;
     std::vector<uint32_t> indices;
-    uint32_t indexOffset = 0;
     
     // Define color mappings for each block type
     auto getBlockColor = [](BlockType type) -> glm::vec3 {
@@ -76,16 +75,6 @@ Mesh Chunk::buildMesh() const {
         }
     };
     
-    // Face directions for normals and vertex ordering
-    const glm::vec3 faceNormals[6] = {
-        glm::vec3(0.0f, 1.0f, 0.0f),   // Top (+Y)
-        glm::vec3(0.0f, -1.0f, 0.0f),  // Bottom (-Y)
-        glm::vec3(1.0f, 0.0f, 0.0f),   // +X
-        glm::vec3(-1.0f, 0.0f, 0.0f),  // -X
-        glm::vec3(0.0f, 0.0f, 1.0f),   // +Z
-        glm::vec3(0.0f, 0.0f, -1.0f)   // -Z
-    };
-    
     // Vertex positions for a unit cube (2 triangles per face)
     const float cubeVertices[8][3] = {
         {0.0f, 0.0f, 0.0f},  // 0
@@ -98,14 +87,14 @@ Mesh Chunk::buildMesh() const {
         {0.0f, 1.0f, 1.0f}   // 7
     };
     
-    // Face indices (two triangles per face)
+    // Face indices (two triangles per face) in proper counter-clockwise order
     const int faceIndices[6][6] = {
-        {0, 1, 2, 2, 3, 0},  // Top (+Y) - vertices 0,1,2,3
-        {4, 7, 6, 6, 5, 4},  // Bottom (-Y) - vertices 4,7,6,5
-        {1, 5, 6, 6, 2, 1},  // +X - vertices 1,5,6,2
-        {0, 3, 7, 7, 4, 0},  // -X - vertices 0,3,7,4
-        {0, 4, 5, 5, 1, 0},  // +Z - vertices 0,4,5,1
-        {3, 2, 6, 6, 7, 3}   // -Z - vertices 3,2,6,7
+        {0, 1, 2, 2, 3, 0},  // Top (+Y) - vertices 0,1,2,3 (counter-clockwise when viewed from outside)
+        {4, 5, 6, 6, 7, 4},  // Bottom (-Y) - vertices 4,5,6,7 (counter-clockwise when viewed from outside)
+        {1, 2, 6, 6, 5, 1},  // +X - vertices 1,2,6,5 (counter-clockwise when viewed from outside)
+        {0, 4, 7, 7, 3, 0},  // -X - vertices 0,4,7,3 (counter-clockwise when viewed from outside)
+        {0, 3, 7, 7, 4, 0},  // +Z - vertices 0,3,7,4 (counter-clockwise when viewed from outside)
+        {1, 5, 6, 6, 2, 1}   // -Z - vertices 1,5,6,2 (counter-clockwise when viewed from outside)
     };
     
     // Process each block in the chunk
@@ -139,6 +128,9 @@ Mesh Chunk::buildMesh() const {
                         // Get brightness for this face
                         float brightness = getFaceBrightness(face);
                         
+                        // Compute base index for the 4 vertices of this face
+                        uint32_t base = vertices.size() / 6;
+                        
                         // Add vertices for this face
                         for (int i = 0; i < 6; ++i) {
                             int vertexIndex = faceIndices[face][i];
@@ -155,16 +147,13 @@ Mesh Chunk::buildMesh() const {
                             vertices.push_back(color.b);
                         }
                         
-                        // Add indices for this face
-                        uint32_t baseIndex = indexOffset;
-                        indices.push_back(baseIndex + 0);
-                        indices.push_back(baseIndex + 1);
-                        indices.push_back(baseIndex + 2);
-                        indices.push_back(baseIndex + 2);
-                        indices.push_back(baseIndex + 3);
-                        indices.push_back(baseIndex + 0);
-                        
-                        indexOffset += 4;
+                        // Add indices for this face (two triangles per face)
+                        indices.push_back(base + 0);
+                        indices.push_back(base + 1);
+                        indices.push_back(base + 2);
+                        indices.push_back(base + 0);
+                        indices.push_back(base + 2);
+                        indices.push_back(base + 3);
                     }
                 }
             }
