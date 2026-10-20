@@ -1,37 +1,53 @@
-#include "Player.h"
-#include "core/Window.h"
-#include <glm/gtc/matrix_transform.hpp>
+#include "game/Player.h"
+#include "world/World.h"
+#include <cmath>
+#include <algorithm>
 
-Player::Player(Window& window, Camera& camera) 
-    : m_window(window), m_camera(camera), m_position(0.0f, 50.0f, 0.0f) {
-    // Initialize player state
-    m_camera.Position = m_position;
+bool Player::collides(const World& world, const glm::vec3& p) const {
+    int x0 = (int)std::floor(p.x - HALF_WIDTH);
+    int x1 = (int)std::floor(p.x + HALF_WIDTH - 0.001f);
+    int y0 = (int)std::floor(p.y);
+    int y1 = (int)std::floor(p.y + HEIGHT - 0.001f);
+    int z0 = (int)std::floor(p.z - HALF_WIDTH);
+    int z1 = (int)std::floor(p.z + HALF_WIDTH - 0.001f);
+
+    for (int x = x0; x <= x1; ++x)
+        for (int y = y0; y <= y1; ++y)
+            for (int z = z0; z <= z1; ++z)
+                if (world.isSolid(x, y, z)) return true;
+    return false;
 }
 
-void Player::update(float deltaTime) {
-    // Get mouse delta
-    SDL_Point mouseDelta = m_window.getMouseDelta();
-    
-    // Process mouse input for camera rotation
-    if (mouseDelta.x != 0 || mouseDelta.y != 0) {
-        m_camera.processMouse(mouseDelta.x, mouseDelta.y);
+void Player::update(float dt, const World& world, glm::vec3 moveDir, bool jump) {
+    velocity.x = moveDir.x * WALK_SPEED;
+    velocity.z = moveDir.z * WALK_SPEED;
+
+    if (jump && onGround) velocity.y = JUMP_SPEED;
+    velocity.y -= GRAVITY * dt;
+    velocity.y = std::max(velocity.y, -50.0f);
+
+    // X axis
+    float old = position.x;
+    position.x += velocity.x * dt;
+    if (collides(world, position)) { position.x = old; velocity.x = 0.0f; }
+
+    // Y axis
+    old = position.y;
+    position.y += velocity.y * dt;
+    if (collides(world, position)) {
+        onGround = (velocity.y <= 0.0f);
+        position.y = old;
+        velocity.y = 0.0f;
+    } else {
+        onGround = false;
     }
-    
-    // Handle keyboard input for movement
-    bool forward = m_window.isKeyDown(SDL_SCANCODE_W);
-    bool back = m_window.isKeyDown(SDL_SCANCODE_S);
-    bool left = m_window.isKeyDown(SDL_SCANCODE_A);
-    bool right = m_window.isKeyDown(SDL_SCANCODE_D);
-    bool up = m_window.isKeyDown(SDL_SCANCODE_SPACE);
-    bool down = m_window.isKeyDown(SDL_SCANCODE_LSHIFT);
-    
-    // Update camera position based on input
-    m_camera.processKeyboard(forward, back, left, right, up, down, deltaTime);
-    
-    // Update player position to match camera position
-    m_position = m_camera.Position;
+
+    // Z axis
+    old = position.z;
+    position.z += velocity.z * dt;
+    if (collides(world, position)) { position.z = old; velocity.z = 0.0f; }
 }
 
-glm::vec3 Player::getPosition() const {
-    return m_position;
+glm::vec3 Player::getEyePosition() const {
+    return position + glm::vec3(0.0f, EYE_HEIGHT, 0.0f);
 }

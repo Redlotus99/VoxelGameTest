@@ -24,11 +24,6 @@ void Camera::processMouse(float dx, float dy) {
     if (Pitch < PITCH_MIN) Pitch = PITCH_MIN;
     
     updateCameraVectors();
-    
-    // Temporary debug output
-    if (dx != 0 || dy != 0) {
-        std::cout << "Mouse delta: dx=" << dx << ", dy=" << dy << std::endl;
-    }
 }
 
 void Camera::processKeyboard(bool forward, bool back, bool left, bool right, bool up, bool down, float dt) {

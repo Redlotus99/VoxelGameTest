@@ -38,6 +38,7 @@ add_executable(${PROJECT_NAME}
     src/render/Mesh.cpp
     src/world/Chunk.cpp
     src/world/World.cpp
+    src/game/Player.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
