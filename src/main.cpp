@@ -12,7 +12,7 @@
 
 int main(int argc, char* argv[]) {
     try {
-        Window window(800, 600, "Voxel Game");
+        Window window(1280, 720, "Voxel Game");
         
         // Enable depth testing and face culling
         glEnable(GL_DEPTH_TEST);
@@ -99,7 +99,7 @@ int main(int argc, char* argv[]) {
             ourShader.use();
             
             // Projection matrix
-            float aspectRatio = 800.0f / 600.0f;
+            float aspectRatio = (float)window.getWidth() / (float)window.getHeight();
             glm::mat4 projection = camera.getProjectionMatrix(aspectRatio);
             
             // View matrix

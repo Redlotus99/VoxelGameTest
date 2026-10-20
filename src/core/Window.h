@@ -43,6 +43,10 @@ public:
         return keyboardState[scancode];
     }
 
+    // Window size methods
+    int getWidth() const;
+    int getHeight() const;
+
 private:
     SDL_Window* m_window;
     SDL_GLContext m_glContext;
@@ -52,6 +56,10 @@ private:
     int m_mouseXrel;
     int m_mouseYrel;
     std::array<bool, 6> m_mousePressed;
+    
+    // Window dimensions
+    int m_width;
+    int m_height;
 };
 
 #endif // WINDOW_H

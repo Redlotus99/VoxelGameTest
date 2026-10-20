@@ -9,7 +9,9 @@ Window::Window(int width, int height, const std::string& title)
     , m_glContext(nullptr)
     , should_close_(false)
     , m_mouseXrel(0)
-    , m_mouseYrel(0) {
+    , m_mouseYrel(0)
+    , m_width(width)
+    , m_height(height) {
     
     // Initialize SDL
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -29,7 +31,7 @@ Window::Window(int width, int height, const std::string& title)
         SDL_WINDOWPOS_CENTERED,
         width,
         height,
-        SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN
+        SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE
     );
 
     if (!m_window) {
@@ -100,6 +102,12 @@ void Window::update() {
             if (event.button.button >= 0 && event.button.button < static_cast<int>(m_mousePressed.size())) {
                 m_mousePressed[event.button.button] = true;
             }
+        } else if (event.type == SDL_WINDOWEVENT) {
+            if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+                m_width = event.window.data1;
+                m_height = event.window.data2;
+                glViewport(0, 0, m_width, m_height);
+            }
         }
     }
 }
@@ -110,4 +118,12 @@ bool Window::shouldClose() const {
 
 void Window::setShouldClose(bool close) {
     should_close_ = close;
+}
+
+int Window::getWidth() const {
+    return m_width;
+}
+
+int Window::getHeight() const {
+    return m_height;
 }
