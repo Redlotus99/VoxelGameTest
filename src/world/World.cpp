@@ -175,8 +175,7 @@ void World::generateCornerCutTestArrangement() {
         }
     }
 
-    // One cut joined to cubes, plus two separated examples for viewing the
-    // diagonal surface from different angles.
+    // Bottom-corner cut examples, retained as isolated reference shapes.
     setBlockWorld(7, platformY + 1, 7, BlockType::Stone);
     setBlockShapeWorld(7, platformY + 1, 7, BlockShape::CornerCutSouthWest);
     setBlockWorld(8, platformY + 1, 7, BlockType::Stone);
@@ -185,16 +184,18 @@ void World::generateCornerCutTestArrangement() {
     setBlockWorld(10, platformY + 1, 7, BlockType::Stone);
     setBlockShapeWorld(10, platformY + 1, 7, BlockShape::CornerCutSouthWest);
 
-    setBlockWorld(10, platformY + 1, 9, BlockType::Stone);
-    setBlockShapeWorld(10, platformY + 1, 9, BlockShape::CornerCutSouthWest);
-
-    // Compare the opposite cut direction: remove the top southwest corner.
-    // One example is joined to full cubes so the transition can be inspected.
+    // Main L-shaped test: two ramps rise toward the center from the west and
+    // south. The center cell removes its top southwest corner, leaving the
+    // opposite bottom corner as the point of the diagonal face.
+    // RampEast rises toward +X; RampNorth rises toward +Z.
+    setBlockWorld(7, platformY + 1, 10, BlockType::Stone);
+    setBlockShapeWorld(7, platformY + 1, 10, BlockShape::RampEast);
+    setBlockWorld(8, platformY + 1, 9, BlockType::Stone);
+    setBlockShapeWorld(8, platformY + 1, 9, BlockShape::RampNorth);
     setBlockWorld(8, platformY + 1, 10, BlockType::Stone);
     setBlockShapeWorld(8, platformY + 1, 10, BlockShape::CornerCutTopSouthWest);
-    setBlockWorld(9, platformY + 1, 10, BlockType::Stone);
-    setBlockWorld(8, platformY + 1, 11, BlockType::Stone);
 
+    // A second isolated top-corner cut makes its diagonal easier to inspect.
     setBlockWorld(11, platformY + 1, 11, BlockType::Stone);
     setBlockShapeWorld(11, platformY + 1, 11, BlockShape::CornerCutTopSouthWest);
 }
