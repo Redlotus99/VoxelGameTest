@@ -6,7 +6,7 @@ Natural terrain and player construction use the same grid-cell shape definitions
 
 ## Current prototype constraints
 
-The current world stores one `BlockType` and one `BlockShape` per cell. `Chunk::buildMesh` supports cube/ramp profiles and explicit corner-cut templates. `World::raycast` traverses grid cells, and `Player::collides` treats every non-air cell as a full cube. The cut shapes are rendering milestones, not yet fully interactive collision shapes. The supporting mesh preserves the triangular portion of a full block's top face exposed beneath a bottom-corner cut; beneath a top-corner cut, the supporting block's full top remains exposed because the cut shape touches it only at a point. The opt-in `--shape-test` mode builds an elevated stone platform with the validated southwest-cut L-junction, isolated cut references, and three rotated L-junctions for the northwest, northeast, and southeast cut variants. Terrain generation samples neighboring surface shapes in world coordinates and selects a matching top-corner cut for all four rotated versions of the validated perpendicular-ramp pairing. All four top-corner cut orientations share one mesh template.
+The current world stores one `BlockType` and one `BlockShape` per cell. `Chunk::buildMesh` supports cube/ramp profiles and explicit corner-cut templates. `World::raycast` traverses grid cells, and `Player::collides` treats every non-air cell as a full cube. The cut shapes are rendering milestones, not yet fully interactive collision shapes. The supporting mesh preserves the triangular portion of a full block's top face exposed beneath a bottom-corner cut; beneath a top-corner cut, the supporting block's full top remains exposed because the cut shape touches it only at a point. The opt-in `--shape-test` mode builds an elevated stone platform with the validated southwest-cut L-junction, isolated cut references, one isolated single-corner wedge, and three rotated L-junctions for the northwest, northeast, and southeast cut variants. Terrain generation samples neighboring surface shapes in world coordinates and selects a matching top-corner cut for all four rotated versions of the validated perpendicular-ramp pairing. All four top-corner cut orientations share one mesh template.
 
 ## Proposed cell model
 
@@ -23,6 +23,7 @@ Material and shape must not be conflated. A grass ramp and a stone ramp are the 
 - Full cube.
 - Four directional ramps (one for each horizontal direction).
 - Four corner-transition wedges, each with one low corner and three high corners, for cases where two slopes converge around a cell.
+- Four single-corner wedge profiles, each with one high corner sloping down to the other three corners. These are useful for testing isolated triangular-looking terrain transitions.
 - **Bottom-corner cut:** removes the bottom southwest corner using a diagonal plane from one upper corner to two lower corners.
 - **Top-corner cut (front corner removed):** removes the top southwest corner, leaving the two back corners and one front corner on the triangular top.
 - **Complementary top-corner cut (back corner removed):** removes the top northeast corner, leaving the two front corners and one back corner on the triangular top.
