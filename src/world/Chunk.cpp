@@ -257,6 +257,63 @@ Mesh Chunk::buildMesh(
                     continue;
                 }
 
+                // Complementary explicit wedge: remove the top northeast corner.
+                // The top triangle keeps SW, SE, and NW; the diagonal cut joins
+                // bottom SW to top SE and top NW.
+                if (shape == BlockShape::CornerCutTopNorthEast) {
+                    for (int face = 0; face < 6; ++face) {
+                        int nx = x, ny = y, nz = z;
+                        switch (face) {
+                            case 0: ++ny; break;
+                            case 1: --ny; break;
+                            case 2: ++nx; break;
+                            case 3: --nx; break;
+                            case 4: ++nz; break;
+                            case 5: --nz; break;
+                        }
+
+                        BlockType neighbor = BlockType::Air;
+                        if (nx >= 0 && nx < SIZE_X && ny >= 0 && ny < SIZE_Y &&
+                            nz >= 0 && nz < SIZE_Z) {
+                            neighbor = getBlock(nx, ny, nz);
+                        } else {
+                            neighbor = getWorldBlock(
+                                m_position.x * SIZE_X + nx, ny,
+                                m_position.z * SIZE_Z + nz);
+                        }
+                        if (neighbor != BlockType::Air) {
+                            continue;
+                        }
+
+                        glm::vec3 corners[4];
+                        for (int i = 0; i < 4; ++i) {
+                            corners[i] = glm::vec3(
+                                x + faceCorners[face][i][0],
+                                y + faceCorners[face][i][1],
+                                z + faceCorners[face][i][2]);
+                        }
+                        const glm::vec3 color = baseColor * getFaceBrightness(face);
+
+                        // The top, +X, and +Z faces touch the removed corner.
+                        if (face == 0) {
+                            emitTriangle(corners[0], corners[2], corners[3], color);
+                        } else if (face == 2) {
+                            emitTriangle(corners[0], corners[1], corners[2], color);
+                        } else if (face == 4) {
+                            emitTriangle(corners[0], corners[1], corners[3], color);
+                        } else {
+                            emitQuad(corners, color);
+                        }
+                    }
+
+                    const glm::vec3 cutA(x, y, z);
+                    const glm::vec3 cutB(x, y + 1.0f, z + 1.0f);
+                    const glm::vec3 cutC(x + 1.0f, y + 1.0f, z);
+                    emitTriangle(cutA, cutB, cutC,
+                                 baseColor * getFaceBrightness(6));
+                    continue;
+                }
+
                 // Explicit mesh template for a cube with its bottom southwest
                 // corner removed by the plane x + y + z = 1. The three cut
                 // boundary faces are triangles; the opposite three remain
