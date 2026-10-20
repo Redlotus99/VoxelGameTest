@@ -221,7 +221,21 @@ Mesh Chunk::buildMesh(
                                 m_position.x * SIZE_X + nx, ny,
                                 m_position.z * SIZE_Z + nz);
                         }
-                        if (neighbor != BlockType::Air) {
+                        // A full cube completely covers this cell face, but a
+                        // ramp only covers part of it. Keep the cut-shape face
+                        // when adjacent to a non-cube so the slope transition
+                        // does not leave a visible gap.
+                        const BlockShape neighborShape = neighbor == BlockType::Air
+                            ? BlockShape::Cube
+                            : (nx >= 0 && nx < SIZE_X && ny >= 0 && ny < SIZE_Y &&
+                               nz >= 0 && nz < SIZE_Z)
+                                ? getBlockShape(nx, ny, nz)
+                                : getWorldShape(
+                                    m_position.x * SIZE_X + nx, ny,
+                                    m_position.z * SIZE_Z + nz);
+                        if (neighbor != BlockType::Air &&
+                            (neighborShape == BlockShape::Cube ||
+                             usesExplicitBlockShapeGeometry(neighborShape))) {
                             continue;
                         }
 
@@ -249,7 +263,7 @@ Mesh Chunk::buildMesh(
                     }
 
                     // The diagonal cut surface faces the removed top corner.
-                    const glm::vec3 cutA(x + 1.0f, y, z + 1.0f);
+                    const glm::vec3 cutA(x, y, z);
                     const glm::vec3 cutB(x, y + 1.0f, z + 1.0f);
                     const glm::vec3 cutC(x + 1.0f, y + 1.0f, z);
                     emitTriangle(cutA, cutB, cutC,
@@ -258,10 +272,8 @@ Mesh Chunk::buildMesh(
                 }
 
                 // Complementary explicit wedge: remove the top northeast corner.
-                // The top triangle keeps SW, SE, and NW. The diagonal cut plane
-                // joins bottom NE to top SE and top NW; using bottom SW here
-                // makes the triangle non-coplanar with the side-face edges and
-                // causes the diagonal surface to visibly clip.
+                // The top triangle keeps SW, SE, and NW; its diagonal face joins
+                // bottom SW to top NW and top SE.
                 if (shape == BlockShape::CornerCutTopNorthEast) {
                     for (int face = 0; face < 6; ++face) {
                         int nx = x, ny = y, nz = z;
@@ -283,7 +295,21 @@ Mesh Chunk::buildMesh(
                                 m_position.x * SIZE_X + nx, ny,
                                 m_position.z * SIZE_Z + nz);
                         }
-                        if (neighbor != BlockType::Air) {
+                        // A full cube completely covers this cell face, but a
+                        // ramp only covers part of it. Keep the cut-shape face
+                        // when adjacent to a non-cube so the slope transition
+                        // does not leave a visible gap.
+                        const BlockShape neighborShape = neighbor == BlockType::Air
+                            ? BlockShape::Cube
+                            : (nx >= 0 && nx < SIZE_X && ny >= 0 && ny < SIZE_Y &&
+                               nz >= 0 && nz < SIZE_Z)
+                                ? getBlockShape(nx, ny, nz)
+                                : getWorldShape(
+                                    m_position.x * SIZE_X + nx, ny,
+                                    m_position.z * SIZE_Z + nz);
+                        if (neighbor != BlockType::Air &&
+                            (neighborShape == BlockShape::Cube ||
+                             usesExplicitBlockShapeGeometry(neighborShape))) {
                             continue;
                         }
 
@@ -343,7 +369,21 @@ Mesh Chunk::buildMesh(
                                 m_position.x * SIZE_X + nx, ny,
                                 m_position.z * SIZE_Z + nz);
                         }
-                        if (neighbor != BlockType::Air) {
+                        // A full cube completely covers this cell face, but a
+                        // ramp only covers part of it. Keep the cut-shape face
+                        // when adjacent to a non-cube so the slope transition
+                        // does not leave a visible gap.
+                        const BlockShape neighborShape = neighbor == BlockType::Air
+                            ? BlockShape::Cube
+                            : (nx >= 0 && nx < SIZE_X && ny >= 0 && ny < SIZE_Y &&
+                               nz >= 0 && nz < SIZE_Z)
+                                ? getBlockShape(nx, ny, nz)
+                                : getWorldShape(
+                                    m_position.x * SIZE_X + nx, ny,
+                                    m_position.z * SIZE_Z + nz);
+                        if (neighbor != BlockType::Air &&
+                            (neighborShape == BlockShape::Cube ||
+                             usesExplicitBlockShapeGeometry(neighborShape))) {
                             continue;
                         }
 
