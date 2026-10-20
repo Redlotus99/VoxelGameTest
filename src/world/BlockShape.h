@@ -15,6 +15,11 @@ enum class BlockShape : std::uint8_t {
     CornerRampSouthEast,
     CornerRampNorthEast,
     CornerRampNorthWest,
+    // Wedge profiles with one raised corner sloping down to the other three.
+    CornerWedgeSouthWest,
+    CornerWedgeSouthEast,
+    CornerWedgeNorthEast,
+    CornerWedgeNorthWest,
     // Explicit mesh-template shapes: diagonal cuts remove a corner from
     // either the bottom or top of the cell.
     CornerCutSouthWest,
@@ -95,6 +100,14 @@ inline constexpr BlockShapeData getBlockShapeData(BlockShape shape) {
             return {{{1.0f, 1.0f, 0.0f, 1.0f}}};
         case BlockShape::CornerRampNorthWest:
             return {{{1.0f, 1.0f, 1.0f, 0.0f}}};
+        case BlockShape::CornerWedgeSouthWest:
+            return {{{1.0f, 0.0f, 0.0f, 0.0f}}};
+        case BlockShape::CornerWedgeSouthEast:
+            return {{{0.0f, 1.0f, 0.0f, 0.0f}}};
+        case BlockShape::CornerWedgeNorthEast:
+            return {{{0.0f, 0.0f, 1.0f, 0.0f}}};
+        case BlockShape::CornerWedgeNorthWest:
+            return {{{0.0f, 0.0f, 0.0f, 1.0f}}};
         case BlockShape::CornerCutSouthWest:
         case BlockShape::CornerCutTopSouthWest:
         case BlockShape::CornerCutTopNorthEast:
