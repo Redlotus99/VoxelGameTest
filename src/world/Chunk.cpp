@@ -309,7 +309,9 @@ Mesh Chunk::buildMesh(
                     const glm::vec3 cutA(x, y, z);
                     const glm::vec3 cutB(x, y + 1.0f, z + 1.0f);
                     const glm::vec3 cutC(x + 1.0f, y + 1.0f, z);
-                    emitTriangle(cutA, cutB, cutC,
+                    // Reverse winding so the diagonal's outward normal faces
+                    // the removed northeast corner.
+                    emitTriangle(cutA, cutC, cutB,
                                  baseColor * getFaceBrightness(6));
                     continue;
                 }
