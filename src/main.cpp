@@ -68,12 +68,16 @@ int main(int argc, char* argv[]) {
         // Main loop
         Uint32 lastTime = SDL_GetTicks();
         while (!window.shouldClose()) {
-            window.clear();
-            
             // Calculate delta time
             Uint32 currentTime = SDL_GetTicks();
             float deltaTime = (currentTime - lastTime) / 1000.0f; // Convert to seconds
             lastTime = currentTime;
+            
+            window.update();
+            
+            // Get mouse delta after update
+            int mouseDX = window.getMouseDX();
+            int mouseDY = window.getMouseDY();
             
             // Process input
             bool forward = window.isKeyDown(SDL_SCANCODE_W);
@@ -83,11 +87,10 @@ int main(int argc, char* argv[]) {
             bool up = window.isKeyDown(SDL_SCANCODE_SPACE);
             bool down = window.isKeyDown(SDL_SCANCODE_LSHIFT);
             
-            // Get mouse delta
-            SDL_Point mouseDelta = window.getMouseDelta();
-            
+            camera.processMouse(mouseDX, mouseDY);
             camera.processKeyboard(forward, back, left, right, up, down, deltaTime);
-            camera.processMouse(mouseDelta.x, mouseDelta.y);
+            
+            window.clear();
             
             // Use shader and set uniforms
             ourShader.use();
@@ -110,8 +113,6 @@ int main(int argc, char* argv[]) {
             glBindVertexArray(VAO);
             glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
             glBindVertexArray(0);
-            
-            window.update();
         }
         
         // Cleanup

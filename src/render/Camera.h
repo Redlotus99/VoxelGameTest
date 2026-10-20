@@ -9,6 +9,11 @@ public:
     glm::vec3 Position;
     float Yaw;
     float Pitch;
+    
+    // Camera vectors for lookAt
+    glm::vec3 Front;
+    glm::vec3 Up;
+    glm::vec3 Right;
 
     Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f));
 

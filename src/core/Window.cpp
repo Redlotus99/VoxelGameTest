@@ -50,7 +50,9 @@ Window::Window(int width, int height, const std::string& title)
     SDL_GL_SetSwapInterval(1);
     
     // Set relative mouse mode
-    SDL_SetRelativeMouseMode(SDL_TRUE);
+    if (SDL_SetRelativeMouseMode(SDL_TRUE) != 0) {
+        std::cerr << "Warning: Failed to set relative mouse mode: " << SDL_GetError() << std::endl;
+    }
 }
 
 Window::~Window() {
@@ -85,8 +87,8 @@ void Window::update() {
         } else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) {
             should_close_ = true;
         } else if (event.type == SDL_MOUSEMOTION) {
-            m_mouseXrel = event.motion.xrel;
-            m_mouseYrel = event.motion.yrel;
+            m_mouseXrel += event.motion.xrel;
+            m_mouseYrel += event.motion.yrel;
         }
     }
 }

@@ -24,6 +24,10 @@ public:
     SDL_Point getMouseDelta() const { return SDL_Point{m_mouseXrel, m_mouseYrel}; }
     void resetMouseDelta() { m_mouseXrel = 0; m_mouseYrel = 0; }
     
+    // For mouse motion accumulation
+    int getMouseDX() const { return m_mouseXrel; }
+    int getMouseDY() const { return m_mouseYrel; }
+    
     // Keyboard method
     bool isKeyDown(SDL_Scancode scancode) const {
         const Uint8* keyboardState = SDL_GetKeyboardState(NULL);
