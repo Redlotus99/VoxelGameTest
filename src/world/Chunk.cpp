@@ -4,27 +4,27 @@
 
 Chunk::Chunk() : m_position(0, 0, 0) {
     // Fill with Air by default
-    for (int i = 0; i < 4096; ++i) {
+    for (int i = 0; i < SIZE_X * SIZE_Y * SIZE_Z; ++i) {
         blocks[i] = BlockType::Air;
     }
 }
 
 Chunk::Chunk(glm::ivec3 pos) : m_position(pos) {
     // Fill with Air by default
-    for (int i = 0; i < 4096; ++i) {
+    for (int i = 0; i < SIZE_X * SIZE_Y * SIZE_Z; ++i) {
         blocks[i] = BlockType::Air;
     }
 }
 
 BlockType Chunk::getBlock(int x, int y, int z) const {
-    if (x < 0 || x >= 16 || y < 0 || y >= 16 || z < 0 || z >= 16) {
+    if (x < 0 || x >= SIZE_X || y < 0 || y >= SIZE_Y || z < 0 || z >= SIZE_Z) {
         return BlockType::Air;
     }
     return blocks[index(x, y, z)];
 }
 
 void Chunk::setBlock(int x, int y, int z, BlockType t) {
-    if (x < 0 || x >= 16 || y < 0 || y >= 16 || z < 0 || z >= 16) {
+    if (x < 0 || x >= SIZE_X || y < 0 || y >= SIZE_Y || z < 0 || z >= SIZE_Z) {
         return;
     }
     blocks[index(x, y, z)] = t;
@@ -32,8 +32,8 @@ void Chunk::setBlock(int x, int y, int z, BlockType t) {
 
 void Chunk::generateFlat() {
     // Generate flat terrain
-    for (int z = 0; z < 16; ++z) {
-        for (int x = 0; x < 16; ++x) {
+    for (int z = 0; z < SIZE_Z; ++z) {
+        for (int x = 0; x < SIZE_X; ++x) {
             // Stone layer (y from 0 to 7)
             for (int y = 0; y < 8; ++y) {
                 setBlock(x, y, z, BlockType::Stone);
@@ -47,8 +47,8 @@ void Chunk::generateFlat() {
             // Grass layer (y == 11)
             setBlock(x, 11, z, BlockType::Grass);
             
-            // Air above grass (y from 12 to 15)
-            for (int y = 12; y < 16; ++y) {
+            // Air above grass (y from 12 to SIZE_Y-1)
+            for (int y = 12; y < SIZE_Y; ++y) {
                 setBlock(x, y, z, BlockType::Air);
             }
         }
@@ -93,9 +93,9 @@ Mesh Chunk::buildMesh() const {
     };
     
     // Process each block in the chunk
-    for (int z = 0; z < 16; ++z) {
-        for (int y = 0; y < 16; ++y) {
-            for (int x = 0; x < 16; ++x) {
+    for (int z = 0; z < SIZE_Z; ++z) {
+        for (int y = 0; y < SIZE_Y; ++y) {
+            for (int x = 0; x < SIZE_X; ++x) {
                 BlockType blockType = getBlock(x, y, z);
                 
                 // Skip air blocks
