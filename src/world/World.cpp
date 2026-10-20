@@ -184,18 +184,16 @@ void World::generateCornerCutTestArrangement() {
     setBlockWorld(10, platformY + 1, 7, BlockType::Stone);
     setBlockShapeWorld(10, platformY + 1, 7, BlockShape::CornerCutSouthWest);
 
-    // Main L-shaped test: two differently oriented ramps rise into the
-    // shared southwest corner of the center cell. The west neighbor rises
-    // east (+X); the south neighbor rises north (+Z). Keep that shared corner
-    // intact and put the diagonal cut on the opposite (northeast) corner.
-    // Cutting the shared southwest top corner would leave a low point where
-    // both ramps meet, making the transition visibly misaligned.
+    // Main L-shaped test: rotate the west ramp one quarter-turn from east
+    // to north, and the south ramp one quarter-turn from north to east.
+    // Rotate the center diagonal wedge 180 degrees from the previous setup,
+    // changing the removed top corner from northeast to southwest.
     setBlockWorld(7, platformY + 1, 10, BlockType::Stone);
-    setBlockShapeWorld(7, platformY + 1, 10, BlockShape::RampEast);
+    setBlockShapeWorld(7, platformY + 1, 10, BlockShape::RampNorth);
     setBlockWorld(8, platformY + 1, 9, BlockType::Stone);
-    setBlockShapeWorld(8, platformY + 1, 9, BlockShape::RampNorth);
+    setBlockShapeWorld(8, platformY + 1, 9, BlockShape::RampEast);
     setBlockWorld(8, platformY + 1, 10, BlockType::Stone);
-    setBlockShapeWorld(8, platformY + 1, 10, BlockShape::CornerCutTopNorthEast);
+    setBlockShapeWorld(8, platformY + 1, 10, BlockShape::CornerCutTopSouthWest);
 
     // A second isolated top-corner cut makes its diagonal easier to inspect.
     setBlockWorld(11, platformY + 1, 11, BlockType::Stone);
