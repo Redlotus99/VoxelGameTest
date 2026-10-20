@@ -1,4 +1,5 @@
 #include "world/Chunk.h"
+#include <algorithm>
 #include <vector>
 #include <glm/glm.hpp>
 #include <glm/gtc/noise.hpp>
