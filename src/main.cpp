@@ -39,6 +39,7 @@ int main(int argc, char* argv[]) {
         
         // Main loop
         Uint32 lastTime = SDL_GetTicks();
+        bool previousJumpKey = false;
         while (!window.shouldClose()) {
             // Calculate delta time
             Uint32 currentTime = SDL_GetTicks();
@@ -61,7 +62,6 @@ int main(int argc, char* argv[]) {
             bool back = window.isKeyDown(SDL_SCANCODE_S);
             bool left = window.isKeyDown(SDL_SCANCODE_A);
             bool right = window.isKeyDown(SDL_SCANCODE_D);
-            bool up = window.isKeyDown(SDL_SCANCODE_SPACE);
             bool down = window.isKeyDown(SDL_SCANCODE_LSHIFT);
             bool jumpKey = window.isKeyDown(SDL_SCANCODE_SPACE);
             
@@ -85,12 +85,11 @@ int main(int argc, char* argv[]) {
                 moveDir = glm::normalize(moveDir);
             }
             
+            // Jump only on the key-down edge, not continuously while Space is held.
+            bool jump = jumpKey && !previousJumpKey;
+            previousJumpKey = jumpKey;
+
             // Update player
-            bool jump = false;
-            if (jumpKey) {
-                jump = true;
-            }
-            
             player.update(deltaTime, world, moveDir, jump);
             
             // Update camera to follow player
@@ -120,24 +119,23 @@ int main(int argc, char* argv[]) {
             }
             else if (window.wasMousePressed(SDL_BUTTON_RIGHT) && found) {
                 // Place block
-                // Check if the placement position overlaps with player AABB
-                bool overlaps = false;
-                
-                // Player's AABB bounds
-                float minX = player.position.x - Player::HALF_WIDTH;
-                float maxX = player.position.x + Player::HALF_WIDTH;
-                float minZ = player.position.z - Player::HALF_WIDTH;
-                float maxZ = player.position.z + Player::HALF_WIDTH;
-                float minY = player.position.y;
-                float maxY = player.position.y + Player::HEIGHT;
-                
-                // Check if prev position overlaps with player bounds
-                if (prev.x >= minX && prev.x <= maxX &&
-                    prev.z >= minZ && prev.z <= maxZ &&
-                    prev.y >= minY && prev.y <= maxY) {
-                    overlaps = true;
-                }
-                
+                // A placed block occupies [prev, prev + 1) on each axis.
+                // Reject placement if that cube intersects the player's AABB.
+                const float playerMinX = player.position.x - Player::HALF_WIDTH;
+                const float playerMaxX = player.position.x + Player::HALF_WIDTH;
+                const float playerMinY = player.position.y;
+                const float playerMaxY = player.position.y + Player::HEIGHT;
+                const float playerMinZ = player.position.z - Player::HALF_WIDTH;
+                const float playerMaxZ = player.position.z + Player::HALF_WIDTH;
+
+                const bool overlaps =
+                    static_cast<float>(prev.x + 1) > playerMinX &&
+                    static_cast<float>(prev.x) < playerMaxX &&
+                    static_cast<float>(prev.y + 1) > playerMinY &&
+                    static_cast<float>(prev.y) < playerMaxY &&
+                    static_cast<float>(prev.z + 1) > playerMinZ &&
+                    static_cast<float>(prev.z) < playerMaxZ;
+
                 if (!overlaps) {
                     world.setBlockWorld(prev.x, prev.y, prev.z, BlockType::Stone);
                 }
