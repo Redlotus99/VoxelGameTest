@@ -8,6 +8,10 @@
 
 class Chunk {
 public:
+    static constexpr int SIZE_X = 16;
+    static constexpr int SIZE_Y = 64;
+    static constexpr int SIZE_Z = 16;
+
     Chunk();
     Chunk(glm::ivec3 pos);
     
@@ -20,10 +24,6 @@ public:
     glm::ivec3 getPosition() const { return m_position; }
     
 private:
-    static constexpr int SIZE_X = 16;
-    static constexpr int SIZE_Y = 64;
-    static constexpr int SIZE_Z = 16;
-    
     static inline int index(int x, int y, int z) {
         return x + SIZE_X * (y + SIZE_Y * z);
     }
