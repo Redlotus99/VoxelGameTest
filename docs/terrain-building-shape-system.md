@@ -6,7 +6,7 @@ Natural terrain and player construction use the same grid-cell shape definitions
 
 ## Current prototype constraints
 
-The current world stores one `BlockType` and one `BlockShape` per cell. `Chunk::buildMesh` supports cube/ramp profiles and the first explicit corner-cut template. `World::raycast` traverses grid cells, and `Player::collides` treats every non-air cell as a full cube. The new cut shape is currently a rendering milestone, not yet a fully interactive collision shape.
+The current world stores one `BlockType` and one `BlockShape` per cell. `Chunk::buildMesh` supports cube/ramp profiles and the first explicit corner-cut template. `World::raycast` traverses grid cells, and `Player::collides` treats every non-air cell as a full cube. The new cut shape is currently a rendering milestone, not yet a fully interactive collision shape. An opt-in `--shape-test` mode builds an elevated stone platform with three corner-cut examples, including two adjacent to full cubes; ordinary launches leave the generated world unchanged.
 
 ## Proposed cell model
 
@@ -55,7 +55,7 @@ The current grid DDA raycast can remain useful for broad-phase cell traversal, b
 1. Add the shape vocabulary and shared data contract.
 2. Make cells store material plus shape, preserving cube defaults for existing world generation.
 3. Render cube and ramp geometry using shared shape definitions.
-4. Add one explicit corner-cut mesh template and validate its visible faces.
+4. Add one explicit corner-cut mesh template and validate its visible faces (`VoxelGame.exe --shape-test` on Windows; launch the built executable with `--shape-test`).
 5. Add the other cut orientations and neighboring partial-shape surface handling.
 6. Add shape-aware picking and placement.
 7. Add slope collision and grounding.
