@@ -24,3 +24,6 @@
 - Never change files outside the ones I /add unless you tell me first
 - Do not rewrite working code when adding a feature; make minimal edits
 - Every new .cpp must be added to CMakeLists.txt
+- Always create files at the exact path given. Never create source files in the project root.
+- Write complete code. Never use placeholder comments like "... existing code ...".
+- Include <glad/glad.h> before any SDL header; never use GLEW.
