@@ -1,2 +1,36 @@
+
+# Existing rules
 build/
 .aider*
+
+# CMake generated files
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+
+# Compiled C++ output
+*.exe
+*.dll
+*.obj
+*.o
+*.lib
+*.pdb
+*.ilk
+
+# Visual Studio generated files
+.vs/
+Debug/
+Release/
+x64/
+x86/
+
+# VS Code workspace settings
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# OS files
+Thumbs.db
+.DS_Store
