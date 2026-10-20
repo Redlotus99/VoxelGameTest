@@ -198,6 +198,11 @@ void World::generateCornerCutTestArrangement() {
     // A second isolated top-corner cut makes its diagonal easier to inspect.
     setBlockWorld(11, platformY + 1, 11, BlockType::Stone);
     setBlockShapeWorld(11, platformY + 1, 11, BlockShape::CornerCutTopSouthWest);
+
+    // Complementary wedge: keep both front corners and one back corner,
+    // removing the top northeast corner. Compare it with the shape at (11, 41, 11).
+    setBlockWorld(12, platformY + 1, 7, BlockType::Stone);
+    setBlockShapeWorld(12, platformY + 1, 7, BlockShape::CornerCutTopNorthEast);
 }
 
 bool World::raycast(glm::vec3 origin, glm::vec3 dir, float maxDist, glm::ivec3& hitBlock, glm::ivec3& prevBlock) const {
