@@ -196,6 +196,65 @@ Mesh Chunk::buildMesh(
                 const BlockShape shape = getBlockShape(x, y, z);
                 const glm::vec3 baseColor = getBlockColor(blockType);
 
+                // Explicit mesh template that removes the top southwest
+                // corner. The diagonal plane x + y + z = 2 joins one bottom
+                // corner to two top corners, smoothing a protruding corner
+                // where two adjacent slopes meet.
+                if (shape == BlockShape::CornerCutTopSouthWest) {
+                    for (int face = 0; face < 6; ++face) {
+                        int nx = x, ny = y, nz = z;
+                        switch (face) {
+                            case 0: ++ny; break;
+                            case 1: --ny; break;
+                            case 2: ++nx; break;
+                            case 3: --nx; break;
+                            case 4: ++nz; break;
+                            case 5: --nz; break;
+                        }
+
+                        BlockType neighbor = BlockType::Air;
+                        if (nx >= 0 && nx < SIZE_X && ny >= 0 && ny < SIZE_Y &&
+                            nz >= 0 && nz < SIZE_Z) {
+                            neighbor = getBlock(nx, ny, nz);
+                        } else {
+                            neighbor = getWorldBlock(
+                                m_position.x * SIZE_X + nx, ny,
+                                m_position.z * SIZE_Z + nz);
+                        }
+                        if (neighbor != BlockType::Air) {
+                            continue;
+                        }
+
+                        glm::vec3 corners[4];
+                        for (int i = 0; i < 4; ++i) {
+                            corners[i] = glm::vec3(
+                                x + faceCorners[face][i][0],
+                                y + faceCorners[face][i][1],
+                                z + faceCorners[face][i][2]);
+                        }
+                        const glm::vec3 color = baseColor * getFaceBrightness(face);
+
+                        // Only the top, +X, and +Z faces have visible area.
+                        // Each is triangular after the top southwest corner
+                        // is removed; the other three faces collapse to edges.
+                        if (face == 0) { // top: omit the southwest corner
+                            emitTriangle(corners[0], corners[1], corners[2], color);
+                        } else if (face == 2) { // +X: omit bottom southeast
+                            emitTriangle(corners[0], corners[2], corners[3], color);
+                        } else if (face == 4) { // +Z: omit bottom southwest
+                            emitTriangle(corners[1], corners[2], corners[3], color);
+                        }
+                    }
+
+                    // The diagonal cut surface faces the removed top corner.
+                    const glm::vec3 cutA(x + 1.0f, y, z + 1.0f);
+                    const glm::vec3 cutB(x, y + 1.0f, z + 1.0f);
+                    const glm::vec3 cutC(x + 1.0f, y + 1.0f, z);
+                    emitTriangle(cutA, cutB, cutC,
+                                 baseColor * getFaceBrightness(6));
+                    continue;
+                }
+
                 // Explicit mesh template for a cube with its bottom southwest
                 // corner removed by the plane x + y + z = 1. The three cut
                 // boundary faces are triangles; the opposite three remain
@@ -290,9 +349,10 @@ Mesh Chunk::buildMesh(
                         neighborShape != BlockShape::Cube &&
                         !usesExplicitBlockShapeGeometry(neighborShape);
 
-                    // A corner-cut block above this cube leaves the
-                    // southwest triangle of this cube's top exposed. Do not
-                    // discard the whole top face just because that cell is occupied.
+                    // A bottom-corner cut above this cube leaves only a
+                    // triangle exposed. A top-corner cut above touches the
+                    // supporting cube at only one point, so its whole top is
+                    // still exposed and must remain visible.
                     if (face == 0 && neighborBlock != BlockType::Air &&
                         neighborShape == BlockShape::CornerCutSouthWest) {
                         const glm::vec3 topSouthWest(x, y + 1.0f, z);
@@ -300,6 +360,16 @@ Mesh Chunk::buildMesh(
                         const glm::vec3 topSouthEast(x + 1.0f, y + 1.0f, z);
                         emitTriangle(topSouthWest, topNorthWest, topSouthEast,
                                      baseColor * getFaceBrightness(face));
+                    } else if (face == 0 && neighborBlock != BlockType::Air &&
+                               neighborShape == BlockShape::CornerCutTopSouthWest) {
+                        glm::vec3 topCorners[4];
+                        for (int i = 0; i < 4; ++i) {
+                            topCorners[i] = glm::vec3(
+                                x + faceCorners[0][i][0],
+                                y + faceCorners[0][i][1],
+                                z + faceCorners[0][i][2]);
+                        }
+                        emitQuad(topCorners, baseColor * getFaceBrightness(face));
                     }
 
                     if (neighborBlock == BlockType::Air || clipSideAgainstRamp) {
