@@ -47,3 +47,7 @@ target_link_libraries(${PROJECT_NAME}
     glad
     ${GLFW_LIBRARIES}
 )
+
+add_custom_command(TARGET VoxelGame POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:SDL2> $<TARGET_FILE_DIR:VoxelGame>)

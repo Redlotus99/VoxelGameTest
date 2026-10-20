@@ -1,3 +1,4 @@
+#define SDL_MAIN_HANDLED
 #include "core/Window.h"
 #include <glad/glad.h>
 #include <iostream>
