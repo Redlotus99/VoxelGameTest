@@ -187,6 +187,16 @@ void World::generateCornerCutTestArrangement() {
 
     setBlockWorld(10, platformY + 1, 9, BlockType::Stone);
     setBlockShapeWorld(10, platformY + 1, 9, BlockShape::CornerCutSouthWest);
+
+    // Compare the opposite cut direction: remove the top southwest corner.
+    // One example is joined to full cubes so the transition can be inspected.
+    setBlockWorld(8, platformY + 1, 10, BlockType::Stone);
+    setBlockShapeWorld(8, platformY + 1, 10, BlockShape::CornerCutTopSouthWest);
+    setBlockWorld(9, platformY + 1, 10, BlockType::Stone);
+    setBlockWorld(8, platformY + 1, 11, BlockType::Stone);
+
+    setBlockWorld(11, platformY + 1, 11, BlockType::Stone);
+    setBlockShapeWorld(11, platformY + 1, 11, BlockShape::CornerCutTopSouthWest);
 }
 
 bool World::raycast(glm::vec3 origin, glm::vec3 dir, float maxDist, glm::ivec3& hitBlock, glm::ivec3& prevBlock) const {
