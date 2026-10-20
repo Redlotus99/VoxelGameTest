@@ -321,7 +321,7 @@ Mesh Chunk::buildMesh(
                     glm::vec3 cutC = cutTopZ;
                     const glm::vec3 cutCenter = (cutA + cutB + cutC) / 3.0f;
                     const glm::vec3 normal = glm::cross(cutB - cutA, cutC - cutA);
-                    if (glm::dot(normal, removedTop - cutCenter) > 0.0f) {
+                    if (glm::dot(normal, removedTop - cutCenter) < 0.0f) {
                         std::swap(cutB, cutC);
                     }
                     emitTriangle(cutA, cutB, cutC,
