@@ -37,6 +37,7 @@ add_executable(${PROJECT_NAME}
     src/render/Camera.cpp
     src/render/Mesh.cpp
     src/world/Chunk.cpp
+    src/world/World.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE

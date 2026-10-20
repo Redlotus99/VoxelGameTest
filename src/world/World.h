@@ -2,6 +2,7 @@
 
 #include <unordered_map>
 #include <memory>
+#include <cstdint>
 #include "world/Chunk.h"
 #include "render/Mesh.h"
 #include <glm/glm.hpp>
@@ -15,7 +16,7 @@ public:
 
     void generate(int radius);
     Chunk* getChunk(glm::ivec3 position);
-    void draw(Shader& shader, const glm::mat4& viewProj);
+    void draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection);
 
 private:
     int64_t packCoordinates(glm::ivec3 coords) const;
