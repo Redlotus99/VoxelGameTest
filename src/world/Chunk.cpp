@@ -4,16 +4,18 @@
 #include <glm/gtc/noise.hpp>
 
 Chunk::Chunk() : m_position(0, 0, 0) {
-    // Fill with Air by default
+    // Fill with Air and default every cell to a cube shape.
     for (int i = 0; i < SIZE_X * SIZE_Y * SIZE_Z; ++i) {
         blocks[i] = BlockType::Air;
+        shapes[i] = BlockShape::Cube;
     }
 }
 
 Chunk::Chunk(glm::ivec3 pos) : m_position(pos) {
-    // Fill with Air by default
+    // Fill with Air and default every cell to a cube shape.
     for (int i = 0; i < SIZE_X * SIZE_Y * SIZE_Z; ++i) {
         blocks[i] = BlockType::Air;
+        shapes[i] = BlockShape::Cube;
     }
 }
 
@@ -28,7 +30,30 @@ void Chunk::setBlock(int x, int y, int z, BlockType t) {
     if (x < 0 || x >= SIZE_X || y < 0 || y >= SIZE_Y || z < 0 || z >= SIZE_Z) {
         return;
     }
-    blocks[index(x, y, z)] = t;
+
+    const int cellIndex = index(x, y, z);
+    blocks[cellIndex] = t;
+    if (t == BlockType::Air) {
+        shapes[cellIndex] = BlockShape::Cube;
+    }
+}
+
+BlockShape Chunk::getBlockShape(int x, int y, int z) const {
+    if (x < 0 || x >= SIZE_X || y < 0 || y >= SIZE_Y || z < 0 || z >= SIZE_Z) {
+        return BlockShape::Cube;
+    }
+    return shapes[index(x, y, z)];
+}
+
+void Chunk::setBlockShape(int x, int y, int z, BlockShape shape) {
+    if (x < 0 || x >= SIZE_X || y < 0 || y >= SIZE_Y || z < 0 || z >= SIZE_Z) {
+        return;
+    }
+
+    const int cellIndex = index(x, y, z);
+    if (blocks[cellIndex] != BlockType::Air) {
+        shapes[cellIndex] = shape;
+    }
 }
 
 void Chunk::generateFlat() {
