@@ -70,6 +70,24 @@ BlockType World::getBlockWorld(int wx, int wy, int wz) const {
     return chunk->getBlock(localX, wy, localZ);
 }
 
+BlockShape World::getBlockShapeWorld(int wx, int wy, int wz) const {
+    if (wy < 0 || wy >= Chunk::SIZE_Y) {
+        return BlockShape::Cube;
+    }
+
+    const int chunkX = static_cast<int>(std::floor(static_cast<float>(wx) / Chunk::SIZE_X));
+    const int chunkZ = static_cast<int>(std::floor(static_cast<float>(wz) / Chunk::SIZE_Z));
+    const glm::ivec3 chunkPos(chunkX, 0, chunkZ);
+    const auto it = m_chunks.find(packCoordinates(chunkPos));
+    if (it == m_chunks.end()) {
+        return BlockShape::Cube;
+    }
+
+    const int localX = wx - chunkX * Chunk::SIZE_X;
+    const int localZ = wz - chunkZ * Chunk::SIZE_Z;
+    return it->second->getBlockShape(localX, wy, localZ);
+}
+
 bool World::isSolid(int wx, int wy, int wz) const {
     return getBlockWorld(wx, wy, wz) != BlockType::Air;
 }
@@ -237,12 +255,15 @@ void World::draw(Shader& shader, const glm::mat4& view, const glm::mat4& project
         // Get or build mesh for this chunk
         auto meshIt = m_meshes.find(packed);
         if (meshIt == m_meshes.end()) {
-            // Build mesh and store it using lambda to get world blocks
+            // Build mesh with world lookups for both material and shape.
             auto getWorldBlock = [this](int wx, int wy, int wz) -> BlockType {
                 return getBlockWorld(wx, wy, wz);
             };
+            auto getWorldShape = [this](int wx, int wy, int wz) -> BlockShape {
+                return getBlockShapeWorld(wx, wy, wz);
+            };
             
-            Mesh mesh = chunk->buildMesh(getWorldBlock);
+            Mesh mesh = chunk->buildMesh(getWorldBlock, getWorldShape);
             meshIt = m_meshes.emplace(packed, std::move(mesh)).first;
         }
         
