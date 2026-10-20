@@ -7,6 +7,7 @@
 #include "render/LineRenderer.h"
 #include <glad/glad.h>
 #include <iostream>
+#include <string>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -30,12 +31,21 @@ int main(int argc, char* argv[]) {
         // Create and generate world
         World world;
         world.generate(2);
+
+        const bool shapeTestMode = argc > 1 && std::string(argv[1]) == "--shape-test";
+        if (shapeTestMode) {
+            world.generateCornerCutTestArrangement();
+        }
         
         // Camera setup
         Camera camera(glm::vec3(8.0f, 16.0f, 24.0f));
         
         // Create player
         Player player;
+        if (shapeTestMode) {
+            // Start on the elevated test platform, looking toward the shapes.
+            player.position = glm::vec3(8.5f, 41.05f, 10.5f);
+        }
         
         // Main loop
         Uint32 lastTime = SDL_GetTicks();
