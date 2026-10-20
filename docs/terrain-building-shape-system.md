@@ -6,7 +6,7 @@ Natural terrain and player construction use the same grid-cell shape definitions
 
 ## Current prototype constraints
 
-The current world stores one `BlockType` and one `BlockShape` per cell. `Chunk::buildMesh` supports cube/ramp profiles and explicit corner-cut templates. `World::raycast` traverses grid cells, and `Player::collides` treats every non-air cell as a full cube. The cut shapes are rendering milestones, not yet fully interactive collision shapes. The supporting mesh preserves the triangular portion of a full block's top face exposed beneath a bottom-corner cut; beneath a top-corner cut, the supporting block's full top remains exposed because the cut shape touches it only at a point. The opt-in `--shape-test` mode builds an elevated stone platform with both cut orientations and examples joined to full cubes; ordinary launches leave the generated world unchanged.
+The current world stores one `BlockType` and one `BlockShape` per cell. `Chunk::buildMesh` supports cube/ramp profiles and explicit corner-cut templates. `World::raycast` traverses grid cells, and `Player::collides` treats every non-air cell as a full cube. The cut shapes are rendering milestones, not yet fully interactive collision shapes. The supporting mesh preserves the triangular portion of a full block's top face exposed beneath a bottom-corner cut; beneath a top-corner cut, the supporting block's full top remains exposed because the cut shape touches it only at a point. The opt-in `--shape-test` mode builds an elevated stone platform with both cut orientations, an L-shaped pair of `RampEast`/`RampNorth` slopes feeding into a `CornerCutTopSouthWest` center block, and isolated reference shapes; ordinary launches leave the generated world unchanged.
 
 ## Proposed cell model
 
