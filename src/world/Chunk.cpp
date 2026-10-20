@@ -98,17 +98,41 @@ void Chunk::generateTerrain() {
         const int eastHeight = sampleHeight(worldX + 1, worldZ);
         const int westHeight = sampleHeight(worldX - 1, worldZ);
 
-        // A ramp is used only for a clean one-block drop along one axis.
-        if (northHeight == height && southHeight == height - 1) {
+        // A directional ramp must be part of a continuous strip of the
+        // same profile. Checking only the heights in front and behind can
+        // create a ramp beside a cube or a differently oriented ramp, leaving
+        // an incompatible raised edge along the side of the slope.
+        //
+        // Require both side-neighbor columns to have the same height and
+        // verify their front/back heights too. This makes the adjacent cells
+        // choose the same ramp orientation, so their shared top edges agree.
+        const int northEastHeight = sampleHeight(worldX + 1, worldZ + 1);
+        const int northWestHeight = sampleHeight(worldX - 1, worldZ + 1);
+        const int southEastHeight = sampleHeight(worldX + 1, worldZ - 1);
+        const int southWestHeight = sampleHeight(worldX - 1, worldZ - 1);
+
+        if (northHeight == height && southHeight == height - 1 &&
+            eastHeight == height && westHeight == height &&
+            northEastHeight == height && northWestHeight == height &&
+            southEastHeight == height - 1 && southWestHeight == height - 1) {
             return BlockShape::RampNorth;
         }
-        if (southHeight == height && northHeight == height - 1) {
+        if (southHeight == height && northHeight == height - 1 &&
+            eastHeight == height && westHeight == height &&
+            southEastHeight == height && southWestHeight == height &&
+            northEastHeight == height - 1 && northWestHeight == height - 1) {
             return BlockShape::RampSouth;
         }
-        if (eastHeight == height && westHeight == height - 1) {
+        if (eastHeight == height && westHeight == height - 1 &&
+            northHeight == height && southHeight == height &&
+            northEastHeight == height && southEastHeight == height &&
+            northWestHeight == height - 1 && southWestHeight == height - 1) {
             return BlockShape::RampEast;
         }
-        if (westHeight == height && eastHeight == height - 1) {
+        if (westHeight == height && eastHeight == height - 1 &&
+            northHeight == height && southHeight == height &&
+            northWestHeight == height && southWestHeight == height &&
+            northEastHeight == height - 1 && southEastHeight == height - 1) {
             return BlockShape::RampWest;
         }
         return BlockShape::Cube;
