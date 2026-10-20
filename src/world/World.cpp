@@ -203,6 +203,11 @@ void World::generateCornerCutTestArrangement() {
     setBlockWorld(12, platformY + 1, 7, BlockType::Stone);
     setBlockShapeWorld(12, platformY + 1, 7, BlockShape::CornerCutTopNorthEast);
 
+    // Isolated single-corner wedge: one raised northeast corner slopes down
+    // toward the other three corners. Kept separate to inspect its silhouette.
+    setBlockWorld(15, platformY + 1, 7, BlockType::Stone);
+    setBlockShapeWorld(15, platformY + 1, 7, BlockShape::CornerWedgeNorthEast);
+
     // Rotated junction references. Each center cut should match the two
     // perpendicular ramps around it, proving all four orientations render.
     setBlockWorld(13, platformY + 1, 10, BlockType::Stone);
