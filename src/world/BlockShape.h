@@ -42,6 +42,27 @@ inline constexpr bool usesExplicitBlockShapeGeometry(BlockShape shape) {
            shape == BlockShape::CornerCutTopNorthEast;
 }
 
+// Select a diagonal inside-corner shape for the currently supported
+// perpendicular ramp junctions. Arguments describe the ramp in each adjacent
+// cell; Cube means the arrangement does not match a supported junction yet.
+// The mappings mirror the validated --shape-test arrangement and its 180-degree
+// counterpart. Add other rotated mappings when their explicit meshes exist.
+inline constexpr BlockShape getTopCornerJunctionShape(
+    BlockShape westRamp,
+    BlockShape southRamp,
+    BlockShape eastRamp,
+    BlockShape northRamp) {
+    if (westRamp == BlockShape::RampNorth &&
+        southRamp == BlockShape::RampEast) {
+        return BlockShape::CornerCutTopSouthWest;
+    }
+    if (eastRamp == BlockShape::RampSouth &&
+        northRamp == BlockShape::RampWest) {
+        return BlockShape::CornerCutTopNorthEast;
+    }
+    return BlockShape::Cube;
+}
+
 inline constexpr BlockShapeData getBlockShapeData(BlockShape shape) {
     switch (shape) {
         case BlockShape::Cube:
