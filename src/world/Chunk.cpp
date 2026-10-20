@@ -75,26 +75,14 @@ Mesh Chunk::buildMesh() const {
         }
     };
     
-    // Vertex positions for a unit cube (2 triangles per face)
-    const float cubeVertices[8][3] = {
-        {0.0f, 0.0f, 0.0f},  // 0
-        {1.0f, 0.0f, 0.0f},  // 1
-        {1.0f, 1.0f, 0.0f},  // 2
-        {0.0f, 1.0f, 0.0f},  // 3
-        {0.0f, 0.0f, 1.0f},  // 4
-        {1.0f, 0.0f, 1.0f},  // 5
-        {1.0f, 1.0f, 1.0f},  // 6
-        {0.0f, 1.0f, 1.0f}   // 7
-    };
-    
-    // Face indices (two triangles per face) in proper counter-clockwise order
-    const int faceIndices[6][6] = {
-        {0, 1, 2, 2, 3, 0},  // Top (+Y) - vertices 0,1,2,3 (counter-clockwise when viewed from outside)
-        {4, 5, 6, 6, 7, 4},  // Bottom (-Y) - vertices 4,5,6,7 (counter-clockwise when viewed from outside)
-        {1, 2, 6, 6, 5, 1},  // +X - vertices 1,2,6,5 (counter-clockwise when viewed from outside)
-        {0, 4, 7, 7, 3, 0},  // -X - vertices 0,4,7,3 (counter-clockwise when viewed from outside)
-        {0, 3, 7, 7, 4, 0},  // +Z - vertices 0,3,7,4 (counter-clockwise when viewed from outside)
-        {1, 5, 6, 6, 2, 1}   // -Z - vertices 1,5,6,2 (counter-clockwise when viewed from outside)
+    // Corner offsets for each face (counter-clockwise when viewed from outside)
+    const float faceCorners[6][4][3] = {
+        {{0,1,1},{1,1,1},{1,1,0},{0,1,0}},  // 0 +Y
+        {{0,0,0},{1,0,0},{1,0,1},{0,0,1}},  // 1 -Y
+        {{1,0,1},{1,0,0},{1,1,0},{1,1,1}},  // 2 +X
+        {{0,0,0},{0,0,1},{0,1,1},{0,1,0}},  // 3 -X
+        {{0,0,1},{1,0,1},{1,1,1},{0,1,1}},  // 4 +Z
+        {{1,0,0},{0,0,0},{0,1,0},{1,1,0}}   // 5 -Z
     };
     
     // Process each block in the chunk
@@ -132,13 +120,11 @@ Mesh Chunk::buildMesh() const {
                         uint32_t base = vertices.size() / 6;
                         
                         // Add vertices for this face
-                        for (int i = 0; i < 6; ++i) {
-                            int vertexIndex = faceIndices[face][i];
-                            
+                        for (int i = 0; i < 4; ++i) {
                             // Position
-                            vertices.push_back(cubeVertices[vertexIndex][0] + x);
-                            vertices.push_back(cubeVertices[vertexIndex][1] + y);
-                            vertices.push_back(cubeVertices[vertexIndex][2] + z);
+                            vertices.push_back(x + faceCorners[face][i][0]);
+                            vertices.push_back(y + faceCorners[face][i][1]);
+                            vertices.push_back(z + faceCorners[face][i][2]);
                             
                             // Color (apply brightness)
                             glm::vec3 color = baseColor * brightness;
