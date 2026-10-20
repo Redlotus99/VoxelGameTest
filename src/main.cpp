@@ -105,6 +105,40 @@ int main(int argc, char* argv[]) {
             // View matrix
             glm::mat4 view = camera.getViewMatrix();
             
+            // Raycast for block interaction
+            glm::ivec3 hit, prev;
+            bool found = world.raycast(camera.Position, camera.Front, 6.0f, hit, prev);
+            
+            // Handle mouse clicks for block placement/removal
+            if (window.wasMousePressed(SDL_BUTTON_LEFT) && found) {
+                // Remove block
+                world.setBlockWorld(hit.x, hit.y, hit.z, BlockType::Air);
+            }
+            else if (window.wasMousePressed(SDL_BUTTON_RIGHT) && found) {
+                // Place block
+                // Check if the placement position overlaps with player AABB
+                bool overlaps = false;
+                
+                // Player's AABB bounds
+                float minX = player.position.x - Player::HALF_WIDTH;
+                float maxX = player.position.x + Player::HALF_WIDTH;
+                float minZ = player.position.z - Player::HALF_WIDTH;
+                float maxZ = player.position.z + Player::HALF_WIDTH;
+                float minY = player.position.y;
+                float maxY = player.position.y + Player::HEIGHT;
+                
+                // Check if prev position overlaps with player bounds
+                if (prev.x >= minX && prev.x <= maxX &&
+                    prev.z >= minZ && prev.z <= maxZ &&
+                    prev.y >= minY && prev.y <= maxY) {
+                    overlaps = true;
+                }
+                
+                if (!overlaps) {
+                    world.setBlockWorld(prev.x, prev.y, prev.z, BlockType::Stone);
+                }
+            }
+            
             // Draw the world
             world.draw(ourShader, view, projection);
         }

@@ -20,6 +20,7 @@ public:
     glm::mat4 getViewMatrix() const;
     glm::mat4 getProjectionMatrix(float aspect) const;
     glm::vec3 getFront() const { return Front; }
+    glm::vec3 getPosition() const { return Position; }
 
     void processMouse(float dx, float dy);
     void processKeyboard(bool forward, bool back, bool left, bool right, bool up, bool down, float dt);
