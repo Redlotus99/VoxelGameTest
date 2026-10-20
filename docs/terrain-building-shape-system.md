@@ -6,7 +6,7 @@ Natural terrain and player construction use the same grid-cell shape definitions
 
 ## Current prototype constraints
 
-The current world stores one `BlockType` and one `BlockShape` per cell. `Chunk::buildMesh` supports cube/ramp profiles and the first explicit corner-cut template. `World::raycast` traverses grid cells, and `Player::collides` treats every non-air cell as a full cube. The new cut shape is currently a rendering milestone, not yet a fully interactive collision shape. The supporting mesh also preserves the triangular portion of a full block's top face that remains exposed beneath a corner-cut block above it. An opt-in `--shape-test` mode builds an elevated stone platform with three corner-cut examples, including two adjacent to full cubes; ordinary launches leave the generated world unchanged.
+The current world stores one `BlockType` and one `BlockShape` per cell. `Chunk::buildMesh` supports cube/ramp profiles and explicit corner-cut templates. `World::raycast` traverses grid cells, and `Player::collides` treats every non-air cell as a full cube. The cut shapes are rendering milestones, not yet fully interactive collision shapes. The supporting mesh preserves the triangular portion of a full block's top face exposed beneath a bottom-corner cut; beneath a top-corner cut, the supporting block's full top remains exposed because the cut shape touches it only at a point. The opt-in `--shape-test` mode builds an elevated stone platform with both cut orientations and examples joined to full cubes; ordinary launches leave the generated world unchanged.
 
 ## Proposed cell model
 
@@ -23,8 +23,9 @@ Material and shape must not be conflated. A grass ramp and a stone ramp are the 
 - Full cube.
 - Four directional ramps (one for each horizontal direction).
 - Four corner-transition wedges, each with one low corner and three high corners, for cases where two slopes converge around a cell.
-- **Corner cut (first explicit template):** removes the bottom southwest corner using a diagonal plane. This is real removed volume, not a low top-height corner.
-- Additional inverted wedges and the other three corner-cut orientations can follow once the first template is validated.
+- **Bottom-corner cut:** removes the bottom southwest corner using a diagonal plane from one upper corner to two lower corners.
+- **Top-corner cut:** removes the top southwest corner using the opposite diagonal orientation, from one lower corner to two upper corners. This is intended to smooth a corner that would otherwise protrude where two adjacent slopes meet.
+- The two southwest templates validate opposite diagonal directions; rotated versions for the other corners can follow once these are validated.
 
 ## Shared geometry contract
 
