@@ -2,8 +2,7 @@
 #include "core/Window.h"
 #include "render/Shader.h"
 #include "render/Camera.h"
-#include "render/Mesh.h"
-#include "world/Chunk.h"
+#include "world/World.h"
 #include <glad/glad.h>
 #include <iostream>
 #include <glm/glm.hpp>
@@ -23,10 +22,9 @@ int main(int argc, char* argv[]) {
         // Build and compile our shader program
         Shader ourShader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
         
-        // Create and generate chunk
-        Chunk chunk(glm::ivec3(0, 0, 0));
-        chunk.generateFlat();
-        Mesh chunkMesh = chunk.buildMesh();
+        // Create and generate world
+        World world;
+        world.generate(2);
         
         // Camera setup
         Camera camera(glm::vec3(8.0f, 16.0f, 24.0f));
@@ -68,16 +66,8 @@ int main(int argc, char* argv[]) {
             // View matrix
             glm::mat4 view = camera.getViewMatrix();
             
-            // Model matrix (translate to chunk position)
-            glm::ivec3 pos = chunk.getPosition();
-            glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(pos * 16));
-            
-            ourShader.setMat4("model", model);
-            ourShader.setMat4("view", view);
-            ourShader.setMat4("projection", projection);
-            
-            // Draw the chunk
-            chunkMesh.draw();
+            // Draw the world
+            world.draw(ourShader, view, projection);
         }
         
         // Cleanup is handled by Mesh destructor
