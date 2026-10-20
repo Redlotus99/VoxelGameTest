@@ -3,6 +3,7 @@
 
 #include <string>
 #include <memory>
+#include <array>
 
 #include <SDL.h>
 
@@ -28,6 +29,14 @@ public:
     int getMouseDX() const { return m_mouseXrel; }
     int getMouseDY() const { return m_mouseYrel; }
     
+    // Check if a mouse button was pressed during the most recent update
+    bool wasMousePressed(Uint8 button) const {
+        if (button >= m_mousePressed.size()) {
+            return false;
+        }
+        return m_mousePressed[button];
+    }
+    
     // Keyboard method
     bool isKeyDown(SDL_Scancode scancode) const {
         const Uint8* keyboardState = SDL_GetKeyboardState(NULL);
@@ -42,6 +51,7 @@ private:
     // Mouse state
     int m_mouseXrel;
     int m_mouseYrel;
+    std::array<bool, 6> m_mousePressed;
 };
 
 #endif // WINDOW_H

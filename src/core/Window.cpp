@@ -80,6 +80,11 @@ void Window::update() {
     m_mouseXrel = 0;
     m_mouseYrel = 0;
     
+    // Reset mouse pressed state
+    for (auto& pressed : m_mousePressed) {
+        pressed = false;
+    }
+    
     // Handle events
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
@@ -90,6 +95,11 @@ void Window::update() {
         } else if (event.type == SDL_MOUSEMOTION) {
             m_mouseXrel += event.motion.xrel;
             m_mouseYrel += event.motion.yrel;
+        } else if (event.type == SDL_MOUSEBUTTONDOWN) {
+            // Guard against out of range indices
+            if (event.button.button >= 0 && event.button.button < static_cast<int>(m_mousePressed.size())) {
+                m_mousePressed[event.button.button] = true;
+            }
         }
     }
 }
