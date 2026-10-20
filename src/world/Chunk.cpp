@@ -83,117 +83,89 @@ void Chunk::generateFlat() {
 }
 
 void Chunk::generateTerrain() {
-    // Height and surface-shape sampling are deterministic in world space, so
-    // a junction can inspect neighbors even when they belong to another chunk.
+    // Terrain heights are sampled at shared grid vertices, not independently
+    // per cell. Adjacent cells therefore use identical heights at both ends
+    // of every shared edge.
     const auto sampleHeight = [](int worldX, int worldZ) -> int {
         const float noise = glm::perlin(glm::vec2(worldX, worldZ) * 0.02f);
         int height = 24 + static_cast<int>(noise * 14.0f);
         return std::max(1, std::min(height, SIZE_Y - 2));
     };
 
-    const auto sampleSurfaceShape = [&](int worldX, int worldZ) -> BlockShape {
-        const int height = sampleHeight(worldX, worldZ);
-        const int northHeight = sampleHeight(worldX, worldZ + 1);
-        const int southHeight = sampleHeight(worldX, worldZ - 1);
-        const int eastHeight = sampleHeight(worldX + 1, worldZ);
-        const int westHeight = sampleHeight(worldX - 1, worldZ);
+    const auto chooseShape = [](const std::array<int, 4>& cornerHeights) -> BlockShape {
+        const int low = *std::min_element(cornerHeights.begin(), cornerHeights.end());
+        const int high = *std::max_element(cornerHeights.begin(), cornerHeights.end());
 
-        // A directional ramp must be part of a continuous strip of the
-        // same profile. Checking only the heights in front and behind can
-        // create a ramp beside a cube or a differently oriented ramp, leaving
-        // an incompatible raised edge along the side of the slope.
-        //
-        // Require both side-neighbor columns to have the same height and
-        // verify their front/back heights too. This makes the adjacent cells
-        // choose the same ramp orientation, so their shared top edges agree.
-        const int northEastHeight = sampleHeight(worldX + 1, worldZ + 1);
-        const int northWestHeight = sampleHeight(worldX - 1, worldZ + 1);
-        const int southEastHeight = sampleHeight(worldX + 1, worldZ - 1);
-        const int southWestHeight = sampleHeight(worldX - 1, worldZ - 1);
+        // The current terrain profile vocabulary represents one-block height
+        // transitions. Perlin sampling at this scale should keep neighboring
+        // vertex heights within one block; the fallback remains conservative
+        // if that assumption is ever violated.
+        if (high - low > 1) {
+            return BlockShape::Cube;
+        }
+        if (high == low) {
+            return BlockShape::Cube;
+        }
 
-        if (northHeight == height && southHeight == height - 1 &&
-            eastHeight == height && westHeight == height &&
-            northEastHeight == height && northWestHeight == height &&
-            southEastHeight == height - 1 && southWestHeight == height - 1) {
-            return BlockShape::RampNorth;
+        // Bit order matches BlockShape.h: SW, SE, NE, NW. A set bit means
+        // that corner is one block higher than the low corners.
+        int mask = 0;
+        for (int i = 0; i < 4; ++i) {
+            if (cornerHeights[i] == high) {
+                mask |= (1 << i);
+            }
         }
-        if (southHeight == height && northHeight == height - 1 &&
-            eastHeight == height && westHeight == height &&
-            southEastHeight == height && southWestHeight == height &&
-            northEastHeight == height - 1 && northWestHeight == height - 1) {
-            return BlockShape::RampSouth;
+
+        switch (mask) {
+            case 0x1: return BlockShape::CornerWedgeSouthWest;
+            case 0x2: return BlockShape::CornerWedgeSouthEast;
+            case 0x3: return BlockShape::RampSouth;
+            case 0x4: return BlockShape::CornerWedgeNorthEast;
+            case 0x5: return BlockShape::SaddleSouthWestNorthEast;
+            case 0x6: return BlockShape::RampEast;
+            case 0x7: return BlockShape::CornerRampNorthWest;
+            case 0x8: return BlockShape::CornerWedgeNorthWest;
+            case 0x9: return BlockShape::RampWest;
+            case 0xA: return BlockShape::SaddleSouthEastNorthWest;
+            case 0xB: return BlockShape::CornerRampNorthEast;
+            case 0xC: return BlockShape::RampNorth;
+            case 0xD: return BlockShape::CornerRampSouthEast;
+            case 0xE: return BlockShape::CornerRampSouthWest;
+            case 0xF: return BlockShape::Cube;
+            default: return BlockShape::Cube;
         }
-        if (eastHeight == height && westHeight == height - 1 &&
-            northHeight == height && southHeight == height &&
-            northEastHeight == height && southEastHeight == height &&
-            northWestHeight == height - 1 && southWestHeight == height - 1) {
-            return BlockShape::RampEast;
-        }
-        if (westHeight == height && eastHeight == height - 1 &&
-            northHeight == height && southHeight == height &&
-            northWestHeight == height && southWestHeight == height &&
-            northEastHeight == height - 1 && southEastHeight == height - 1) {
-            return BlockShape::RampWest;
-        }
-        return BlockShape::Cube;
     };
 
     for (int z = 0; z < SIZE_Z; ++z) {
         for (int x = 0; x < SIZE_X; ++x) {
             const int worldX = m_position.x * SIZE_X + x;
             const int worldZ = m_position.z * SIZE_Z + z;
-            const int height = sampleHeight(worldX, worldZ);
 
-            BlockShape surfaceShape = sampleSurfaceShape(worldX, worldZ);
+            // Sample the four shared world-grid vertices of this cell.
+            // Neighboring cells reuse these exact same samples, so their
+            // surface edges cannot disagree about endpoint heights.
+            const std::array<int, 4> cornerHeights = {{
+                sampleHeight(worldX,     worldZ),
+                sampleHeight(worldX + 1, worldZ),
+                sampleHeight(worldX + 1, worldZ + 1),
+                sampleHeight(worldX,     worldZ + 1)
+            }};
+            const int low = *std::min_element(cornerHeights.begin(), cornerHeights.end());
+            const int high = *std::max_element(cornerHeights.begin(), cornerHeights.end());
 
-            // A pair of perpendicular ramps can leave a protruding inside
-            // corner. Replace that center surface with the matching diagonal
-            // cut when both neighboring ramps are at the same terrain height.
-            const int westHeight = sampleHeight(worldX - 1, worldZ);
-            const int southHeight = sampleHeight(worldX, worldZ - 1);
-            const int eastHeight = sampleHeight(worldX + 1, worldZ);
-            const int northHeight = sampleHeight(worldX, worldZ + 1);
-            const BlockShape westRamp = westHeight == height
-                ? sampleSurfaceShape(worldX - 1, worldZ) : BlockShape::Cube;
-            const BlockShape southRamp = southHeight == height
-                ? sampleSurfaceShape(worldX, worldZ - 1) : BlockShape::Cube;
-            const BlockShape eastRamp = eastHeight == height
-                ? sampleSurfaceShape(worldX + 1, worldZ) : BlockShape::Cube;
-            const BlockShape northRamp = northHeight == height
-                ? sampleSurfaceShape(worldX, worldZ + 1) : BlockShape::Cube;
-            const BlockShape junctionShape = getTopCornerJunctionShape(
-                westRamp, southRamp, eastRamp, northRamp);
-            if (junctionShape != BlockShape::Cube) {
-                surfaceShape = junctionShape;
-            } else {
-                // If two adjacent neighbors are one level lower and the
-                // opposite two remain level, lower the shared corner of the
-                // terrain surface. This is a three-high-corner transition
-                // ramp, not a cube with its top corner removed: the latter
-                // leaves a raised triangular plateau that creates visible
-                // sticking-up edges.
-                if (northHeight == height && eastHeight == height &&
-                    southHeight == height - 1 && westHeight == height - 1) {
-                    surfaceShape = BlockShape::CornerRampSouthWest;
-                } else if (eastHeight == height && southHeight == height &&
-                           westHeight == height - 1 && northHeight == height - 1) {
-                    surfaceShape = BlockShape::CornerRampNorthWest;
-                } else if (southHeight == height && westHeight == height &&
-                           northHeight == height - 1 && eastHeight == height - 1) {
-                    surfaceShape = BlockShape::CornerRampNorthEast;
-                } else if (westHeight == height && northHeight == height &&
-                           eastHeight == height - 1 && southHeight == height - 1) {
-                    surfaceShape = BlockShape::CornerRampSouthEast;
-                }
-            }
+            // Flat cells use a full cube one level below their surface.
+            // Transition cells sit at the lowest corner and raise only the
+            // corners whose shared vertex height is one block higher.
+            const int surfaceY = (high == low) ? low - 1 : low;
+            const BlockShape surfaceShape = chooseShape(cornerHeights);
 
             for (int y = 0; y < SIZE_Y; ++y) {
-                if (y > height) {
+                if (y > surfaceY) {
                     setBlock(x, y, z, BlockType::Air);
-                } else if (y == height) {
+                } else if (y == surfaceY) {
                     setBlock(x, y, z, BlockType::Grass);
                     setBlockShape(x, y, z, surfaceShape);
-                } else if (y >= height - 3 && y < height - 1) {
+                } else if (y >= surfaceY - 3 && y < surfaceY - 1) {
                     setBlock(x, y, z, BlockType::Dirt);
                 } else {
                     setBlock(x, y, z, BlockType::Stone);
@@ -236,6 +208,8 @@ Mesh Chunk::buildMesh(
             case BlockShape::CornerWedgeSouthEast: return glm::vec3(0.90f, 0.35f, 0.05f);
             case BlockShape::CornerWedgeNorthEast: return glm::vec3(1.00f, 0.75f, 0.15f);
             case BlockShape::CornerWedgeNorthWest: return glm::vec3(0.75f, 0.30f, 0.05f);
+            case BlockShape::SaddleSouthWestNorthEast: return glm::vec3(0.20f, 0.95f, 0.35f);
+            case BlockShape::SaddleSouthEastNorthWest: return glm::vec3(0.05f, 0.70f, 0.25f);
             case BlockShape::CornerCutSouthWest: return glm::vec3(1.00f, 0.10f, 0.20f);
             case BlockShape::CornerCutTopSouthWest: return glm::vec3(0.95f, 0.10f, 0.55f);
             case BlockShape::CornerCutTopNorthEast: return glm::vec3(0.70f, 0.05f, 0.35f);
