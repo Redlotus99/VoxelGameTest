@@ -4,13 +4,16 @@
 #include <string>
 #include <memory>
 
-struct SDL_Window;
-struct SDL_GLContext;
+#include <SDL.h>
 
 class Window {
 public:
     Window(int width, int height, const std::string& title);
     ~Window();
+
+    // Delete copy constructor and assignment operator
+    Window(const Window&) = delete;
+    Window& operator=(const Window&) = delete;
 
     void clear();
     void update();
@@ -18,8 +21,8 @@ public:
     void setShouldClose(bool close);
 
 private:
-    std::unique_ptr<SDL_Window, decltype(&SDL_DestroyWindow)> window_;
-    std::unique_ptr<SDL_GLContext, decltype(&SDL_GL_DeleteContext)> context_;
+    SDL_Window* m_window;
+    SDL_GLContext m_glContext;
     bool should_close_;
 };
 
