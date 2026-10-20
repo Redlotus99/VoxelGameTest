@@ -19,6 +19,7 @@ public:
     void draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection);
     bool isSolid(int wx, int wy, int wz) const;
     void setBlockWorld(int wx, int wy, int wz, BlockType type);
+    bool raycast(glm::vec3 origin, glm::vec3 dir, float maxDist, glm::ivec3& hitBlock, glm::ivec3& prevBlock) const;
 
 private:
     int64_t packCoordinates(glm::ivec3 coords) const;

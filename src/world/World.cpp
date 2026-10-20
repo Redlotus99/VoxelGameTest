@@ -127,6 +127,103 @@ void World::setBlockWorld(int wx, int wy, int wz, BlockType type) {
     }
 }
 
+bool World::raycast(glm::vec3 origin, glm::vec3 dir, float maxDist, glm::ivec3& hitBlock, glm::ivec3& prevBlock) const {
+    // Normalize direction
+    dir = glm::normalize(dir);
+    
+    // Start cell
+    glm::ivec3 currentCell = glm::floor(origin);
+    
+    // Step direction
+    glm::ivec3 step;
+    step.x = (dir.x > 0) ? 1 : (dir.x < 0) ? -1 : 0;
+    step.y = (dir.y > 0) ? 1 : (dir.y < 0) ? -1 : 0;
+    step.z = (dir.z > 0) ? 1 : (dir.z < 0) ? -1 : 0;
+    
+    // tDelta
+    float tDeltaX, tDeltaY, tDeltaZ;
+    
+    if (dir.x != 0.0f) {
+        tDeltaX = 1.0f / std::abs(dir.x);
+    } else {
+        tDeltaX = 1e30f; // Very large number
+    }
+    
+    if (dir.y != 0.0f) {
+        tDeltaY = 1.0f / std::abs(dir.y);
+    } else {
+        tDeltaY = 1e30f; // Very large number
+    }
+    
+    if (dir.z != 0.0f) {
+        tDeltaZ = 1.0f / std::abs(dir.z);
+    } else {
+        tDeltaZ = 1e30f; // Very large number
+    }
+    
+    // tMax
+    float tMaxX, tMaxY, tMaxZ;
+    
+    if (dir.x > 0) {
+        tMaxX = (currentCell.x + 1.0f - origin.x) / dir.x;
+    } else if (dir.x < 0) {
+        tMaxX = (currentCell.x - origin.x) / dir.x;
+    } else {
+        tMaxX = 1e30f;
+    }
+    
+    if (dir.y > 0) {
+        tMaxY = (currentCell.y + 1.0f - origin.y) / dir.y;
+    } else if (dir.y < 0) {
+        tMaxY = (currentCell.y - origin.y) / dir.y;
+    } else {
+        tMaxY = 1e30f;
+    }
+    
+    if (dir.z > 0) {
+        tMaxZ = (currentCell.z + 1.0f - origin.z) / dir.z;
+    } else if (dir.z < 0) {
+        tMaxZ = (currentCell.z - origin.z) / dir.z;
+    } else {
+        tMaxZ = 1e30f;
+    }
+    
+    // Loop until we exceed maxDist or hit a solid block
+    float t = 0.0f;
+    while (t < maxDist) {
+        // Check if current cell is solid
+        if (isSolid(currentCell.x, currentCell.y, currentCell.z)) {
+            hitBlock = currentCell;
+            return true;
+        }
+        
+        // Record previous block
+        prevBlock = currentCell;
+        
+        // Advance along the axis with smallest tMax
+        if (tMaxX < tMaxY && tMaxX < tMaxZ) {
+            currentCell.x += step.x;
+            t = tMaxX;
+            tMaxX += tDeltaX;
+        } else if (tMaxY < tMaxZ) {
+            currentCell.y += step.y;
+            t = tMaxY;
+            tMaxY += tDeltaY;
+        } else {
+            currentCell.z += step.z;
+            t = tMaxZ;
+            tMaxZ += tDeltaZ;
+        }
+        
+        // Check if we've exceeded maxDist
+        if (t >= maxDist) {
+            return false;
+        }
+    }
+    
+    return false;
+}
+
 void World::draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection) {
     // Set the view and projection matrices
     shader.setMat4("view", view);
