@@ -258,8 +258,10 @@ Mesh Chunk::buildMesh(
                 }
 
                 // Complementary explicit wedge: remove the top northeast corner.
-                // The top triangle keeps SW, SE, and NW; the diagonal cut joins
-                // bottom SW to top SE and top NW.
+                // The top triangle keeps SW, SE, and NW. The diagonal cut plane
+                // joins bottom NE to top SE and top NW; using bottom SW here
+                // makes the triangle non-coplanar with the side-face edges and
+                // causes the diagonal surface to visibly clip.
                 if (shape == BlockShape::CornerCutTopNorthEast) {
                     for (int face = 0; face < 6; ++face) {
                         int nx = x, ny = y, nz = z;
@@ -306,7 +308,7 @@ Mesh Chunk::buildMesh(
                         }
                     }
 
-                    const glm::vec3 cutA(x, y, z);
+                    const glm::vec3 cutA(x + 1.0f, y, z + 1.0f);
                     const glm::vec3 cutB(x, y + 1.0f, z + 1.0f);
                     const glm::vec3 cutC(x + 1.0f, y + 1.0f, z);
                     // Reverse winding so the diagonal's outward normal faces
