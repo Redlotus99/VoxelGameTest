@@ -142,21 +142,22 @@ void Chunk::generateTerrain() {
             if (junctionShape != BlockShape::Cube) {
                 surfaceShape = junctionShape;
             } else {
-                // Select a single-high-corner wedge only for the current cell.
-                // Keep sampleSurfaceShape() ramp-only so neighboring-shape
-                // inspection and the validated L-junction detection stay stable.
+                // For a two-neighbor high ridge, cut back the low/front
+                // corner toward the two high/back corners. This uses the
+                // established explicit top-corner-cut meshes instead of a
+                // one-high-corner profile, which created protruding spikes.
                 if (northHeight == height && eastHeight == height &&
                     southHeight == height - 1 && westHeight == height - 1) {
-                    surfaceShape = BlockShape::CornerWedgeNorthEast;
+                    surfaceShape = BlockShape::CornerCutTopSouthWest;
                 } else if (eastHeight == height && southHeight == height &&
                            westHeight == height - 1 && northHeight == height - 1) {
-                    surfaceShape = BlockShape::CornerWedgeSouthEast;
+                    surfaceShape = BlockShape::CornerCutTopNorthWest;
                 } else if (southHeight == height && westHeight == height &&
                            northHeight == height - 1 && eastHeight == height - 1) {
-                    surfaceShape = BlockShape::CornerWedgeSouthWest;
+                    surfaceShape = BlockShape::CornerCutTopNorthEast;
                 } else if (westHeight == height && northHeight == height &&
                            eastHeight == height - 1 && southHeight == height - 1) {
-                    surfaceShape = BlockShape::CornerWedgeNorthWest;
+                    surfaceShape = BlockShape::CornerCutTopSouthEast;
                 }
             }
 
