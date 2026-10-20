@@ -218,6 +218,34 @@ Mesh Chunk::buildMesh(
         }
     };
 
+    // Temporary diagnostic mode: color geometry by shape instead of material.
+    // Disable this switch to restore normal grass/dirt/stone coloring.
+    constexpr bool kShapeDebugTintEnabled = true;
+    auto getShapeDebugColor = [](BlockShape shape) -> glm::vec3 {
+        switch (shape) {
+            case BlockShape::Cube: return glm::vec3(0.55f, 0.55f, 0.55f); // gray
+            case BlockShape::RampNorth: return glm::vec3(0.15f, 0.55f, 1.00f);
+            case BlockShape::RampSouth: return glm::vec3(0.05f, 0.30f, 0.80f);
+            case BlockShape::RampEast: return glm::vec3(0.20f, 0.85f, 1.00f);
+            case BlockShape::RampWest: return glm::vec3(0.10f, 0.40f, 0.65f);
+            case BlockShape::CornerRampSouthWest: return glm::vec3(0.75f, 0.25f, 1.00f);
+            case BlockShape::CornerRampSouthEast: return glm::vec3(0.55f, 0.15f, 0.85f);
+            case BlockShape::CornerRampNorthEast: return glm::vec3(0.90f, 0.35f, 1.00f);
+            case BlockShape::CornerRampNorthWest: return glm::vec3(0.45f, 0.20f, 0.70f);
+            case BlockShape::CornerWedgeSouthWest: return glm::vec3(1.00f, 0.55f, 0.10f);
+            case BlockShape::CornerWedgeSouthEast: return glm::vec3(0.90f, 0.35f, 0.05f);
+            case BlockShape::CornerWedgeNorthEast: return glm::vec3(1.00f, 0.75f, 0.15f);
+            case BlockShape::CornerWedgeNorthWest: return glm::vec3(0.75f, 0.30f, 0.05f);
+            case BlockShape::CornerCutSouthWest: return glm::vec3(1.00f, 0.10f, 0.20f);
+            case BlockShape::CornerCutTopSouthWest: return glm::vec3(0.95f, 0.10f, 0.55f);
+            case BlockShape::CornerCutTopNorthEast: return glm::vec3(0.70f, 0.05f, 0.35f);
+            case BlockShape::CornerCutTopNorthWest: return glm::vec3(1.00f, 0.25f, 0.45f);
+            case BlockShape::CornerCutTopSouthEast: return glm::vec3(0.80f, 0.15f, 0.60f);
+            case BlockShape::Count: break;
+        }
+        return glm::vec3(1.0f, 0.0f, 1.0f); // bright magenta for an invalid shape
+    };
+
     auto getFaceBrightness = [](int face) -> float {
         switch (face) {
             case 0: return 1.0f;  // Top (+Y)
@@ -269,7 +297,9 @@ Mesh Chunk::buildMesh(
                 }
 
                 const BlockShape shape = getBlockShape(x, y, z);
-                const glm::vec3 baseColor = getBlockColor(blockType);
+                const glm::vec3 baseColor = kShapeDebugTintEnabled
+                    ? getShapeDebugColor(shape)
+                    : getBlockColor(blockType);
 
                 // All four top-corner cuts share one mesh template. The removed
                 // top corner determines which axis faces become triangles and
