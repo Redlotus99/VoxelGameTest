@@ -62,7 +62,7 @@ Window::~Window() {
 
 void Window::clear() {
     glClearColor(0.5f, 0.8f, 1.0f, 1.0f); // Sky blue color
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 void Window::update() {
