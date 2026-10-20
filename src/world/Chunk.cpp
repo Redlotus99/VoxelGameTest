@@ -1,6 +1,7 @@
 #include "world/Chunk.h"
 #include <vector>
 #include <glm/glm.hpp>
+#include <glm/gtc/noise.hpp>
 
 Chunk::Chunk() : m_position(0, 0, 0) {
     // Fill with Air by default
@@ -50,6 +51,40 @@ void Chunk::generateFlat() {
             // Air above grass (y from 12 to SIZE_Y-1)
             for (int y = 12; y < SIZE_Y; ++y) {
                 setBlock(x, y, z, BlockType::Air);
+            }
+        }
+    }
+}
+
+void Chunk::generateTerrain() {
+    for (int z = 0; z < SIZE_Z; ++z) {
+        for (int x = 0; x < SIZE_X; ++x) {
+            // Calculate world coordinates
+            int worldX = m_position.x * SIZE_X + x;
+            int worldZ = m_position.z * SIZE_Z + z;
+            
+            // Generate perlin noise
+            float n = glm::perlin(glm::vec2(worldX, worldZ) * 0.02f);
+            
+            // Calculate height based on noise
+            int height = 24 + (int)(n * 14.0f);
+            height = std::max(1, std::min(height, SIZE_Y - 2));
+            
+            // Set blocks based on height
+            for (int y = 0; y < SIZE_Y; ++y) {
+                if (y > height) {
+                    // Air above terrain
+                    setBlock(x, y, z, BlockType::Air);
+                } else if (y == height) {
+                    // Grass on top
+                    setBlock(x, y, z, BlockType::Grass);
+                } else if (y >= height - 3 && y < height - 1) {
+                    // Dirt layer below grass
+                    setBlock(x, y, z, BlockType::Dirt);
+                } else {
+                    // Stone below dirt
+                    setBlock(x, y, z, BlockType::Stone);
+                }
             }
         }
     }

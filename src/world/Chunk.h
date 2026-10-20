@@ -13,6 +13,7 @@ public:
     BlockType getBlock(int x, int y, int z) const;
     void setBlock(int x, int y, int z, BlockType t);
     void generateFlat();
+    void generateTerrain();
     Mesh buildMesh() const;
     
     glm::ivec3 getPosition() const { return m_position; }
