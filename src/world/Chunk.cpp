@@ -225,11 +225,30 @@ Mesh Chunk::buildMesh(
                 const BlockShape shape = getBlockShape(x, y, z);
                 const glm::vec3 baseColor = getBlockColor(blockType);
 
-                // Explicit mesh template that removes the top southwest
-                // corner. The diagonal plane x + y + z = 2 joins one bottom
-                // corner to two top corners, smoothing a protruding corner
-                // where two adjacent slopes meet.
-                if (shape == BlockShape::CornerCutTopSouthWest) {
+                // All four top-corner cuts share one mesh template. The removed
+                // top corner determines which axis faces become triangles and
+                // the orientation of the diagonal cut surface.
+                if (shape == BlockShape::CornerCutTopSouthWest ||
+                    shape == BlockShape::CornerCutTopNorthEast ||
+                    shape == BlockShape::CornerCutTopNorthWest ||
+                    shape == BlockShape::CornerCutTopSouthEast) {
+                    float removedX = 0.0f;
+                    float removedZ = 0.0f;
+                    switch (shape) {
+                        case BlockShape::CornerCutTopSouthWest:
+                            removedX = 0.0f; removedZ = 0.0f; break;
+                        case BlockShape::CornerCutTopNorthEast:
+                            removedX = 1.0f; removedZ = 1.0f; break;
+                        case BlockShape::CornerCutTopNorthWest:
+                            removedX = 0.0f; removedZ = 1.0f; break;
+                        case BlockShape::CornerCutTopSouthEast:
+                            removedX = 1.0f; removedZ = 0.0f; break;
+                        default: break;
+                    }
+
+                    const glm::vec3 removedTop(
+                        x + removedX, y + 1.0f, z + removedZ);
+
                     for (int face = 0; face < 6; ++face) {
                         int nx = x, ny = y, nz = z;
                         switch (face) {
@@ -250,10 +269,7 @@ Mesh Chunk::buildMesh(
                                 m_position.x * SIZE_X + nx, ny,
                                 m_position.z * SIZE_Z + nz);
                         }
-                        // A full cube completely covers this cell face, but a
-                        // ramp only covers part of it. Keep the cut-shape face
-                        // when adjacent to a non-cube so the slope transition
-                        // does not leave a visible gap.
+
                         const BlockShape neighborShape = neighbor == BlockType::Air
                             ? BlockShape::Cube
                             : (nx >= 0 && nx < SIZE_X && ny >= 0 && ny < SIZE_Y &&
@@ -269,106 +285,46 @@ Mesh Chunk::buildMesh(
                         }
 
                         glm::vec3 corners[4];
+                        int removedIndex = -1;
                         for (int i = 0; i < 4; ++i) {
                             corners[i] = glm::vec3(
                                 x + faceCorners[face][i][0],
                                 y + faceCorners[face][i][1],
                                 z + faceCorners[face][i][2]);
+                            if (glm::distance(corners[i], removedTop) < 0.01f) {
+                                removedIndex = i;
+                            }
                         }
                         const glm::vec3 color = baseColor * getFaceBrightness(face);
 
-                        // Removing the top southwest corner leaves the top
-                        // face triangular, the -X and -Z faces triangular, and
-                        // the bottom, +X, and +Z faces intact.
-                        if (face == 0) { // top: NW, NE, SE remain
-                            emitTriangle(corners[0], corners[1], corners[2], color);
-                        } else if (face == 3) { // -X: remove the top southwest corner
-                            emitTriangle(corners[0], corners[1], corners[2], color);
-                        } else if (face == 5) { // -Z: remove the top southwest corner
-                            emitTriangle(corners[0], corners[1], corners[3], color);
+                        if (removedIndex >= 0) {
+                            glm::vec3 remaining[3];
+                            int next = 0;
+                            for (int i = 0; i < 4; ++i) {
+                                if (i != removedIndex) {
+                                    remaining[next++] = corners[i];
+                                }
+                            }
+                            emitTriangle(remaining[0], remaining[1], remaining[2], color);
                         } else {
                             emitQuad(corners, color);
                         }
                     }
 
-                    // The diagonal cut surface faces the removed top corner.
-                    const glm::vec3 cutA(x, y, z);
-                    const glm::vec3 cutB(x, y + 1.0f, z + 1.0f);
-                    const glm::vec3 cutC(x + 1.0f, y + 1.0f, z);
+                    const glm::vec3 cutBottom(x + removedX, y, z + removedZ);
+                    const glm::vec3 cutTopX(x + (1.0f - removedX),
+                                            y + 1.0f, z + removedZ);
+                    const glm::vec3 cutTopZ(x + removedX,
+                                            y + 1.0f, z + (1.0f - removedZ));
+                    glm::vec3 cutA = cutBottom;
+                    glm::vec3 cutB = cutTopX;
+                    glm::vec3 cutC = cutTopZ;
+                    const glm::vec3 cutCenter = (cutA + cutB + cutC) / 3.0f;
+                    const glm::vec3 normal = glm::cross(cutB - cutA, cutC - cutA);
+                    if (glm::dot(normal, removedTop - cutCenter) > 0.0f) {
+                        std::swap(cutB, cutC);
+                    }
                     emitTriangle(cutA, cutB, cutC,
-                                 baseColor * getFaceBrightness(6));
-                    continue;
-                }
-
-                // Complementary explicit wedge: remove the top northeast corner.
-                // The top triangle keeps SW, SE, and NW; its diagonal face joins
-                // bottom SW to top NW and top SE.
-                if (shape == BlockShape::CornerCutTopNorthEast) {
-                    for (int face = 0; face < 6; ++face) {
-                        int nx = x, ny = y, nz = z;
-                        switch (face) {
-                            case 0: ++ny; break;
-                            case 1: --ny; break;
-                            case 2: ++nx; break;
-                            case 3: --nx; break;
-                            case 4: ++nz; break;
-                            case 5: --nz; break;
-                        }
-
-                        BlockType neighbor = BlockType::Air;
-                        if (nx >= 0 && nx < SIZE_X && ny >= 0 && ny < SIZE_Y &&
-                            nz >= 0 && nz < SIZE_Z) {
-                            neighbor = getBlock(nx, ny, nz);
-                        } else {
-                            neighbor = getWorldBlock(
-                                m_position.x * SIZE_X + nx, ny,
-                                m_position.z * SIZE_Z + nz);
-                        }
-                        // A full cube completely covers this cell face, but a
-                        // ramp only covers part of it. Keep the cut-shape face
-                        // when adjacent to a non-cube so the slope transition
-                        // does not leave a visible gap.
-                        const BlockShape neighborShape = neighbor == BlockType::Air
-                            ? BlockShape::Cube
-                            : (nx >= 0 && nx < SIZE_X && ny >= 0 && ny < SIZE_Y &&
-                               nz >= 0 && nz < SIZE_Z)
-                                ? getBlockShape(nx, ny, nz)
-                                : getWorldShape(
-                                    m_position.x * SIZE_X + nx, ny,
-                                    m_position.z * SIZE_Z + nz);
-                        if (neighbor != BlockType::Air &&
-                            (neighborShape == BlockShape::Cube ||
-                             usesExplicitBlockShapeGeometry(neighborShape))) {
-                            continue;
-                        }
-
-                        glm::vec3 corners[4];
-                        for (int i = 0; i < 4; ++i) {
-                            corners[i] = glm::vec3(
-                                x + faceCorners[face][i][0],
-                                y + faceCorners[face][i][1],
-                                z + faceCorners[face][i][2]);
-                        }
-                        const glm::vec3 color = baseColor * getFaceBrightness(face);
-
-                        // The top, +X, and +Z faces touch the removed corner.
-                        if (face == 0) {
-                            emitTriangle(corners[0], corners[2], corners[3], color);
-                        } else if (face == 2) {
-                            emitTriangle(corners[0], corners[1], corners[2], color);
-                        } else if (face == 4) {
-                            emitTriangle(corners[0], corners[1], corners[3], color);
-                        } else {
-                            emitQuad(corners, color);
-                        }
-                    }
-
-                    const glm::vec3 cutA(x + 1.0f, y, z + 1.0f);
-                    const glm::vec3 cutB(x, y + 1.0f, z + 1.0f);
-                    const glm::vec3 cutC(x + 1.0f, y + 1.0f, z);
-                    // Reverse winding so the diagonal's outward normal faces
-                    // the removed northeast corner.
-                    emitTriangle(cutA, cutC, cutB,
                                  baseColor * getFaceBrightness(6));
                     continue;
                 }
