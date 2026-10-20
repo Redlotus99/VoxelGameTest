@@ -41,6 +41,11 @@ int main(int argc, char* argv[]) {
             float deltaTime = (currentTime - lastTime) / 1000.0f; // Convert to seconds
             lastTime = currentTime;
             
+            // Clamp dt to at most 0.05
+            if (deltaTime > 0.05f) {
+                deltaTime = 0.05f;
+            }
+            
             window.update();
             
             // Get mouse delta after update
@@ -54,21 +59,42 @@ int main(int argc, char* argv[]) {
             bool right = window.isKeyDown(SDL_SCANCODE_D);
             bool up = window.isKeyDown(SDL_SCANCODE_SPACE);
             bool down = window.isKeyDown(SDL_SCANCODE_LSHIFT);
-            bool jump = window.isKeyDown(SDL_SCANCODE_X);
+            bool jumpKey = window.isKeyDown(SDL_SCANCODE_SPACE);
             
             // Create movement direction vector
             glm::vec3 moveDir(0.0f);
-            if (forward) moveDir.z -= 1.0f;
-            if (back) moveDir.z += 1.0f;
-            if (left) moveDir.x -= 1.0f;
-            if (right) moveDir.x += 1.0f;
+            
+            // Get camera front vector
+            glm::vec3 front = camera.getFront();
+            
+            // Compute movement in walking mode (flyMode false)
+            glm::vec3 forwardDir = glm::normalize(glm::vec3(front.x, 0.0f, front.z));
+            glm::vec3 rightDir = glm::normalize(glm::cross(forwardDir, glm::vec3(0, 1, 0)));
+            
+            if (forward) moveDir += forwardDir;
+            if (back) moveDir -= forwardDir;
+            if (right) moveDir += rightDir;
+            if (left) moveDir -= rightDir;
             
             // Normalize the movement direction to maintain consistent speed
-            if (moveDir != glm::vec3(0.0f)) {
+            if (glm::length(moveDir) > 0.0f) {
                 moveDir = glm::normalize(moveDir);
             }
             
             // Update player
+            bool jump = false;
+            if (jumpKey) {
+                jump = true;
+                
+                // Print player state once per second while space is held
+                static Uint32 lastPrintTime = 0;
+                Uint32 now = SDL_GetTicks();
+                if (now - lastPrintTime > 1000) {
+                    std::cout << "onGround: " << player.onGround << ", velocity.y: " << player.velocity.y << std::endl;
+                    lastPrintTime = now;
+                }
+            }
+            
             player.update(deltaTime, world, moveDir, jump);
             
             // Update camera to follow player
