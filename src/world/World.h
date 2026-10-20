@@ -17,6 +17,7 @@ public:
     void generate(int radius);
     Chunk* getChunk(glm::ivec3 position);
     void draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection);
+    bool isSolid(int wx, int wy, int wz) const;
 
 private:
     int64_t packCoordinates(glm::ivec3 coords) const;

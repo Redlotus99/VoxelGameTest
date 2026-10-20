@@ -69,6 +69,10 @@ BlockType World::getBlockWorld(int wx, int wy, int wz) const {
     return chunk->getBlock(localX, wy, localZ);
 }
 
+bool World::isSolid(int wx, int wy, int wz) const {
+    return getBlockWorld(wx, wy, wz) != BlockType::Air;
+}
+
 void World::draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection) {
     // Set the view and projection matrices
     shader.setMat4("view", view);
