@@ -19,6 +19,9 @@ enum class BlockShape : std::uint8_t {
     // either the bottom or top of the cell.
     CornerCutSouthWest,
     CornerCutTopSouthWest,
+    // Complementary top diagonal wedge: removes the top northeast corner,
+    // leaving the two front corners and one back corner on the top profile.
+    CornerCutTopNorthEast,
     Count
 };
 
@@ -35,7 +38,8 @@ struct BlockShapeData {
 
 inline constexpr bool usesExplicitBlockShapeGeometry(BlockShape shape) {
     return shape == BlockShape::CornerCutSouthWest ||
-           shape == BlockShape::CornerCutTopSouthWest;
+           shape == BlockShape::CornerCutTopSouthWest ||
+           shape == BlockShape::CornerCutTopNorthEast;
 }
 
 inline constexpr BlockShapeData getBlockShapeData(BlockShape shape) {
@@ -62,6 +66,7 @@ inline constexpr BlockShapeData getBlockShapeData(BlockShape shape) {
             return {{{1.0f, 1.0f, 1.0f, 0.0f}}};
         case BlockShape::CornerCutSouthWest:
         case BlockShape::CornerCutTopSouthWest:
+        case BlockShape::CornerCutTopNorthEast:
         case BlockShape::Count:
             break;
     }
