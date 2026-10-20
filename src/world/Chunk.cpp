@@ -164,6 +164,7 @@ Mesh Chunk::buildMesh(const std::function<BlockType(int wx, int wy, int wz)>& ge
                 }
                 
                 glm::vec3 baseColor = getBlockColor(blockType);
+                const BlockShapeData shapeData = getBlockShapeData(getBlockShape(x, y, z));
                 
                 // Check each of the 6 faces
                 for (int face = 0; face < 6; ++face) {
@@ -202,10 +203,23 @@ Mesh Chunk::buildMesh(const std::function<BlockType(int wx, int wy, int wz)>& ge
                         
                         // Add vertices for this face
                         for (int i = 0; i < 4; ++i) {
-                            // Position
-                            vertices.push_back(x + faceCorners[face][i][0]);
-                            vertices.push_back(y + faceCorners[face][i][1]);
-                            vertices.push_back(z + faceCorners[face][i][2]);
+                            // Position. Any vertex on the cell's top edge follows
+                            // the canonical shape profile, so cubes and ramps share
+                            // this mesh path and the same shape data used elsewhere.
+                            const float cornerX = faceCorners[face][i][0];
+                            const float cornerY = faceCorners[face][i][1];
+                            const float cornerZ = faceCorners[face][i][2];
+                            float shapedY = cornerY;
+                            if (cornerY > 0.0f) {
+                                const int cornerIndex =
+                                    (cornerZ < 0.5f)
+                                        ? ((cornerX < 0.5f) ? 0 : 1)
+                                        : ((cornerX < 0.5f) ? 3 : 2);
+                                shapedY = shapeData.topHeights[cornerIndex];
+                            }
+                            vertices.push_back(x + cornerX);
+                            vertices.push_back(y + shapedY);
+                            vertices.push_back(z + cornerZ);
                             
                             // Color (apply brightness)
                             glm::vec3 color = baseColor * brightness;
