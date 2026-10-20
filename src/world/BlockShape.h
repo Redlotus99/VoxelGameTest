@@ -22,6 +22,8 @@ enum class BlockShape : std::uint8_t {
     // Complementary top diagonal wedge: removes the top northeast corner,
     // leaving the two front corners and one back corner on the top profile.
     CornerCutTopNorthEast,
+    CornerCutTopNorthWest,
+    CornerCutTopSouthEast,
     Count
 };
 
@@ -39,14 +41,14 @@ struct BlockShapeData {
 inline constexpr bool usesExplicitBlockShapeGeometry(BlockShape shape) {
     return shape == BlockShape::CornerCutSouthWest ||
            shape == BlockShape::CornerCutTopSouthWest ||
-           shape == BlockShape::CornerCutTopNorthEast;
+           shape == BlockShape::CornerCutTopNorthEast ||
+           shape == BlockShape::CornerCutTopNorthWest ||
+           shape == BlockShape::CornerCutTopSouthEast;
 }
 
-// Select a diagonal inside-corner shape for the currently supported
-// perpendicular ramp junctions. Arguments describe the ramp in each adjacent
-// cell; Cube means the arrangement does not match a supported junction yet.
-// The mappings mirror the validated --shape-test arrangement and its 180-degree
-// counterpart. Add other rotated mappings when their explicit meshes exist.
+// Select the top-corner cut for a perpendicular ramp junction. Each
+// mapping is a rotation of the validated west-RampNorth/south-RampEast case.
+// The corner-cut shape is chosen to match the two adjacent ramp orientations.
 inline constexpr BlockShape getTopCornerJunctionShape(
     BlockShape westRamp,
     BlockShape southRamp,
@@ -56,9 +58,17 @@ inline constexpr BlockShape getTopCornerJunctionShape(
         southRamp == BlockShape::RampEast) {
         return BlockShape::CornerCutTopSouthWest;
     }
+    if (northRamp == BlockShape::RampEast &&
+        westRamp == BlockShape::RampSouth) {
+        return BlockShape::CornerCutTopNorthWest;
+    }
     if (eastRamp == BlockShape::RampSouth &&
         northRamp == BlockShape::RampWest) {
         return BlockShape::CornerCutTopNorthEast;
+    }
+    if (southRamp == BlockShape::RampWest &&
+        eastRamp == BlockShape::RampNorth) {
+        return BlockShape::CornerCutTopSouthEast;
     }
     return BlockShape::Cube;
 }
