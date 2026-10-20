@@ -453,22 +453,14 @@ Mesh Chunk::buildMesh(
                         }
                     }
 
-                    const bool isSideFace = face >= 2;
-                    // Side clipping currently supports directional ramps only.
-                    // Applying it to corner wedges makes the bottom vertices
-                    // inherit neighboring top-profile heights, which can
-                    // distort the wedge's side faces into the jagged spikes
-                    // seen in terrain. Keep wedge side faces intact until
-                    // shape-to-shape polygon clipping is implemented.
-                    const bool isDirectionalRamp =
-                        neighborShape == BlockShape::RampNorth ||
-                        neighborShape == BlockShape::RampSouth ||
-                        neighborShape == BlockShape::RampEast ||
-                        neighborShape == BlockShape::RampWest;
-                    const bool clipSideAgainstRamp =
-                        isSideFace && neighborBlock != BlockType::Air &&
-                        isDirectionalRamp;
-
+                    // Do not reshape this block's bottom edge to match a
+                    // neighboring ramp. The old clipping path copied the
+                    // neighbor's top heights into this face's bottom vertices,
+                    // lifting parts of the side wall by a full block and making
+                    // the terrain look like a wedge was attached to a cube.
+                    // Shared occupied faces are omitted; exposed faces follow
+                    // this block's own profile. Proper partial-face clipping
+                    // needs polygon intersection, not moving boundary vertices.
                     // A bottom-corner cut above this cube leaves only a
                     // triangle exposed. A top-corner cut above touches the
                     // supporting cube at only one point, so its whole top is
@@ -492,7 +484,7 @@ Mesh Chunk::buildMesh(
                         emitQuad(topCorners, baseColor * getFaceBrightness(face));
                     }
 
-                    if (neighborBlock == BlockType::Air || clipSideAgainstRamp) {
+                    if (neighborBlock == BlockType::Air) {
                         const float brightness = getFaceBrightness(face);
                         const uint32_t base = static_cast<uint32_t>(vertices.size() / 6);
                         for (int i = 0; i < 4; ++i) {
@@ -500,24 +492,14 @@ Mesh Chunk::buildMesh(
                             const float cornerY = faceCorners[face][i][1];
                             const float cornerZ = faceCorners[face][i][2];
                             float shapedY = cornerY;
-                            const auto profileCornerIndex = [](float px, float pz) {
-                                return (pz < 0.5f)
-                                    ? ((px < 0.5f) ? 0 : 1)
-                                    : ((px < 0.5f) ? 3 : 2);
-                            };
                             if (cornerY > 0.0f) {
+                                const auto profileCornerIndex = [](float px, float pz) {
+                                    return (pz < 0.5f)
+                                        ? ((px < 0.5f) ? 0 : 1)
+                                        : ((px < 0.5f) ? 3 : 2);
+                                };
                                 shapedY = shapeData.topHeights[
                                     profileCornerIndex(cornerX, cornerZ)];
-                            } else if (clipSideAgainstRamp) {
-                                float neighborCornerX = cornerX;
-                                float neighborCornerZ = cornerZ;
-                                if (face == 2) neighborCornerX = 0.0f;
-                                if (face == 3) neighborCornerX = 1.0f;
-                                if (face == 4) neighborCornerZ = 0.0f;
-                                if (face == 5) neighborCornerZ = 1.0f;
-                                const int neighborCorner =
-                                    profileCornerIndex(neighborCornerX, neighborCornerZ);
-                                shapedY = getBlockShapeData(neighborShape).topHeights[neighborCorner];
                             }
                             vertices.push_back(x + cornerX);
                             vertices.push_back(y + shapedY);
