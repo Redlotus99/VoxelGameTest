@@ -4,6 +4,7 @@
 #include "render/Camera.h"
 #include "world/World.h"
 #include "game/Player.h"
+#include "render/LineRenderer.h"
 #include <glad/glad.h>
 #include <iostream>
 #include <glm/glm.hpp>
@@ -22,6 +23,9 @@ int main(int argc, char* argv[]) {
         
         // Build and compile our shader program
         Shader ourShader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
+        
+        // Create LineRenderer
+        LineRenderer lines;
         
         // Create and generate world
         World world;
@@ -141,6 +145,12 @@ int main(int argc, char* argv[]) {
             
             // Draw the world
             world.draw(ourShader, view, projection);
+            
+            // Draw crosshair and block outline
+            lines.drawCrosshair(aspectRatio);
+            if (found) {
+                lines.drawBlockOutline(view, projection, hit);
+            }
         }
         
         // Cleanup is handled by Mesh destructor
