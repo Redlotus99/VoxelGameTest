@@ -15,9 +15,10 @@ enum class BlockShape : std::uint8_t {
     CornerRampSouthEast,
     CornerRampNorthEast,
     CornerRampNorthWest,
-    // Explicit mesh-template shape: removes the bottom southwest corner
-    // with a diagonal plane. Unlike a corner ramp, this is a true cutout.
+    // Explicit mesh-template shapes: diagonal cuts remove a corner from
+    // either the bottom or top of the cell.
     CornerCutSouthWest,
+    CornerCutTopSouthWest,
     Count
 };
 
@@ -33,7 +34,8 @@ struct BlockShapeData {
 };
 
 inline constexpr bool usesExplicitBlockShapeGeometry(BlockShape shape) {
-    return shape == BlockShape::CornerCutSouthWest;
+    return shape == BlockShape::CornerCutSouthWest ||
+           shape == BlockShape::CornerCutTopSouthWest;
 }
 
 inline constexpr BlockShapeData getBlockShapeData(BlockShape shape) {
@@ -59,6 +61,7 @@ inline constexpr BlockShapeData getBlockShapeData(BlockShape shape) {
         case BlockShape::CornerRampNorthWest:
             return {{{1.0f, 1.0f, 1.0f, 0.0f}}};
         case BlockShape::CornerCutSouthWest:
+        case BlockShape::CornerCutTopSouthWest:
         case BlockShape::Count:
             break;
     }
