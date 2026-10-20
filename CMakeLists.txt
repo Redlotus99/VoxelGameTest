@@ -37,7 +37,7 @@ add_executable(${PROJECT_NAME}
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/extern/glad/include
+    ${glad_SOURCE_DIR}/include
     ${sdl2_SOURCE_DIR}/include
     ${glm_SOURCE_DIR}
 )
@@ -45,4 +45,5 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 target_link_libraries(${PROJECT_NAME} 
     SDL2::SDL2
     glad
+    ${GLFW_LIBRARIES}
 )

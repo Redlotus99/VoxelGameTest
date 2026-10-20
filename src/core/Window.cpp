@@ -1,6 +1,7 @@
 #include "Window.h"
 #include <SDL2/SDL.h>
 #include <GL/glew.h>
+#include <stdexcept>
 
 Window::Window(int width, int height, const std::string& title) 
     : should_close_(false) {
