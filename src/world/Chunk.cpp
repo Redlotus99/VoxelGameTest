@@ -234,15 +234,17 @@ Mesh Chunk::buildMesh(
                         }
                         const glm::vec3 color = baseColor * getFaceBrightness(face);
 
-                        // Only the top, +X, and +Z faces have visible area.
-                        // Each is triangular after the top southwest corner
-                        // is removed; the other three faces collapse to edges.
-                        if (face == 0) { // top: omit the southwest corner
+                        // Removing the top southwest corner leaves the top
+                        // face triangular, the -X and -Z faces triangular, and
+                        // the bottom, +X, and +Z faces intact.
+                        if (face == 0) { // top: NW, NE, SE remain
                             emitTriangle(corners[0], corners[1], corners[2], color);
-                        } else if (face == 2) { // +X: omit bottom southeast
-                            emitTriangle(corners[0], corners[2], corners[3], color);
-                        } else if (face == 4) { // +Z: omit bottom southwest
-                            emitTriangle(corners[1], corners[2], corners[3], color);
+                        } else if (face == 3) { // -X: remove the top southwest corner
+                            emitTriangle(corners[0], corners[1], corners[2], color);
+                        } else if (face == 5) { // -Z: remove the top southwest corner
+                            emitTriangle(corners[0], corners[1], corners[3], color);
+                        } else {
+                            emitQuad(corners, color);
                         }
                     }
 
