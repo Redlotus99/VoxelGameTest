@@ -94,6 +94,8 @@ void Window::update() {
             should_close_ = true;
         } else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) {
             should_close_ = true;
+        } else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_F11 && event.key.repeat == 0) {
+            toggleFullscreen();
         } else if (event.type == SDL_MOUSEMOTION) {
             m_mouseXrel += event.motion.xrel;
             m_mouseYrel += event.motion.yrel;
@@ -126,4 +128,13 @@ int Window::getWidth() const {
 
 int Window::getHeight() const {
     return m_height;
+}
+
+void Window::toggleFullscreen() {
+    Uint32 flags = SDL_GetWindowFlags(m_window);
+    if (flags & SDL_WINDOW_FULLSCREEN_DESKTOP) {
+        SDL_SetWindowFullscreen(m_window, 0);
+    } else {
+        SDL_SetWindowFullscreen(m_window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    }
 }

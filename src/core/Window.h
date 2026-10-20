@@ -47,6 +47,9 @@ public:
     int getWidth() const;
     int getHeight() const;
 
+    // Toggle fullscreen mode
+    void toggleFullscreen();
+
 private:
     SDL_Window* m_window;
     SDL_GLContext m_glContext;
