@@ -24,7 +24,9 @@ public:
 
     void generateFlat();
     void generateTerrain();
-    Mesh buildMesh(const std::function<BlockType(int wx, int wy, int wz)>& getWorldBlock) const;
+    Mesh buildMesh(
+        const std::function<BlockType(int wx, int wy, int wz)>& getWorldBlock,
+        const std::function<BlockShape(int wx, int wy, int wz)>& getWorldShape) const;
     
     glm::ivec3 getPosition() const { return m_position; }
     
