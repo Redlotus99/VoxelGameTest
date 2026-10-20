@@ -98,6 +98,8 @@ inline constexpr BlockShapeData getBlockShapeData(BlockShape shape) {
         case BlockShape::CornerCutSouthWest:
         case BlockShape::CornerCutTopSouthWest:
         case BlockShape::CornerCutTopNorthEast:
+        case BlockShape::CornerCutTopNorthWest:
+        case BlockShape::CornerCutTopSouthEast:
         case BlockShape::Count:
             break;
     }
