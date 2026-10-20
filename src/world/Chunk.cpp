@@ -451,10 +451,20 @@ Mesh Chunk::buildMesh(
                     }
 
                     const bool isSideFace = face >= 2;
+                    // Side clipping currently supports directional ramps only.
+                    // Applying it to corner wedges makes the bottom vertices
+                    // inherit neighboring top-profile heights, which can
+                    // distort the wedge's side faces into the jagged spikes
+                    // seen in terrain. Keep wedge side faces intact until
+                    // shape-to-shape polygon clipping is implemented.
+                    const bool isDirectionalRamp =
+                        neighborShape == BlockShape::RampNorth ||
+                        neighborShape == BlockShape::RampSouth ||
+                        neighborShape == BlockShape::RampEast ||
+                        neighborShape == BlockShape::RampWest;
                     const bool clipSideAgainstRamp =
                         isSideFace && neighborBlock != BlockType::Air &&
-                        neighborShape != BlockShape::Cube &&
-                        !usesExplicitBlockShapeGeometry(neighborShape);
+                        isDirectionalRamp;
 
                     // A bottom-corner cut above this cube leaves only a
                     // triangle exposed. A top-corner cut above touches the
