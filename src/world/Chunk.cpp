@@ -182,7 +182,8 @@ Mesh Chunk::buildMesh(
             case 3: return 0.8f;  // -X
             case 4: return 0.65f; // +Z
             case 5: return 0.65f; // -Z
-            default: return 0.9f; // Diagonal cut surface
+            case 6: return 1.0f;  // Diagonal slope, match ramp top brightness
+            default: return 0.9f;
         }
     };
 
