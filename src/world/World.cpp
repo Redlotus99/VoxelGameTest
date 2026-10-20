@@ -32,6 +32,43 @@ Chunk* World::getChunk(glm::ivec3 position) {
     return nullptr;
 }
 
+BlockType World::getBlockWorld(int wx, int wy, int wz) const {
+    // Calculate chunk coordinates
+    int chunkX = wx / 16;
+    int chunkZ = wz / 16;
+    
+    // Handle negative coordinates correctly for floor division
+    if (wx < 0 && wx % 16 != 0) {
+        chunkX--;
+    }
+    if (wz < 0 && wz % 16 != 0) {
+        chunkZ--;
+    }
+    
+    // Only consider chunks at y = 0 for terrain
+    glm::ivec3 chunkPos(chunkX, 0, chunkZ);
+    int64_t packed = packCoordinates(chunkPos);
+    
+    auto it = m_chunks.find(packed);
+    if (it == m_chunks.end()) {
+        return BlockType::Air;
+    }
+    
+    Chunk* chunk = it->second.get();
+    
+    // Convert world coordinates to local coordinates
+    int localX = wx - (chunkX * 16);
+    int localZ = wz - (chunkZ * 16);
+    
+    // Check bounds for y coordinate
+    if (wy < 0 || wy >= Chunk::SIZE_Y) {
+        return BlockType::Air;
+    }
+    
+    // Return block at local coordinates
+    return chunk->getBlock(localX, wy, localZ);
+}
+
 void World::draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection) {
     // Set the view and projection matrices
     shader.setMat4("view", view);
@@ -45,8 +82,12 @@ void World::draw(Shader& shader, const glm::mat4& view, const glm::mat4& project
         // Get or build mesh for this chunk
         auto meshIt = m_meshes.find(packed);
         if (meshIt == m_meshes.end()) {
-            // Build mesh and store it
-            Mesh mesh = chunk->buildMesh();
+            // Build mesh and store it using lambda to get world blocks
+            auto getWorldBlock = [this](int wx, int wy, int wz) -> BlockType {
+                return getBlockWorld(wx, wy, wz);
+            };
+            
+            Mesh mesh = chunk->buildMesh(getWorldBlock);
             meshIt = m_meshes.emplace(packed, std::move(mesh)).first;
         }
         

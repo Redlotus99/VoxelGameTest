@@ -21,6 +21,7 @@ public:
 private:
     int64_t packCoordinates(glm::ivec3 coords) const;
     glm::ivec3 unpackCoordinates(int64_t packed) const;
+    BlockType getBlockWorld(int wx, int wy, int wz) const;
 
     std::unordered_map<int64_t, std::unique_ptr<Chunk>> m_chunks;
     std::unordered_map<int64_t, Mesh> m_meshes;

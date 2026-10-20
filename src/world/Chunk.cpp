@@ -90,7 +90,7 @@ void Chunk::generateTerrain() {
     }
 }
 
-Mesh Chunk::buildMesh() const {
+Mesh Chunk::buildMesh(const std::function<BlockType(int wx, int wy, int wz)>& getWorldBlock) const {
     std::vector<float> vertices;
     std::vector<uint32_t> indices;
     
@@ -153,8 +153,22 @@ Mesh Chunk::buildMesh() const {
                         case 5: nz--; break; // -Z
                     }
                     
+                    BlockType neighborBlock = BlockType::Air;
+                    
+                    // Check if neighbor is inside this chunk
+                    if (nx >= 0 && nx < SIZE_X && ny >= 0 && ny < SIZE_Y && nz >= 0 && nz < SIZE_Z) {
+                        // Neighbor is within the same chunk
+                        neighborBlock = getBlock(nx, ny, nz);
+                    } else {
+                        // Neighbor is in another chunk - use world coordinates
+                        int worldX = m_position.x * SIZE_X + nx;
+                        int worldY = ny;
+                        int worldZ = m_position.z * SIZE_Z + nz;
+                        neighborBlock = getWorldBlock(worldX, worldY, worldZ);
+                    }
+                    
                     // Check if neighbor is air (i.e., face is exposed)
-                    if (getBlock(nx, ny, nz) == BlockType::Air) {
+                    if (neighborBlock == BlockType::Air) {
                         // Get brightness for this face
                         float brightness = getFaceBrightness(face);
                         

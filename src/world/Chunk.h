@@ -4,6 +4,7 @@
 #include "world/Block.h"
 #include "render/Mesh.h"
 #include <glm/glm.hpp>
+#include <functional>
 
 class Chunk {
 public:
@@ -14,7 +15,7 @@ public:
     void setBlock(int x, int y, int z, BlockType t);
     void generateFlat();
     void generateTerrain();
-    Mesh buildMesh() const;
+    Mesh buildMesh(const std::function<BlockType(int wx, int wy, int wz)>& getWorldBlock) const;
     
     glm::ivec3 getPosition() const { return m_position; }
     
