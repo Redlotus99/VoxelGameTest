@@ -11,6 +11,10 @@ enum class BlockShape : std::uint8_t {
     RampSouth,
     RampEast,
     RampWest,
+    CornerRampSouthWest,
+    CornerRampSouthEast,
+    CornerRampNorthEast,
+    CornerRampNorthWest,
     Count
 };
 
@@ -37,6 +41,17 @@ inline constexpr BlockShapeData getBlockShapeData(BlockShape shape) {
             return {{{0.0f, 1.0f, 1.0f, 0.0f}}};
         case BlockShape::RampWest:
             return {{{1.0f, 0.0f, 0.0f, 1.0f}}};
+        // Corner ramps rise toward the three high corners, leaving one
+        // low corner. These are useful transition wedges where two slopes
+        // meet around a block corner.
+        case BlockShape::CornerRampSouthWest:
+            return {{{0.0f, 1.0f, 1.0f, 1.0f}}};
+        case BlockShape::CornerRampSouthEast:
+            return {{{1.0f, 0.0f, 1.0f, 1.0f}}};
+        case BlockShape::CornerRampNorthEast:
+            return {{{1.0f, 1.0f, 0.0f, 1.0f}}};
+        case BlockShape::CornerRampNorthWest:
+            return {{{1.0f, 1.0f, 1.0f, 0.0f}}};
         case BlockShape::Count:
             break;
     }
