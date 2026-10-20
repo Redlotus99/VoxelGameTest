@@ -82,12 +82,35 @@ void Chunk::generateFlat() {
 }
 
 void Chunk::generateTerrain() {
-    // Keep height sampling deterministic across chunk boundaries so the
-    // terrain surface can choose compatible shared ramp shapes.
+    // Height and surface-shape sampling are deterministic in world space, so
+    // a junction can inspect neighbors even when they belong to another chunk.
     const auto sampleHeight = [](int worldX, int worldZ) -> int {
         const float noise = glm::perlin(glm::vec2(worldX, worldZ) * 0.02f);
         int height = 24 + static_cast<int>(noise * 14.0f);
         return std::max(1, std::min(height, SIZE_Y - 2));
+    };
+
+    const auto sampleSurfaceShape = [&](int worldX, int worldZ) -> BlockShape {
+        const int height = sampleHeight(worldX, worldZ);
+        const int northHeight = sampleHeight(worldX, worldZ + 1);
+        const int southHeight = sampleHeight(worldX, worldZ - 1);
+        const int eastHeight = sampleHeight(worldX + 1, worldZ);
+        const int westHeight = sampleHeight(worldX - 1, worldZ);
+
+        // A ramp is used only for a clean one-block drop along one axis.
+        if (northHeight == height && southHeight == height - 1) {
+            return BlockShape::RampNorth;
+        }
+        if (southHeight == height && northHeight == height - 1) {
+            return BlockShape::RampSouth;
+        }
+        if (eastHeight == height && westHeight == height - 1) {
+            return BlockShape::RampEast;
+        }
+        if (westHeight == height && eastHeight == height - 1) {
+            return BlockShape::RampWest;
+        }
+        return BlockShape::Cube;
     };
 
     for (int z = 0; z < SIZE_Z; ++z) {
@@ -96,21 +119,27 @@ void Chunk::generateTerrain() {
             const int worldZ = m_position.z * SIZE_Z + z;
             const int height = sampleHeight(worldX, worldZ);
 
-            // A ramp is used only for a clean one-block drop along one axis.
-            const int northHeight = sampleHeight(worldX, worldZ + 1);
+            BlockShape surfaceShape = sampleSurfaceShape(worldX, worldZ);
+
+            // A pair of perpendicular ramps can leave a protruding inside
+            // corner. Replace that center surface with the matching diagonal
+            // cut when both neighboring ramps are at the same terrain height.
+            const int westHeight = sampleHeight(worldX - 1, worldZ);
             const int southHeight = sampleHeight(worldX, worldZ - 1);
             const int eastHeight = sampleHeight(worldX + 1, worldZ);
-            const int westHeight = sampleHeight(worldX - 1, worldZ);
-
-            BlockShape surfaceShape = BlockShape::Cube;
-            if (northHeight == height && southHeight == height - 1) {
-                surfaceShape = BlockShape::RampNorth;
-            } else if (southHeight == height && northHeight == height - 1) {
-                surfaceShape = BlockShape::RampSouth;
-            } else if (eastHeight == height && westHeight == height - 1) {
-                surfaceShape = BlockShape::RampEast;
-            } else if (westHeight == height && eastHeight == height - 1) {
-                surfaceShape = BlockShape::RampWest;
+            const int northHeight = sampleHeight(worldX, worldZ + 1);
+            const BlockShape westRamp = westHeight == height
+                ? sampleSurfaceShape(worldX - 1, worldZ) : BlockShape::Cube;
+            const BlockShape southRamp = southHeight == height
+                ? sampleSurfaceShape(worldX, worldZ - 1) : BlockShape::Cube;
+            const BlockShape eastRamp = eastHeight == height
+                ? sampleSurfaceShape(worldX + 1, worldZ) : BlockShape::Cube;
+            const BlockShape northRamp = northHeight == height
+                ? sampleSurfaceShape(worldX, worldZ + 1) : BlockShape::Cube;
+            const BlockShape junctionShape = getTopCornerJunctionShape(
+                westRamp, southRamp, eastRamp, northRamp);
+            if (junctionShape != BlockShape::Cube) {
+                surfaceShape = junctionShape;
             }
 
             for (int y = 0; y < SIZE_Y; ++y) {
