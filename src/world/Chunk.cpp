@@ -2,7 +2,14 @@
 #include <vector>
 #include <glm/glm.hpp>
 
-Chunk::Chunk() {
+Chunk::Chunk() : m_position(0, 0, 0) {
+    // Fill with Air by default
+    for (int i = 0; i < 4096; ++i) {
+        blocks[i] = BlockType::Air;
+    }
+}
+
+Chunk::Chunk(glm::ivec3 pos) : m_position(pos) {
     // Fill with Air by default
     for (int i = 0; i < 4096; ++i) {
         blocks[i] = BlockType::Air;

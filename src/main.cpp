@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
         Shader ourShader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
         
         // Create and generate chunk
-        Chunk chunk;
+        Chunk chunk(glm::ivec3(0, 0, 0));
         chunk.generateFlat();
         Mesh chunkMesh = chunk.buildMesh();
         
@@ -68,8 +68,9 @@ int main(int argc, char* argv[]) {
             // View matrix
             glm::mat4 view = camera.getViewMatrix();
             
-            // Model matrix (identity for static world)
-            glm::mat4 model = glm::mat4(1.0f);
+            // Model matrix (translate to chunk position)
+            glm::ivec3 pos = chunk.getPosition();
+            glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(pos * 16));
             
             ourShader.setMat4("model", model);
             ourShader.setMat4("view", view);
