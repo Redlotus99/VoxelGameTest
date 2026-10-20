@@ -27,21 +27,21 @@ void Chunk::generateFlat() {
     // Generate flat terrain
     for (int z = 0; z < 16; ++z) {
         for (int x = 0; x < 16; ++x) {
-            // Stone layer (y < 8)
+            // Stone layer (y from 0 to 7)
             for (int y = 0; y < 8; ++y) {
                 setBlock(x, y, z, BlockType::Stone);
             }
             
-            // Dirt layer (y >= 8 and y < 10)
-            for (int y = 8; y < 10; ++y) {
+            // Dirt layer (y from 8 to 10)
+            for (int y = 8; y < 11; ++y) {
                 setBlock(x, y, z, BlockType::Dirt);
             }
             
-            // Grass layer (y == 10)
-            setBlock(x, 10, z, BlockType::Grass);
+            // Grass layer (y == 11)
+            setBlock(x, 11, z, BlockType::Grass);
             
-            // Air above grass
-            for (int y = 11; y < 16; ++y) {
+            // Air above grass (y from 12 to 15)
+            for (int y = 12; y < 16; ++y) {
                 setBlock(x, y, z, BlockType::Air);
             }
         }
