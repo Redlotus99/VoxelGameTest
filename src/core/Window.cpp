@@ -66,7 +66,7 @@ void Window::clear() {
 }
 
 void Window::update() {
-    SDL_GL_SwapWindow(window_.get());
+    SDL_GL_SwapWindow(m_window);
     
     // Handle events
     SDL_Event event;
