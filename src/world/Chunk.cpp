@@ -98,28 +98,6 @@ void Chunk::generateTerrain() {
         const int eastHeight = sampleHeight(worldX + 1, worldZ);
         const int westHeight = sampleHeight(worldX - 1, worldZ);
 
-        // If exactly two adjacent neighbors stay at this height while the
-        // opposite pair drop by one, the surface turns around a single high
-        // corner. Prefer the matching one-high-corner wedge for that profile.
-        // The later junction pass can still replace this shape with a validated
-        // concave corner cut when the surrounding ramps form the known L-junction.
-        if (northHeight == height && eastHeight == height &&
-            southHeight == height - 1 && westHeight == height - 1) {
-            return BlockShape::CornerWedgeNorthEast;
-        }
-        if (eastHeight == height && southHeight == height &&
-            westHeight == height - 1 && northHeight == height - 1) {
-            return BlockShape::CornerWedgeSouthEast;
-        }
-        if (southHeight == height && westHeight == height &&
-            northHeight == height - 1 && eastHeight == height - 1) {
-            return BlockShape::CornerWedgeSouthWest;
-        }
-        if (westHeight == height && northHeight == height &&
-            eastHeight == height - 1 && southHeight == height - 1) {
-            return BlockShape::CornerWedgeNorthWest;
-        }
-
         // A ramp is used only for a clean one-block drop along one axis.
         if (northHeight == height && southHeight == height - 1) {
             return BlockShape::RampNorth;
@@ -163,6 +141,23 @@ void Chunk::generateTerrain() {
                 westRamp, southRamp, eastRamp, northRamp);
             if (junctionShape != BlockShape::Cube) {
                 surfaceShape = junctionShape;
+            } else {
+                // Select a single-high-corner wedge only for the current cell.
+                // Keep sampleSurfaceShape() ramp-only so neighboring-shape
+                // inspection and the validated L-junction detection stay stable.
+                if (northHeight == height && eastHeight == height &&
+                    southHeight == height - 1 && westHeight == height - 1) {
+                    surfaceShape = BlockShape::CornerWedgeNorthEast;
+                } else if (eastHeight == height && southHeight == height &&
+                           westHeight == height - 1 && northHeight == height - 1) {
+                    surfaceShape = BlockShape::CornerWedgeSouthEast;
+                } else if (southHeight == height && westHeight == height &&
+                           northHeight == height - 1 && eastHeight == height - 1) {
+                    surfaceShape = BlockShape::CornerWedgeSouthWest;
+                } else if (westHeight == height && northHeight == height &&
+                           eastHeight == height - 1 && southHeight == height - 1) {
+                    surfaceShape = BlockShape::CornerWedgeNorthWest;
+                }
             }
 
             for (int y = 0; y < SIZE_Y; ++y) {
