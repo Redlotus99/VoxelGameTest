@@ -196,21 +196,34 @@ Mesh Chunk::buildMesh(const std::function<BlockType(int wx, int wy, int wz)>& ge
                     }
                     
                     BlockType neighborBlock = BlockType::Air;
+                    BlockShape neighborShape = BlockShape::Cube;
+                    const bool neighborIsLocal =
+                        nx >= 0 && nx < SIZE_X && ny >= 0 && ny < SIZE_Y &&
+                        nz >= 0 && nz < SIZE_Z;
                     
                     // Check if neighbor is inside this chunk
-                    if (nx >= 0 && nx < SIZE_X && ny >= 0 && ny < SIZE_Y && nz >= 0 && nz < SIZE_Z) {
-                        // Neighbor is within the same chunk
+                    if (neighborIsLocal) {
                         neighborBlock = getBlock(nx, ny, nz);
+                        neighborShape = getBlockShape(nx, ny, nz);
                     } else {
-                        // Neighbor is in another chunk - use world coordinates
+                        // The world callback currently exposes material only;
+                        // cross-chunk neighbors therefore retain cube visibility
+                        // rules until the world shape lookup is added.
                         int worldX = m_position.x * SIZE_X + nx;
                         int worldY = ny;
                         int worldZ = m_position.z * SIZE_Z + nz;
                         neighborBlock = getWorldBlock(worldX, worldY, worldZ);
                     }
+
+                    const bool isSideFace = face >= 2;
+                    const bool clipSideAgainstRamp =
+                        isSideFace && neighborBlock != BlockType::Air &&
+                        neighborShape != BlockShape::Cube;
                     
-                    // Check if neighbor is air (i.e., face is exposed)
-                    if (neighborBlock == BlockType::Air) {
+                    // A ramp does not cover the whole neighboring side. Keep
+                    // the exposed portion of that side and clip its lower edge
+                    // to the ramp's top profile instead of hiding the face.
+                    if (neighborBlock == BlockType::Air || clipSideAgainstRamp) {
                         // Get brightness for this face
                         float brightness = getFaceBrightness(face);
                         
@@ -226,12 +239,27 @@ Mesh Chunk::buildMesh(const std::function<BlockType(int wx, int wy, int wz)>& ge
                             const float cornerY = faceCorners[face][i][1];
                             const float cornerZ = faceCorners[face][i][2];
                             float shapedY = cornerY;
+                            const auto profileCornerIndex = [](float px, float pz) {
+                                return (pz < 0.5f)
+                                    ? ((px < 0.5f) ? 0 : 1)
+                                    : ((px < 0.5f) ? 3 : 2);
+                            };
                             if (cornerY > 0.0f) {
-                                const int cornerIndex =
-                                    (cornerZ < 0.5f)
-                                        ? ((cornerX < 0.5f) ? 0 : 1)
-                                        : ((cornerX < 0.5f) ? 3 : 2);
-                                shapedY = shapeData.topHeights[cornerIndex];
+                                shapedY = shapeData.topHeights[
+                                    profileCornerIndex(cornerX, cornerZ)];
+                            } else if (clipSideAgainstRamp) {
+                                // Map this side's endpoints to the matching
+                                // edge on the adjacent ramp. The neighbor's
+                                // shape profile is defined in its own cell.
+                                float neighborCornerX = cornerX;
+                                float neighborCornerZ = cornerZ;
+                                if (face == 2) neighborCornerX = 0.0f; // +X -> neighbor west
+                                if (face == 3) neighborCornerX = 1.0f; // -X -> neighbor east
+                                if (face == 4) neighborCornerZ = 0.0f; // +Z -> neighbor south
+                                if (face == 5) neighborCornerZ = 1.0f; // -Z -> neighbor north
+                                const int neighborCorner =
+                                    profileCornerIndex(neighborCornerX, neighborCornerZ);
+                                shapedY = getBlockShapeData(neighborShape).topHeights[neighborCorner];
                             }
                             vertices.push_back(x + cornerX);
                             vertices.push_back(y + shapedY);
