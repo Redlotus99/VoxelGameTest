@@ -290,6 +290,18 @@ Mesh Chunk::buildMesh(
                         neighborShape != BlockShape::Cube &&
                         !usesExplicitBlockShapeGeometry(neighborShape);
 
+                    // A corner-cut block above this cube leaves the
+                    // southwest triangle of this cube's top exposed. Do not
+                    // discard the whole top face just because that cell is occupied.
+                    if (face == 0 && neighborBlock != BlockType::Air &&
+                        neighborShape == BlockShape::CornerCutSouthWest) {
+                        const glm::vec3 topSouthWest(x, y + 1.0f, z);
+                        const glm::vec3 topNorthWest(x, y + 1.0f, z + 1.0f);
+                        const glm::vec3 topSouthEast(x + 1.0f, y + 1.0f, z);
+                        emitTriangle(topSouthWest, topNorthWest, topSouthEast,
+                                     baseColor * getFaceBrightness(face));
+                    }
+
                     if (neighborBlock == BlockType::Air || clipSideAgainstRamp) {
                         const float brightness = getFaceBrightness(face);
                         const uint32_t base = static_cast<uint32_t>(vertices.size() / 6);
