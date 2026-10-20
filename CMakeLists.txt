@@ -36,6 +36,7 @@ add_executable(${PROJECT_NAME}
     src/render/Shader.cpp
     src/render/Camera.cpp
     src/render/Mesh.cpp
+    src/render/LineRenderer.cpp
     src/world/Chunk.cpp
     src/world/World.cpp
     src/game/Player.cpp
