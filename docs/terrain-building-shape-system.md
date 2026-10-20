@@ -23,8 +23,9 @@ Material and shape must not be conflated. A grass ramp and a stone ramp are the 
 Start with a deliberately small, grid-aligned library:
 
 - Full cube.
-- Four directional half-cell-height ramps (one for each horizontal direction).
-- Corner/transition shapes added after the first ramp test proves out the data model.
+- Four directional ramps (one for each horizontal direction).
+- Four corner-transition wedges, each with one low corner and three high corners, for cases where two slopes converge around a cell.
+- True concave/inverted corner cuts remain a separate shape family: they remove material from a corner and cannot be represented correctly by a top-height profile alone.
 
 The precise ramp naming convention and vertex winding should be centralized in the shape definitions, not reimplemented separately by terrain generation, meshing, collision, and placement.
 
@@ -59,7 +60,8 @@ The current grid DDA raycast can remain useful for broad-phase cell traversal, b
 4. Add shape-aware picking and placement.
 5. Add slope collision and grounding.
 6. Generate a small test hillside and validate terrain/building interchangeability.
-7. Add corner shapes, more materials, and larger terrain features.
+7. Add corner-transition wedges, then implement true concave/inverted corner cuts with explicit mesh geometry rather than trying to encode them as top-height profiles.
+8. Add more materials and larger terrain features.
 
 ## Out of scope for the first milestone
 
