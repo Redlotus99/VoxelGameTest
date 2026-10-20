@@ -2,6 +2,7 @@
 
 #include <array>
 #include "world/Block.h"
+#include "world/BlockShape.h"
 #include "render/Mesh.h"
 #include <glm/glm.hpp>
 #include <functional>
@@ -17,6 +18,10 @@ public:
     
     BlockType getBlock(int x, int y, int z) const;
     void setBlock(int x, int y, int z, BlockType t);
+
+    BlockShape getBlockShape(int x, int y, int z) const;
+    void setBlockShape(int x, int y, int z, BlockShape shape);
+
     void generateFlat();
     void generateTerrain();
     Mesh buildMesh(const std::function<BlockType(int wx, int wy, int wz)>& getWorldBlock) const;
@@ -29,5 +34,8 @@ private:
     }
     
     std::array<BlockType, SIZE_X * SIZE_Y * SIZE_Z> blocks;
+    // Shape is stored separately from material so every material can use the
+    // same geometry. Existing world generation remains cube-shaped by default.
+    std::array<BlockShape, SIZE_X * SIZE_Y * SIZE_Z> shapes;
     glm::ivec3 m_position;
 };
