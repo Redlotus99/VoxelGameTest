@@ -82,32 +82,48 @@ void Chunk::generateFlat() {
 }
 
 void Chunk::generateTerrain() {
+    // Keep height sampling deterministic across chunk boundaries so the
+    // terrain surface can choose compatible shared ramp shapes.
+    const auto sampleHeight = [](int worldX, int worldZ) -> int {
+        const float noise = glm::perlin(glm::vec2(worldX, worldZ) * 0.02f);
+        int height = 24 + static_cast<int>(noise * 14.0f);
+        return std::max(1, std::min(height, SIZE_Y - 2));
+    };
+
     for (int z = 0; z < SIZE_Z; ++z) {
         for (int x = 0; x < SIZE_X; ++x) {
-            // Calculate world coordinates
-            int worldX = m_position.x * SIZE_X + x;
-            int worldZ = m_position.z * SIZE_Z + z;
-            
-            // Generate perlin noise
-            float n = glm::perlin(glm::vec2(worldX, worldZ) * 0.02f);
-            
-            // Calculate height based on noise
-            int height = 24 + (int)(n * 14.0f);
-            height = std::max(1, std::min(height, SIZE_Y - 2));
-            
-            // Set blocks based on height
+            const int worldX = m_position.x * SIZE_X + x;
+            const int worldZ = m_position.z * SIZE_Z + z;
+            const int height = sampleHeight(worldX, worldZ);
+
+            // A ramp is used only for a clean one-block drop along one axis.
+            // This avoids ambiguous corner transitions until corner shapes
+            // are added to the shared vocabulary.
+            const int northHeight = sampleHeight(worldX, worldZ + 1);
+            const int southHeight = sampleHeight(worldX, worldZ - 1);
+            const int eastHeight = sampleHeight(worldX + 1, worldZ);
+            const int westHeight = sampleHeight(worldX - 1, worldZ);
+
+            BlockShape surfaceShape = BlockShape::Cube;
+            if (northHeight == height && southHeight == height - 1) {
+                surfaceShape = BlockShape::RampNorth;
+            } else if (southHeight == height && northHeight == height - 1) {
+                surfaceShape = BlockShape::RampSouth;
+            } else if (eastHeight == height && westHeight == height - 1) {
+                surfaceShape = BlockShape::RampEast;
+            } else if (westHeight == height && eastHeight == height - 1) {
+                surfaceShape = BlockShape::RampWest;
+            }
+
             for (int y = 0; y < SIZE_Y; ++y) {
                 if (y > height) {
-                    // Air above terrain
                     setBlock(x, y, z, BlockType::Air);
                 } else if (y == height) {
-                    // Grass on top
                     setBlock(x, y, z, BlockType::Grass);
+                    setBlockShape(x, y, z, surfaceShape);
                 } else if (y >= height - 3 && y < height - 1) {
-                    // Dirt layer below grass
                     setBlock(x, y, z, BlockType::Dirt);
                 } else {
-                    // Stone below dirt
                     setBlock(x, y, z, BlockType::Stone);
                 }
             }
