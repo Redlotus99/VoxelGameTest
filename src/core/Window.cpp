@@ -2,6 +2,7 @@
 #include <SDL.h>
 #include <glad/glad.h>
 #include <stdexcept>
+#include <iostream>
 
 Window::Window(int width, int height, const std::string& title) 
     : m_window(nullptr)
