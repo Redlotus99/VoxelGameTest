@@ -2,6 +2,7 @@
 #include "render/Shader.h"
 #include <algorithm>
 #include <glm/gtc/matrix_transform.hpp>
+#include <cmath>
 
 World::World() = default;
 
@@ -71,6 +72,59 @@ BlockType World::getBlockWorld(int wx, int wy, int wz) const {
 
 bool World::isSolid(int wx, int wy, int wz) const {
     return getBlockWorld(wx, wy, wz) != BlockType::Air;
+}
+
+void World::setBlockWorld(int wx, int wy, int wz, BlockType type) {
+    if (wy < 0 || wy >= Chunk::SIZE_Y) {
+        return;
+    }
+    
+    // Calculate chunk coordinates using floor division
+    int cx = static_cast<int>(std::floor(static_cast<float>(wx) / Chunk::SIZE_X));
+    int cz = static_cast<int>(std::floor(static_cast<float>(wz) / Chunk::SIZE_Z));
+    
+    // Calculate local coordinates
+    int lx = wx - cx * Chunk::SIZE_X;
+    int lz = wz - cz * Chunk::SIZE_Z;
+    
+    // Get the chunk at this position
+    glm::ivec3 chunkPos(cx, 0, cz);
+    Chunk* chunk = getChunk(chunkPos);
+    if (chunk == nullptr) {
+        return;
+    }
+    
+    // Set the block in the chunk
+    chunk->setBlock(lx, wy, lz, type);
+    
+    // Erase the mesh for this chunk so it gets rebuilt
+    int64_t packed = packCoordinates(chunkPos);
+    m_meshes.erase(packed);
+    
+    // Also erase meshes of adjacent chunks if we're at chunk boundaries
+    if (lx == 0) {
+        glm::ivec3 leftChunkPos(cx - 1, 0, cz);
+        int64_t leftPacked = packCoordinates(leftChunkPos);
+        m_meshes.erase(leftPacked);
+    }
+    
+    if (lx == Chunk::SIZE_X - 1) {
+        glm::ivec3 rightChunkPos(cx + 1, 0, cz);
+        int64_t rightPacked = packCoordinates(rightChunkPos);
+        m_meshes.erase(rightPacked);
+    }
+    
+    if (lz == 0) {
+        glm::ivec3 frontChunkPos(cx, 0, cz - 1);
+        int64_t frontPacked = packCoordinates(frontChunkPos);
+        m_meshes.erase(frontPacked);
+    }
+    
+    if (lz == Chunk::SIZE_Z - 1) {
+        glm::ivec3 backChunkPos(cx, 0, cz + 1);
+        int64_t backPacked = packCoordinates(backChunkPos);
+        m_meshes.erase(backPacked);
+    }
 }
 
 void World::draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection) {
