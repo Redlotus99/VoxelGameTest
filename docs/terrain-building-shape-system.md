@@ -6,7 +6,7 @@ Natural terrain and player construction use the same grid-cell shape definitions
 
 ## Current prototype constraints
 
-The current world stores one `BlockType` and one `BlockShape` per cell. `Chunk::buildMesh` supports cube/ramp profiles and explicit corner-cut templates. `World::raycast` traverses grid cells, and `Player::collides` treats every non-air cell as a full cube. The cut shapes are rendering milestones, not yet fully interactive collision shapes. The supporting mesh preserves the triangular portion of a full block's top face exposed beneath a bottom-corner cut; beneath a top-corner cut, the supporting block's full top remains exposed because the cut shape touches it only at a point. The opt-in `--shape-test` mode builds an elevated stone platform with both cut orientations, an L-shaped pair of `RampEast`/`RampNorth` slopes feeding into a `CornerCutTopSouthWest` center block, and isolated reference shapes; ordinary launches leave the generated world unchanged.
+The current world stores one `BlockType` and one `BlockShape` per cell. `Chunk::buildMesh` supports cube/ramp profiles and explicit corner-cut templates. `World::raycast` traverses grid cells, and `Player::collides` treats every non-air cell as a full cube. The cut shapes are rendering milestones, not yet fully interactive collision shapes. The supporting mesh preserves the triangular portion of a full block's top face exposed beneath a bottom-corner cut; beneath a top-corner cut, the supporting block's full top remains exposed because the cut shape touches it only at a point. The opt-in `--shape-test` mode builds an elevated stone platform with both cut orientations, an L-shaped pair of `RampEast`/`RampNorth` slopes feeding into a `CornerCutTopSouthWest` center block, an isolated reference shape, and its complementary `CornerCutTopNorthEast` wedge; ordinary launches leave the generated world unchanged.
 
 ## Proposed cell model
 
@@ -24,8 +24,9 @@ Material and shape must not be conflated. A grass ramp and a stone ramp are the 
 - Four directional ramps (one for each horizontal direction).
 - Four corner-transition wedges, each with one low corner and three high corners, for cases where two slopes converge around a cell.
 - **Bottom-corner cut:** removes the bottom southwest corner using a diagonal plane from one upper corner to two lower corners.
-- **Top-corner cut:** removes the top southwest corner using the opposite diagonal orientation, from one lower corner to two upper corners. This is intended to smooth a corner that would otherwise protrude where two adjacent slopes meet.
-- The two southwest templates validate opposite diagonal directions; rotated versions for the other corners can follow once these are validated.
+- **Top-corner cut (front corner removed):** removes the top southwest corner, leaving the two back corners and one front corner on the triangular top.
+- **Complementary top-corner cut (back corner removed):** removes the top northeast corner, leaving the two front corners and one back corner on the triangular top.
+- These complementary wedge shapes have explicit mesh templates and are placed side by side in the opt-in `--shape-test` arrangement. Other rotations can follow once these are validated.
 
 ## Shared geometry contract
 
