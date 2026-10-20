@@ -142,22 +142,24 @@ void Chunk::generateTerrain() {
             if (junctionShape != BlockShape::Cube) {
                 surfaceShape = junctionShape;
             } else {
-                // For a two-neighbor high ridge, cut back the low/front
-                // corner toward the two high/back corners. This uses the
-                // established explicit top-corner-cut meshes instead of a
-                // one-high-corner profile, which created protruding spikes.
+                // If two adjacent neighbors are one level lower and the
+                // opposite two remain level, lower the shared corner of the
+                // terrain surface. This is a three-high-corner transition
+                // ramp, not a cube with its top corner removed: the latter
+                // leaves a raised triangular plateau that creates visible
+                // sticking-up edges.
                 if (northHeight == height && eastHeight == height &&
                     southHeight == height - 1 && westHeight == height - 1) {
-                    surfaceShape = BlockShape::CornerCutTopSouthWest;
+                    surfaceShape = BlockShape::CornerRampSouthWest;
                 } else if (eastHeight == height && southHeight == height &&
                            westHeight == height - 1 && northHeight == height - 1) {
-                    surfaceShape = BlockShape::CornerCutTopNorthWest;
+                    surfaceShape = BlockShape::CornerRampNorthWest;
                 } else if (southHeight == height && westHeight == height &&
                            northHeight == height - 1 && eastHeight == height - 1) {
-                    surfaceShape = BlockShape::CornerCutTopNorthEast;
+                    surfaceShape = BlockShape::CornerRampNorthEast;
                 } else if (westHeight == height && northHeight == height &&
                            eastHeight == height - 1 && southHeight == height - 1) {
-                    surfaceShape = BlockShape::CornerCutTopSouthEast;
+                    surfaceShape = BlockShape::CornerRampSouthEast;
                 }
             }
 
