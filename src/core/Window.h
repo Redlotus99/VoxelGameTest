@@ -19,11 +19,25 @@ public:
     void update();
     bool shouldClose() const;
     void setShouldClose(bool close);
+    
+    // Mouse methods
+    SDL_Point getMouseDelta() const { return SDL_Point{m_mouseXrel, m_mouseYrel}; }
+    void resetMouseDelta() { m_mouseXrel = 0; m_mouseYrel = 0; }
+    
+    // Keyboard method
+    bool isKeyDown(SDL_Scancode scancode) const {
+        const Uint8* keyboardState = SDL_GetKeyboardState(NULL);
+        return keyboardState[scancode];
+    }
 
 private:
     SDL_Window* m_window;
     SDL_GLContext m_glContext;
     bool should_close_;
+    
+    // Mouse state
+    int m_mouseXrel;
+    int m_mouseYrel;
 };
 
 #endif // WINDOW_H

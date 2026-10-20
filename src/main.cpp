@@ -1,6 +1,7 @@
 #define SDL_MAIN_HANDLED
 #include "core/Window.h"
 #include "render/Shader.h"
+#include "render/Camera.h"
 #include <glad/glad.h>
 #include <iostream>
 #include <glm/glm.hpp>
@@ -62,30 +63,45 @@ int main(int argc, char* argv[]) {
         glBindVertexArray(0);
         
         // Camera setup
-        glm::vec3 cameraPos = glm::vec3(3.0f, 2.0f, 3.0f);
-        glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
-        glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
-        
-        // Projection matrix
-        float aspectRatio = 800.0f / 600.0f;
-        glm::mat4 projection = glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 100.0f);
+        Camera camera(glm::vec3(3.0f, 2.0f, 3.0f));
         
         // Main loop
-        float angle = 0.0f;
+        Uint32 lastTime = SDL_GetTicks();
         while (!window.shouldClose()) {
             window.clear();
             
-            // Update rotation angle
-            angle += 0.01f;
+            // Calculate delta time
+            Uint32 currentTime = SDL_GetTicks();
+            float deltaTime = (currentTime - lastTime) / 1000.0f; // Convert to seconds
+            lastTime = currentTime;
             
-            // Model matrix - rotate around Y axis
-            glm::mat4 model = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
+            // Process input
+            bool forward = window.isKeyDown(SDL_SCANCODE_W);
+            bool back = window.isKeyDown(SDL_SCANCODE_S);
+            bool left = window.isKeyDown(SDL_SCANCODE_A);
+            bool right = window.isKeyDown(SDL_SCANCODE_D);
+            bool up = window.isKeyDown(SDL_SCANCODE_SPACE);
+            bool down = window.isKeyDown(SDL_SCANCODE_LSHIFT);
             
-            // View matrix
-            glm::mat4 view = glm::lookAt(cameraPos, cameraTarget, cameraUp);
+            // Get mouse delta
+            SDL_Point mouseDelta = window.getMouseDelta();
+            
+            camera.processKeyboard(forward, back, left, right, up, down, deltaTime);
+            camera.processMouse(mouseDelta.x, mouseDelta.y);
             
             // Use shader and set uniforms
             ourShader.use();
+            
+            // Projection matrix
+            float aspectRatio = 800.0f / 600.0f;
+            glm::mat4 projection = camera.getProjectionMatrix(aspectRatio);
+            
+            // View matrix
+            glm::mat4 view = camera.getViewMatrix();
+            
+            // Model matrix (no rotation now, since we can fly around the cube)
+            glm::mat4 model = glm::mat4(1.0f);
+            
             ourShader.setMat4("model", model);
             ourShader.setMat4("view", view);
             ourShader.setMat4("projection", projection);

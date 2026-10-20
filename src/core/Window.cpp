@@ -6,7 +6,9 @@
 Window::Window(int width, int height, const std::string& title) 
     : m_window(nullptr)
     , m_glContext(nullptr)
-    , should_close_(false) {
+    , should_close_(false)
+    , m_mouseXrel(0)
+    , m_mouseYrel(0) {
     
     // Initialize SDL
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -46,6 +48,9 @@ Window::Window(int width, int height, const std::string& title)
 
     // Enable vsync
     SDL_GL_SetSwapInterval(1);
+    
+    // Set relative mouse mode
+    SDL_SetRelativeMouseMode(SDL_TRUE);
 }
 
 Window::~Window() {
@@ -68,6 +73,10 @@ void Window::clear() {
 void Window::update() {
     SDL_GL_SwapWindow(m_window);
     
+    // Reset mouse delta at start of update
+    m_mouseXrel = 0;
+    m_mouseYrel = 0;
+    
     // Handle events
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
@@ -75,6 +84,9 @@ void Window::update() {
             should_close_ = true;
         } else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) {
             should_close_ = true;
+        } else if (event.type == SDL_MOUSEMOTION) {
+            m_mouseXrel = event.motion.xrel;
+            m_mouseYrel = event.motion.yrel;
         }
     }
 }
