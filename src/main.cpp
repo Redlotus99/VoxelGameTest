@@ -3,6 +3,7 @@
 #include "render/Shader.h"
 #include "render/Camera.h"
 #include "render/Mesh.h"
+#include "world/Chunk.h"
 #include <glad/glad.h>
 #include <iostream>
 #include <glm/glm.hpp>
@@ -13,40 +14,22 @@ int main(int argc, char* argv[]) {
     try {
         Window window(800, 600, "Voxel Game");
         
-        // Enable depth testing
+        // Enable depth testing and face culling
         glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+        glFrontFace(GL_CCW);
         
         // Build and compile our shader program
         Shader ourShader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
         
-        // Set up vertex data and buffers and configure vertex attributes
-        float vertices[] = {
-            // positions          // colors
-            -0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-             0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-             0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-            -0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-            -0.5f, -0.5f,  0.5f,   0.0f,  1.0f,  0.0f,
-             0.5f, -0.5f,  0.5f,   0.0f,  1.0f,  0.0f,
-             0.5f,  0.5f,  0.5f,   0.0f,  1.0f,  0.0f,
-            -0.5f,  0.5f,  0.5f,   0.0f,  1.0f,  0.0f
-        };
-        
-        unsigned int indices[] = {
-            0, 1, 2, 2, 3, 0, // front
-            4, 5, 6, 6, 7, 4, // back
-            0, 4, 7, 7, 3, 0, // left
-            1, 5, 6, 6, 2, 1, // right
-            0, 1, 5, 5, 4, 0, // top
-            2, 3, 7, 7, 6, 2  // bottom
-        };
-        
-        Mesh mesh;
-        mesh.upload(std::vector<float>(vertices, vertices + sizeof(vertices) / sizeof(vertices[0])), 
-                    std::vector<uint32_t>(indices, indices + sizeof(indices) / sizeof(indices[0])));
+        // Create and generate chunk
+        Chunk chunk;
+        chunk.generateFlat();
+        Mesh chunkMesh = chunk.buildMesh();
         
         // Camera setup
-        Camera camera(glm::vec3(3.0f, 2.0f, 3.0f));
+        Camera camera(glm::vec3(8.0f, 16.0f, 24.0f));
         
         // Main loop
         Uint32 lastTime = SDL_GetTicks();
@@ -85,15 +68,15 @@ int main(int argc, char* argv[]) {
             // View matrix
             glm::mat4 view = camera.getViewMatrix();
             
-            // Model matrix (no rotation now, since we can fly around the cube)
+            // Model matrix (identity for static world)
             glm::mat4 model = glm::mat4(1.0f);
             
             ourShader.setMat4("model", model);
             ourShader.setMat4("view", view);
             ourShader.setMat4("projection", projection);
             
-            // Draw the cube
-            mesh.draw();
+            // Draw the chunk
+            chunkMesh.draw();
         }
         
         // Cleanup is handled by Mesh destructor
