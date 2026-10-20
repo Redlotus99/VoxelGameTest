@@ -43,8 +43,9 @@ int main(int argc, char* argv[]) {
         // Create player
         Player player;
         if (shapeTestMode) {
-            // Start on the elevated test platform, looking toward the shapes.
-            player.position = glm::vec3(8.5f, 41.05f, 10.5f);
+            // Spawn on a clear part of the elevated platform, away from the
+            // L-shaped test pieces, with extra clearance above the surface.
+            player.position = glm::vec3(5.5f, 41.5f, 8.5f);
         }
         
         // Main loop
