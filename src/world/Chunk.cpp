@@ -131,7 +131,9 @@ void Chunk::generateTerrain() {
     }
 }
 
-Mesh Chunk::buildMesh(const std::function<BlockType(int wx, int wy, int wz)>& getWorldBlock) const {
+Mesh Chunk::buildMesh(
+    const std::function<BlockType(int wx, int wy, int wz)>& getWorldBlock,
+    const std::function<BlockShape(int wx, int wy, int wz)>& getWorldShape) const {
     std::vector<float> vertices;
     std::vector<uint32_t> indices;
     
@@ -206,13 +208,15 @@ Mesh Chunk::buildMesh(const std::function<BlockType(int wx, int wy, int wz)>& ge
                         neighborBlock = getBlock(nx, ny, nz);
                         neighborShape = getBlockShape(nx, ny, nz);
                     } else {
-                        // The world callback currently exposes material only;
-                        // cross-chunk neighbors therefore retain cube visibility
-                        // rules until the world shape lookup is added.
-                        int worldX = m_position.x * SIZE_X + nx;
-                        int worldY = ny;
-                        int worldZ = m_position.z * SIZE_Z + nz;
+                        // Resolve both material and geometry across chunk boundaries so ramp
+                        // clipping behaves consistently at chunk edges.
+                        const int worldX = m_position.x * SIZE_X + nx;
+                        const int worldY = ny;
+                        const int worldZ = m_position.z * SIZE_Z + nz;
                         neighborBlock = getWorldBlock(worldX, worldY, worldZ);
+                        if (neighborBlock != BlockType::Air) {
+                            neighborShape = getWorldShape(worldX, worldY, worldZ);
+                        }
                     }
 
                     const bool isSideFace = face >= 2;
