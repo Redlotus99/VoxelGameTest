@@ -177,7 +177,8 @@ Mesh Chunk::buildMesh(
             case BlockShape::CornerCutTopNorthEast: return glm::vec3(0.75f, 0.00f, 0.30f);
             case BlockShape::CornerCutTopNorthWest: return glm::vec3(1.00f, 0.25f, 0.35f);
             case BlockShape::CornerCutTopSouthEast: return glm::vec3(0.85f, 0.10f, 0.65f);
-            case BlockShape::OpenBottomCornerComplementNorthEast: return glm::vec3(1.00f, 0.75f, 0.05f);
+            case BlockShape::OpenBottomCornerComplementNorthEast:
+            case BlockShape::OpenBottomCornerComplementSouthWest: return glm::vec3(1.00f, 0.75f, 0.05f);
             case BlockShape::Count: break;
         }
         return glm::vec3(1.0f, 0.0f, 1.0f); // bright magenta for an invalid shape
@@ -348,24 +349,32 @@ Mesh Chunk::buildMesh(
                     }
                 }
 
-                // Exact tetrahedral complement of CornerCutTopNorthEast.
-                // The three top vertices form a flat, upward-facing triangle;
-                // the fourth vertex is the northeast bottom corner. The
-                // diagonal face matches the red cut's plane. There is no
-                // bottom face (only a single bottom vertex).
-                if (shape == BlockShape::OpenBottomCornerComplementNorthEast) {
+                // Tetrahedral complement. The south-west variant is the
+                // exact 180-degree rotation of the north-east variant.
+                if (shape == BlockShape::OpenBottomCornerComplementNorthEast ||
+                    shape == BlockShape::OpenBottomCornerComplementSouthWest) {
+                    const bool rotated180 = shape == BlockShape::OpenBottomCornerComplementSouthWest;
                     const glm::vec3 bottomNE(x + 1.0f, y, z + 1.0f);
+                    const glm::vec3 bottomSW(x, y, z);
                     const glm::vec3 topNW(x, y + 1.0f, z + 1.0f);
                     const glm::vec3 topNE(x + 1.0f, y + 1.0f, z + 1.0f);
                     const glm::vec3 topSE(x + 1.0f, y + 1.0f, z);
+                    const glm::vec3 topSW(x, y + 1.0f, z);
                     const glm::vec3 topColor = baseColor * getFaceBrightness(0);
                     const glm::vec3 slopeColor = baseColor * getFaceBrightness(6);
                     const glm::vec3 sideXColor = baseColor * getFaceBrightness(2);
                     const glm::vec3 sideZColor = baseColor * getFaceBrightness(4);
-                    emitTriangle(topNW, topNE, topSE, topColor);
-                    emitTriangle(bottomNE, topNW, topSE, slopeColor);
-                    emitTriangle(bottomNE, topSE, topNE, sideXColor);
-                    emitTriangle(bottomNE, topNE, topNW, sideZColor);
+                    if (!rotated180) {
+                        emitTriangle(topNW, topNE, topSE, topColor);
+                        emitTriangle(bottomNE, topNW, topSE, slopeColor);
+                        emitTriangle(bottomNE, topSE, topNE, sideXColor);
+                        emitTriangle(bottomNE, topNE, topNW, sideZColor);
+                    } else {
+                        emitTriangle(topSE, topSW, topNW, topColor);
+                        emitTriangle(bottomSW, topSE, topNW, slopeColor);
+                        emitTriangle(bottomSW, topNW, topSW, sideXColor);
+                        emitTriangle(bottomSW, topSW, topSE, sideZColor);
+                    }
                     continue;
                 }
 
