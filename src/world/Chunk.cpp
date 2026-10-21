@@ -320,8 +320,7 @@ Mesh Chunk::buildMesh(
                 const int worldZ = m_position.z * SIZE_Z + z;
                 const bool naturalTerrainTop =
                     blockType == BlockType::Grass &&
-                    getWorldBlock(worldX, y + 1, worldZ) == BlockType::Air &&
-                    !usesExplicitBlockShapeGeometry(shape);
+                    getWorldBlock(worldX, y + 1, worldZ) == BlockType::Air;
                 if (naturalTerrainTop) {
                     const auto offsetAt = [&](int wx, int wz, int cx, int cz) {
                             return terrainCornerWorldY(wx, wz, cx, cz) - terrainHeightAt(wx, wz);
@@ -383,10 +382,10 @@ Mesh Chunk::buildMesh(
                 // Keep the original yellow tetrahedron mesh and rotate it
                 // 180 degrees horizontally (around the cell's vertical axis)
                 // when the south-west orientation is selected.
-                if (shape == BlockShape::OpenBottomCornerComplementNorthEast ||
+                if (!naturalTerrainTop && (shape == BlockShape::OpenBottomCornerComplementNorthEast ||
                     shape == BlockShape::OpenBottomCornerComplementSouthWest ||
                     shape == BlockShape::OpenBottomCornerComplementNorthWest ||
-                    shape == BlockShape::OpenBottomCornerComplementSouthEast) {
+                    shape == BlockShape::OpenBottomCornerComplementSouthEast)) {
                     const bool rotateHorizontal180 =
                         shape == BlockShape::OpenBottomCornerComplementSouthWest;
                     const bool rotateToNorthWest =
@@ -440,10 +439,10 @@ Mesh Chunk::buildMesh(
                 // Complementary corner prisms are solid above a diagonal
                 // bottom. Their top is full-height; their bottom and side
                 // boundaries come from the shared CellShape profile.
-                if (shape == BlockShape::CornerComplementSouthWest ||
+                if (!naturalTerrainTop && (shape == BlockShape::CornerComplementSouthWest ||
                     shape == BlockShape::CornerComplementSouthEast ||
                     shape == BlockShape::CornerComplementNorthEast ||
-                    shape == BlockShape::CornerComplementNorthWest) {
+                    shape == BlockShape::CornerComplementNorthWest)) {
                     const CellShape cell = getCellShapeData(shape);
                     const auto heightAt = [&](float px, float pz, bool top) {
                         const int ci = profileCornerIndex(px, pz);
@@ -495,10 +494,10 @@ Mesh Chunk::buildMesh(
                 // All four top-corner cuts share one mesh template. The removed
                 // top corner determines which axis faces become triangles and
                 // the orientation of the diagonal cut surface.
-                if (shape == BlockShape::CornerCutTopSouthWest ||
+                if (!naturalTerrainTop && (shape == BlockShape::CornerCutTopSouthWest ||
                     shape == BlockShape::CornerCutTopNorthEast ||
                     shape == BlockShape::CornerCutTopNorthWest ||
-                    shape == BlockShape::CornerCutTopSouthEast) {
+                    shape == BlockShape::CornerCutTopSouthEast)) {
                     float removedX = 0.0f;
                     float removedZ = 0.0f;
                     switch (shape) {
@@ -600,7 +599,7 @@ Mesh Chunk::buildMesh(
                 // corner removed by the plane x + y + z = 1. The three cut
                 // boundary faces are triangles; the opposite three remain
                 // full quads. Shared faces against occupied cells are omitted.
-                if (shape == BlockShape::CornerCutSouthWest) {
+                if (!naturalTerrainTop && shape == BlockShape::CornerCutSouthWest) {
                     for (int face = 0; face < 6; ++face) {
                         int nx = x, ny = y, nz = z;
                         switch (face) {
@@ -715,10 +714,18 @@ Mesh Chunk::buildMesh(
                         const float currentZ = face == 4 ? 1.0f : 0.0f;
                         const float neighborX = face == 2 ? 0.0f : (face == 3 ? 1.0f : 0.0f);
                         const float neighborZ = face == 4 ? 0.0f : (face == 5 ? 1.0f : 0.0f);
-                        const float currentLow = edgeTopHeight(
-                            shape, xSide ? currentX : 0.0f, xSide ? 0.0f : currentZ);
-                        const float currentHigh = edgeTopHeight(
-                            shape, xSide ? currentX : 1.0f, xSide ? 1.0f : currentZ);
+                        const float currentLow = naturalTerrainTop
+                            ? static_cast<float>(terrainCornerWorldY(worldX, worldZ,
+                                xSide ? static_cast<int>(currentX) : 0,
+                                xSide ? 0 : static_cast<int>(currentZ)) - terrainHeightAt(worldX, worldZ))
+                            : edgeTopHeight(shape, xSide ? currentX : 0.0f,
+                                xSide ? 0.0f : currentZ);
+                        const float currentHigh = naturalTerrainTop
+                            ? static_cast<float>(terrainCornerWorldY(worldX, worldZ,
+                                xSide ? static_cast<int>(currentX) : 1,
+                                xSide ? 1 : static_cast<int>(currentZ)) - terrainHeightAt(worldX, worldZ))
+                            : edgeTopHeight(shape, xSide ? currentX : 1.0f,
+                                xSide ? 1.0f : currentZ);
                         float neighborLow = neighborAir ? 0.0f : edgeTopHeight(
                             neighborShape, xSide ? neighborX : 0.0f,
                             xSide ? 0.0f : neighborZ);
