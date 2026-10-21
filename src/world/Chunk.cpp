@@ -94,7 +94,7 @@ void Chunk::generateTerrain() {
         // breaking continuity with its neighbors. Lower the sampling frequency
         // while retaining the broad height range to avoid those unsupported
         // abrupt transitions.
-        const float noise = glm::perlin(glm::vec2(worldX, worldZ) * 0.005f);
+        const float noise = glm::perlin(glm::vec2(worldX, worldZ) * 0.01f);
         int height = 24 + static_cast<int>(noise * 14.0f);
         return std::max(1, std::min(height, SIZE_Y - 2));
     };
