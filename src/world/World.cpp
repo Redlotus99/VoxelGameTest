@@ -70,33 +70,33 @@ void World::generate(int radius) {
             // rather than forcing every junction into the NE/SW pair.
             if (westY == centerY && southY == centerY &&
                 west[2] > west[1] && south[2] > south[3]) {
-                setBlockShapeWorld(wx - 1, centerY, wz, BlockShape::CornerCutTopSouthWest);
-                setBlockShapeWorld(wx, centerY, wz, BlockShape::OpenBottomCornerComplementSouthWest);
-                setBlockShapeWorld(wx, centerY, wz - 1, BlockShape::CornerCutTopSouthWest);
+                setBlockShapeWorld(wx - 1, centerY, wz, BlockShape::CornerCutTopNorthEast);
+                setBlockShapeWorld(wx, centerY, wz, BlockShape::OpenBottomCornerComplementNorthEast);
+                setBlockShapeWorld(wx, centerY, wz - 1, BlockShape::CornerCutTopNorthEast);
                 continue;
             }
 
             if (westY == centerY && northY == centerY &&
                 west[1] > west[2] && north[1] > north[0]) {
-                setBlockShapeWorld(wx - 1, centerY, wz, BlockShape::CornerCutTopNorthWest);
-                setBlockShapeWorld(wx, centerY, wz, BlockShape::OpenBottomCornerComplementNorthWest);
-                setBlockShapeWorld(wx, centerY, wz + 1, BlockShape::CornerCutTopNorthWest);
+                setBlockShapeWorld(wx - 1, centerY, wz, BlockShape::CornerCutTopSouthEast);
+                setBlockShapeWorld(wx, centerY, wz, BlockShape::OpenBottomCornerComplementSouthEast);
+                setBlockShapeWorld(wx, centerY, wz + 1, BlockShape::CornerCutTopSouthEast);
                 continue;
             }
 
             if (eastY == centerY && northY == centerY &&
                 east[0] > east[3] && north[0] > north[1]) {
-                setBlockShapeWorld(wx + 1, centerY, wz, BlockShape::CornerCutTopNorthEast);
-                setBlockShapeWorld(wx, centerY, wz, BlockShape::OpenBottomCornerComplementNorthEast);
-                setBlockShapeWorld(wx, centerY, wz + 1, BlockShape::CornerCutTopNorthEast);
+                setBlockShapeWorld(wx + 1, centerY, wz, BlockShape::CornerCutTopSouthWest);
+                setBlockShapeWorld(wx, centerY, wz, BlockShape::OpenBottomCornerComplementSouthWest);
+                setBlockShapeWorld(wx, centerY, wz + 1, BlockShape::CornerCutTopSouthWest);
                 continue;
             }
 
             if (eastY == centerY && southY == centerY &&
                 east[3] > east[0] && south[3] > south[2]) {
-                setBlockShapeWorld(wx + 1, centerY, wz, BlockShape::CornerCutTopSouthEast);
-                setBlockShapeWorld(wx, centerY, wz, BlockShape::OpenBottomCornerComplementSouthEast);
-                setBlockShapeWorld(wx, centerY, wz - 1, BlockShape::CornerCutTopSouthEast);
+                setBlockShapeWorld(wx + 1, centerY, wz, BlockShape::CornerCutTopNorthWest);
+                setBlockShapeWorld(wx, centerY, wz, BlockShape::OpenBottomCornerComplementNorthWest);
+                setBlockShapeWorld(wx, centerY, wz - 1, BlockShape::CornerCutTopNorthWest);
             }
         }
     }
