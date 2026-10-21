@@ -700,10 +700,43 @@ Mesh Chunk::buildMesh(
                             vertices.push_back(color.b);
                         }
 
-                        indices.insert(indices.end(), {
-                            base, base + 1, base + 2,
-                            base, base + 2, base + 3
-                        });
+                        if (face == 0 &&
+                            (shape == BlockShape::CornerRampSouthWest ||
+                             shape == BlockShape::CornerRampSouthEast ||
+                             shape == BlockShape::CornerRampNorthEast ||
+                             shape == BlockShape::CornerRampNorthWest ||
+                             shape == BlockShape::CornerWedgeSouthWest ||
+                             shape == BlockShape::CornerWedgeSouthEast ||
+                             shape == BlockShape::CornerWedgeNorthEast ||
+                             shape == BlockShape::CornerWedgeNorthWest)) {
+                            // Corner ramps/wedges have one exceptional corner.
+                            // Split the top along the diagonal that joins that
+                            // corner to its opposite; the default diagonal can
+                            // leave a flat triangle beside a sloping triangle,
+                            // which reads as a jutting 45-degree edge.
+                            const auto& h = shapeData.topHeights;
+                            const bool northWestExceptional =
+                                (h[3] != h[0] && h[3] != h[1] && h[3] != h[2]);
+                            const bool southEastExceptional =
+                                (h[1] != h[0] && h[1] != h[2] && h[1] != h[3]);
+                            const bool useDiagonal02 = northWestExceptional || southEastExceptional;
+                            if (useDiagonal02) {
+                                indices.insert(indices.end(), {
+                                    base, base + 1, base + 2,
+                                    base, base + 2, base + 3
+                                });
+                            } else {
+                                indices.insert(indices.end(), {
+                                    base, base + 1, base + 3,
+                                    base + 1, base + 2, base + 3
+                                });
+                            }
+                        } else {
+                            indices.insert(indices.end(), {
+                                base, base + 1, base + 2,
+                                base, base + 2, base + 3
+                            });
+                        }
                     }
                 }
             }
