@@ -23,83 +23,12 @@ void World::generate(int radius) {
         }
     }
 
-    // Run the junction pass only after every chunk has generated its surface,
-    // so the decisions use real neighboring shapes and work across chunk seams.
-    // The first pair is the validated red-yellow-red arrangement: west RampNorth,
-    // center complement, south RampEast. The opposite diagonal uses the 180-degree
-    // rotated complementary shape. Only same-level grass surface cells qualify.
-    const int minWorld = -radius * Chunk::SIZE_X;
-    const int maxWorld = (radius + 1) * Chunk::SIZE_X - 1;
-    const auto surfaceYAt = [this](int wx, int wz) {
-        for (int y = Chunk::SIZE_Y - 2; y >= 1; --y) {
-            if (getBlockWorld(wx, y, wz) == BlockType::Grass &&
-                getBlockWorld(wx, y + 1, wz) == BlockType::Air) {
-                return y;
-            }
-        }
-        return -1;
-    };
-
-    for (int wz = minWorld + 1; wz < maxWorld; ++wz) {
-        for (int wx = minWorld + 1; wx < maxWorld; ++wx) {
-            const int centerY = surfaceYAt(wx, wz);
-            if (centerY < 1) {
-                continue;
-            }
-
-            // Do not overwrite an already explicit/test shape.
-            if (usesExplicitBlockShapeGeometry(getBlockShapeWorld(wx, centerY, wz))) {
-                continue;
-            }
-
-            const int westY = surfaceYAt(wx - 1, wz);
-            const int southY = surfaceYAt(wx, wz - 1);
-            const int eastY = surfaceYAt(wx + 1, wz);
-            const int northY = surfaceYAt(wx, wz + 1);
-
-            // Read the four neighboring edge profiles once. The connector is
-            // placed only when two perpendicular 45-degree edges rise away from
-            // their shared low corner; this avoids orienting the red cuts backward.
-            const auto west = getBlockShapeData(getBlockShapeWorld(wx - 1, centerY, wz)).topHeights;
-            const auto south = getBlockShapeData(getBlockShapeWorld(wx, centerY, wz - 1)).topHeights;
-            const auto east = getBlockShapeData(getBlockShapeWorld(wx + 1, centerY, wz)).topHeights;
-            const auto north = getBlockShapeData(getBlockShapeWorld(wx, centerY, wz + 1)).topHeights;
-
-            // Each test describes the two low endpoints meeting at the center
-            // corner. The matching shape orientation is derived from that corner,
-            // rather than forcing every junction into the NE/SW pair.
-            if (westY == centerY && southY == centerY &&
-                west[2] > west[1] && south[2] > south[3]) {
-                setBlockShapeWorld(wx - 1, centerY, wz, BlockShape::CornerCutTopNorthEast);
-                setBlockShapeWorld(wx, centerY, wz, BlockShape::OpenBottomCornerComplementNorthEast);
-                setBlockShapeWorld(wx, centerY, wz - 1, BlockShape::CornerCutTopNorthEast);
-                continue;
-            }
-
-            if (westY == centerY && northY == centerY &&
-                west[1] > west[2] && north[1] > north[0]) {
-                setBlockShapeWorld(wx - 1, centerY, wz, BlockShape::CornerCutTopSouthEast);
-                setBlockShapeWorld(wx, centerY, wz, BlockShape::OpenBottomCornerComplementSouthEast);
-                setBlockShapeWorld(wx, centerY, wz + 1, BlockShape::CornerCutTopSouthEast);
-                continue;
-            }
-
-            if (eastY == centerY && northY == centerY &&
-                east[0] > east[3] && north[0] > north[1]) {
-                setBlockShapeWorld(wx + 1, centerY, wz, BlockShape::CornerCutTopSouthWest);
-                setBlockShapeWorld(wx, centerY, wz, BlockShape::OpenBottomCornerComplementSouthWest);
-                setBlockShapeWorld(wx, centerY, wz + 1, BlockShape::CornerCutTopSouthWest);
-                continue;
-            }
-
-            if (eastY == centerY && southY == centerY &&
-                east[3] > east[0] && south[3] > south[2]) {
-                setBlockShapeWorld(wx + 1, centerY, wz, BlockShape::CornerCutTopNorthWest);
-                setBlockShapeWorld(wx, centerY, wz, BlockShape::OpenBottomCornerComplementNorthWest);
-                setBlockShapeWorld(wx, centerY, wz - 1, BlockShape::CornerCutTopNorthWest);
-            }
-        }
-    }
+    // Natural terrain geometry is built from shared world-space corner heights
+    // in Chunk::generateMesh(). Do not overwrite grass surface cells with the
+    // fixed CornerCut/OpenBottom meshes here: those templates have different
+    // vertex heights and break the continuous terrain profile. The explicit
+    // red/yellow connector arrangement remains available through --shape-test
+    // until a terrain-aware connector mesh can preserve the shared corner heights.
 }
 
 Chunk* World::getChunk(glm::ivec3 position) {
