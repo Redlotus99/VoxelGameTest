@@ -177,6 +177,7 @@ Mesh Chunk::buildMesh(
             case BlockShape::CornerCutTopNorthEast: return glm::vec3(0.75f, 0.00f, 0.30f);
             case BlockShape::CornerCutTopNorthWest: return glm::vec3(1.00f, 0.25f, 0.35f);
             case BlockShape::CornerCutTopSouthEast: return glm::vec3(0.85f, 0.10f, 0.65f);
+            case BlockShape::OpenBottomSlopeSouthWest: return glm::vec3(1.00f, 0.75f, 0.05f);
             case BlockShape::Count: break;
         }
         return glm::vec3(1.0f, 0.0f, 1.0f); // bright magenta for an invalid shape
@@ -345,6 +346,24 @@ Mesh Chunk::buildMesh(
                         }
                         continue;
                     }
+                }
+
+                // Open-bottom diagonal connector. The raised southwest top
+                // corner slopes down to the southeast and northwest bottom
+                // corners. The three triangular side faces are emitted, but
+                // the bottom triangle is deliberately omitted.
+                if (shape == BlockShape::OpenBottomSlopeSouthWest) {
+                    const glm::vec3 raised(x, y + 1.0f, z);
+                    const glm::vec3 bottomSE(x + 1.0f, y, z);
+                    const glm::vec3 bottomNE(x + 1.0f, y, z + 1.0f);
+                    const glm::vec3 bottomNW(x, y, z + 1.0f);
+                    const glm::vec3 slopeColor = baseColor * getFaceBrightness(6);
+                    const glm::vec3 sideXColor = baseColor * getFaceBrightness(2);
+                    const glm::vec3 sideZColor = baseColor * getFaceBrightness(4);
+                    emitTriangle(raised, bottomSE, bottomNW, slopeColor);
+                    emitTriangle(raised, bottomNE, bottomSE, sideXColor);
+                    emitTriangle(raised, bottomNW, bottomNE, sideZColor);
+                    continue;
                 }
 
                 // Complementary corner prisms are solid above a diagonal
