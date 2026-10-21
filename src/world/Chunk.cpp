@@ -330,9 +330,6 @@ Mesh Chunk::buildMesh(
                         const glm::vec3 se(x + 1, y + offsetAt(worldX, worldZ, 1, 0), z);
                         const glm::vec3 ne(x + 1, y + offsetAt(worldX, worldZ, 1, 1), z + 1);
                         const glm::vec3 nw(x, y + offsetAt(worldX, worldZ, 0, 1), z + 1);
-                        const int d1 = std::abs(static_cast<int>(sw.y - ne.y));
-                        const int d2 = std::abs(static_cast<int>(se.y - nw.y));
-
                         // Terrain cells share one mesh type, so tint each top
                         // by its actual four-corner profile. This brings the
                         // shape diagnostics onto the generated terrain itself.
@@ -345,7 +342,32 @@ Mesh Chunk::buildMesh(
                             ? getShapeDebugColor(profile)
                             : getBlockColor(blockType);
                         const glm::vec3 topColor = terrainColor * getFaceBrightness(0);
-                        if (d1 <= d2) {
+
+                        // Choose the diagonal from the actual corner profile,
+                        // not only from diagonal height differences. For a
+                        // single exceptional corner, the diagonal must join
+                        // the other two corners so the remaining triangle is
+                        // the flat face of the wedge/corner-ramp. For saddles,
+                        // join the two corners at the same height. A plain
+                        // ramp is planar, so either diagonal is valid.
+                        const int d1 = std::abs(neH - swH);
+                        const int d2 = std::abs(nwH - seH);
+                        bool useSwNeDiagonal = d1 <= d2;
+                        if (swH != seH && swH != neH && swH != nwH) {
+                            useSwNeDiagonal = false; // exceptional SW
+                        } else if (seH != swH && seH != neH && seH != nwH) {
+                            useSwNeDiagonal = true;  // exceptional SE
+                        } else if (neH != swH && neH != seH && neH != nwH) {
+                            useSwNeDiagonal = false; // exceptional NE
+                        } else if (nwH != swH && nwH != seH && nwH != neH) {
+                            useSwNeDiagonal = true;  // exceptional NW
+                        } else if (swH == neH && seH == nwH && swH != seH) {
+                            useSwNeDiagonal = true;  // saddle: SW and NE match
+                        } else if (swH == neH && seH == nwH && swH == seH) {
+                            useSwNeDiagonal = true;  // flat profile
+                        }
+
+                        if (useSwNeDiagonal) {
                             emitTriangle(sw, nw, ne, topColor);
                             emitTriangle(sw, ne, se, topColor);
                         } else {
