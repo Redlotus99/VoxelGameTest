@@ -251,9 +251,11 @@ void World::generateCornerCutTestArrangement() {
     setBlockShapeWorld(6, diagonalTestY, 6, BlockShape::OpenBottomCornerComplementNorthEast);
 
     setBlockWorld(7, diagonalTestY, 6, BlockType::Stone);
-    // The right-hand red piece must expose its matching diagonal toward the
-    // yellow complement on its west face, so use the north-west cut here.
-    setBlockShapeWorld(7, diagonalTestY, 6, BlockShape::CornerCutTopNorthWest);
+    // Keep the same diagonal plane as the first red reference (NE/SW
+    // diagonal), but remove the opposite top corner so the red piece on the
+    // yellow's east side presents the complementary half of that same angle.
+    // Do not move either reference block.
+    setBlockShapeWorld(7, diagonalTestY, 6, BlockShape::CornerCutTopSouthWest);
 
     // Same-height cube/ramp seams: the cube's top must meet the ramp's
     // high edge. RampWest is high on its west edge, so it joins the cube
