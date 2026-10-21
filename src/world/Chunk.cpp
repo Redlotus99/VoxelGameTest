@@ -84,121 +84,47 @@ void Chunk::generateFlat() {
 }
 
 void Chunk::generateTerrain() {
-    // Terrain heights are sampled at shared grid vertices, not independently
-    // per cell. Adjacent cells therefore use identical heights at both ends
-    // of every shared edge.
-    const auto sampleHeight = [](int worldX, int worldZ) -> int {
-        // Smooth the continuous noise before quantizing it into block heights.
-        // Without this small neighborhood filter, tiny noise differences can
-        // turn a single grid corner into an isolated high point, forcing a
-        // sharp corner wedge into an otherwise gentle run of terrain.
-        const auto rawTerrainNoise = [](int x, int z) {
-            const glm::vec2 position(x, z);
-            const float broadNoise = glm::perlin(position * 0.01f);
-            const float detailNoise = glm::perlin(position * 0.035f);
-            return broadNoise * 14.0f + detailNoise * 3.0f;
-        };
-
-        // A light 3x3 weighted average keeps broad hills intact while damping
-        // one-vertex spikes. Because every cell samples this same world-space
-        // function, adjacent cells still share exactly matching edge heights.
-        float smoothedNoise = rawTerrainNoise(worldX, worldZ) * 4.0f;
-        smoothedNoise += rawTerrainNoise(worldX - 1, worldZ) * 2.0f;
-        smoothedNoise += rawTerrainNoise(worldX + 1, worldZ) * 2.0f;
-        smoothedNoise += rawTerrainNoise(worldX, worldZ - 1) * 2.0f;
-        smoothedNoise += rawTerrainNoise(worldX, worldZ + 1) * 2.0f;
-        smoothedNoise += rawTerrainNoise(worldX - 1, worldZ - 1);
-        smoothedNoise += rawTerrainNoise(worldX + 1, worldZ - 1);
-        smoothedNoise += rawTerrainNoise(worldX - 1, worldZ + 1);
-        smoothedNoise += rawTerrainNoise(worldX + 1, worldZ + 1);
-
-        const int height = 24 + static_cast<int>(smoothedNoise / 16.0f);
-        return std::max(1, std::min(height, SIZE_Y - 2));
+    // Terrain is derived exclusively from world coordinates so every chunk
+    // computes identical heights along shared boundaries.
+    const auto rawHeight = [](int worldX, int worldZ) -> int {
+        const float noise = glm::perlin(glm::vec2(
+            static_cast<float>(worldX), static_cast<float>(worldZ)) * 0.02f);
+        return std::max(1, std::min(static_cast<int>(noise * 14.0f + 24.0f), SIZE_Y - 3));
     };
-
-    const auto chooseShape = [](const std::array<int, 4>& cornerHeights) -> BlockShape {
-        const int low = *std::min_element(cornerHeights.begin(), cornerHeights.end());
-        const int high = *std::max_element(cornerHeights.begin(), cornerHeights.end());
-
-        // The profile vocabulary represents one-block transitions. The terrain
-        // sampling frequency is deliberately low enough to avoid unsupported
-        // multi-level differences inside a single cell. Keep the fallback as a
-        // defensive guard, not as a normal terrain-shaping path.
-        if (high - low > 1) {
-            return BlockShape::Cube;
-        }
-        if (high == low) {
-            return BlockShape::Cube;
-        }
-
-        // Bit order matches BlockShape.h: SW, SE, NE, NW. A set bit means
-        // that corner is one block higher than the low corners.
-        int mask = 0;
-        for (int i = 0; i < 4; ++i) {
-            if (cornerHeights[i] == high) {
-                mask |= (1 << i);
+    const auto terrainHeight = [&](int worldX, int worldZ) -> int {
+        int height = SIZE_Y;
+        for (int dz = -2; dz <= 2; ++dz) {
+            for (int dx = -2; dx <= 2; ++dx) {
+                height = std::min(height, rawHeight(worldX + dx, worldZ + dz) +
+                    std::max(std::abs(dx), std::abs(dz)));
             }
         }
-
-        switch (mask) {
-            case 0x1: return BlockShape::CornerWedgeSouthWest;
-            case 0x2: return BlockShape::CornerWedgeSouthEast;
-            case 0x3: return BlockShape::RampSouth;
-            case 0x4: return BlockShape::CornerWedgeNorthEast;
-            case 0x5: return BlockShape::SaddleSouthWestNorthEast;
-            case 0x6: return BlockShape::RampEast;
-            case 0x7: return BlockShape::CornerRampNorthWest;
-            case 0x8: return BlockShape::CornerWedgeNorthWest;
-            case 0x9: return BlockShape::RampWest;
-            case 0xA: return BlockShape::SaddleSouthEastNorthWest;
-            case 0xB: return BlockShape::CornerRampNorthEast;
-            case 0xC: return BlockShape::RampNorth;
-            case 0xD: return BlockShape::CornerRampSouthEast;
-            case 0xE: return BlockShape::CornerRampSouthWest;
-            case 0xF: return BlockShape::Cube;
-            default: return BlockShape::Cube;
-        }
+        return std::max(1, std::min(height, SIZE_Y - 3));
     };
-
+    constexpr int haloSizeX = SIZE_X + 2;
+    constexpr int haloSizeZ = SIZE_Z + 2;
+    std::array<int, haloSizeX * haloSizeZ> heights{};
+    const auto cacheIndex = [](int x, int z) { return (x + 1) + haloSizeX * (z + 1); };
+    for (int z = -1; z <= SIZE_Z; ++z) {
+        for (int x = -1; x <= SIZE_X; ++x) {
+            heights[cacheIndex(x, z)] = terrainHeight(
+                m_position.x * SIZE_X + x, m_position.z * SIZE_Z + z);
+        }
+    }
     for (int z = 0; z < SIZE_Z; ++z) {
         for (int x = 0; x < SIZE_X; ++x) {
-            const int worldX = m_position.x * SIZE_X + x;
-            const int worldZ = m_position.z * SIZE_Z + z;
-
-            // Sample the four shared world-grid vertices of this cell.
-            // Neighboring cells reuse these exact same samples, so their
-            // surface edges cannot disagree about endpoint heights.
-            const std::array<int, 4> cornerHeights = {{
-                sampleHeight(worldX,     worldZ),
-                sampleHeight(worldX + 1, worldZ),
-                sampleHeight(worldX + 1, worldZ + 1),
-                sampleHeight(worldX,     worldZ + 1)
-            }};
-            const int low = *std::min_element(cornerHeights.begin(), cornerHeights.end());
-            const int high = *std::max_element(cornerHeights.begin(), cornerHeights.end());
-
-            // Flat cells use a full cube one level below their surface.
-            // Transition cells sit at the lowest corner and raise only the
-            // corners whose shared vertex height is one block higher.
-            const int surfaceY = (high == low) ? low - 1 : low;
-            const BlockShape surfaceShape = chooseShape(cornerHeights);
-
+            const int surfaceY = heights[cacheIndex(x, z)];
             for (int y = 0; y < SIZE_Y; ++y) {
-                if (y > surfaceY) {
-                    setBlock(x, y, z, BlockType::Air);
-                } else if (y == surfaceY) {
+                if (y > surfaceY) setBlock(x, y, z, BlockType::Air);
+                else if (y == surfaceY) {
                     setBlock(x, y, z, BlockType::Grass);
-                    setBlockShape(x, y, z, surfaceShape);
-                } else if (y >= surfaceY - 3 && y < surfaceY - 1) {
-                    setBlock(x, y, z, BlockType::Dirt);
-                } else {
-                    setBlock(x, y, z, BlockType::Stone);
-                }
+                    setBlockShape(x, y, z, BlockShape::TerrainSurface);
+                } else if (y >= surfaceY - 3) setBlock(x, y, z, BlockType::Dirt);
+                else setBlock(x, y, z, BlockType::Stone);
             }
         }
     }
 }
-
 Mesh Chunk::buildMesh(
     const std::function<BlockType(int wx, int wy, int wz)>& getWorldBlock,
     const std::function<BlockShape(int wx, int wy, int wz)>& getWorldShape) const {
@@ -234,6 +160,7 @@ Mesh Chunk::buildMesh(
             case BlockShape::CornerWedgeNorthWest: return glm::vec3(0.75f, 0.30f, 0.05f);
             case BlockShape::SaddleSouthWestNorthEast: return glm::vec3(0.20f, 0.95f, 0.35f);
             case BlockShape::SaddleSouthEastNorthWest: return glm::vec3(0.05f, 0.70f, 0.25f);
+            case BlockShape::TerrainSurface: return glm::vec3(0.25f, 0.80f, 0.35f);
             case BlockShape::CornerCutSouthWest: return glm::vec3(1.00f, 0.10f, 0.20f);
             case BlockShape::CornerCutTopSouthWest: return glm::vec3(0.95f, 0.10f, 0.55f);
             case BlockShape::CornerCutTopNorthEast: return glm::vec3(0.70f, 0.05f, 0.35f);
@@ -315,10 +242,57 @@ Mesh Chunk::buildMesh(
                     continue;
                 }
 
-                const BlockShape shape = getBlockShape(x, y, z);
+                BlockShape shape = getBlockShape(x, y, z);
                 const glm::vec3 baseColor = kShapeDebugTintEnabled
                     ? getShapeDebugColor(shape)
                     : getBlockColor(blockType);
+
+                // Natural terrain uses a shared-corner top surface. A block
+                // above it intentionally flattens this cell to a normal cube.
+                if (shape == BlockShape::TerrainSurface) {
+                    const int worldX = m_position.x * SIZE_X + x;
+                    const int worldZ = m_position.z * SIZE_Z + z;
+                    if (getWorldBlock(worldX, y + 1, worldZ) != BlockType::Air) {
+                        shape = BlockShape::Cube;
+                    } else {
+                        const auto heightAt = [&](int wx, int wz) -> int {
+                            const auto raw = [](int rx, int rz) {
+                                const float n = glm::perlin(glm::vec2(
+                                    static_cast<float>(rx), static_cast<float>(rz)) * 0.02f);
+                                return std::max(1, std::min(static_cast<int>(n * 14.0f + 24.0f), SIZE_Y - 3));
+                            };
+                            int h = SIZE_Y;
+                            for (int dz = -2; dz <= 2; ++dz)
+                                for (int dx = -2; dx <= 2; ++dx)
+                                    h = std::min(h, raw(wx + dx, wz + dz) +
+                                        std::max(std::abs(dx), std::abs(dz)));
+                            return std::max(1, std::min(h, SIZE_Y - 3));
+                        };
+                        const auto offsetAt = [&](int wx, int wz, int cx, int cz) {
+                            const int h = heightAt(wx, wz);
+                            int level = h;
+                            for (int dz = cz - 1; dz <= cz; ++dz)
+                                for (int dx = cx - 1; dx <= cx; ++dx)
+                                    level = std::min(level, heightAt(wx + dx, wz + dz));
+                            return level + 1 - h;
+                        };
+                        const glm::vec3 sw(x, y + offsetAt(worldX, worldZ, 0, 0), z);
+                        const glm::vec3 se(x + 1, y + offsetAt(worldX, worldZ, 1, 0), z);
+                        const glm::vec3 ne(x + 1, y + offsetAt(worldX, worldZ, 1, 1), z + 1);
+                        const glm::vec3 nw(x, y + offsetAt(worldX, worldZ, 0, 1), z + 1);
+                        const int d1 = std::abs(static_cast<int>(sw.y - ne.y));
+                        const int d2 = std::abs(static_cast<int>(se.y - nw.y));
+                        const glm::vec3 topColor = baseColor * getFaceBrightness(0);
+                        if (d1 <= d2) {
+                            emitTriangle(sw, nw, ne, topColor);
+                            emitTriangle(sw, ne, se, topColor);
+                        } else {
+                            emitTriangle(sw, nw, se, topColor);
+                            emitTriangle(nw, ne, se, topColor);
+                        }
+                        continue;
+                    }
+                }
 
                 // All four top-corner cuts share one mesh template. The removed
                 // top corner determines which axis faces become triangles and
