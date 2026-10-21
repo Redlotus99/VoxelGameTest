@@ -327,15 +327,17 @@ Mesh Chunk::buildMesh(
                     ? getShapeDebugColor(shape)
                     : getBlockColor(blockType);
 
-                // Natural terrain uses a shared-corner top surface. A block
-                // above it intentionally flattens this cell to a normal cube.
-                if (shape == BlockShape::TerrainSurface) {
-                    const int worldX = m_position.x * SIZE_X + x;
-                    const int worldZ = m_position.z * SIZE_Z + z;
-                    if (getWorldBlock(worldX, y + 1, worldZ) != BlockType::Air) {
-                        shape = BlockShape::Cube;
-                    } else {
-                        const auto offsetAt = [&](int wx, int wz, int cx, int cz) {
+                // Natural grass at the terrain surface must use the shared
+                // world-corner mesh regardless of its diagnostic shape label.
+                // Otherwise ramp/wedge labels fall through to isolated unit-cell
+                // templates and can lose the continuous world-space corner profile.
+                const int worldX = m_position.x * SIZE_X + x;
+                const int worldZ = m_position.z * SIZE_Z + z;
+                const bool naturalTerrainTop =
+                    blockType == BlockType::Grass &&
+                    getWorldBlock(worldX, y + 1, worldZ) == BlockType::Air;
+                if (naturalTerrainTop) {
+                    const auto offsetAt = [&](int wx, int wz, int cx, int cz) {
                             return terrainCornerWorldY(wx, wz, cx, cz) - terrainHeightAt(wx, wz);
                         };
                         const glm::vec3 sw(x, y + offsetAt(worldX, worldZ, 0, 0), z);
@@ -383,8 +385,7 @@ Mesh Chunk::buildMesh(
                             emitTriangle(sw, nw, se, topColor);
                             emitTriangle(nw, ne, se, topColor);
                         }
-                        continue;
-                    }
+                    continue;
                 }
 
                 // Keep the original yellow tetrahedron mesh and rotate it
