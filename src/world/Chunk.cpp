@@ -1,5 +1,6 @@
 #include "world/Chunk.h"
 #include <algorithm>
+#include <cmath>
 #include <vector>
 #include <glm/glm.hpp>
 #include <glm/gtc/noise.hpp>
@@ -567,8 +568,16 @@ Mesh Chunk::buildMesh(
                         if (clipped.size() >= 3) {
                             const glm::vec3 first = toWorld(clipped[0]);
                             for (std::size_t i = 1; i + 1 < clipped.size(); ++i) {
-                                emitTriangle(first, toWorld(clipped[i]),
-                                             toWorld(clipped[i + 1]), sideColor);
+                                const glm::vec3 second = toWorld(clipped[i]);
+                                const glm::vec3 third = toWorld(clipped[i + 1]);
+                                // The parameterized side polygon winds inward on
+                                // +X and -Z; reverse those faces to keep outward
+                                // normals consistent with the other cube faces.
+                                if (face == 2 || face == 5) {
+                                    emitTriangle(first, third, second, sideColor);
+                                } else {
+                                    emitTriangle(first, second, third, sideColor);
+                                }
                             }
                         }
                         continue;
