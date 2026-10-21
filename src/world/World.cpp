@@ -57,37 +57,46 @@ void World::generate(int radius) {
             const int eastY = surfaceYAt(wx + 1, wz);
             const int northY = surfaceYAt(wx, wz + 1);
 
-            // Test the actual shared-edge slope, not just the enum label.
-            // Corner ramps and wedges can form the same rising edge as a simple
-            // ramp, so exact RampNorth/RampEast equality misses real junctions.
-            const BlockShape westShape = getBlockShapeWorld(wx - 1, centerY, wz);
-            const BlockShape southShape = getBlockShapeWorld(wx, centerY, wz - 1);
-            const BlockShape eastShape = getBlockShapeWorld(wx + 1, centerY, wz);
-            const BlockShape northShape = getBlockShapeWorld(wx, centerY, wz + 1);
-            const auto westProfile = getBlockShapeData(westShape).topHeights;
-            const auto southProfile = getBlockShapeData(southShape).topHeights;
-            const auto eastProfile = getBlockShapeData(eastShape).topHeights;
-            const auto northProfile = getBlockShapeData(northShape).topHeights;
+            // Read the four neighboring edge profiles once. The connector is
+            // placed only when two perpendicular 45-degree edges rise away from
+            // their shared low corner; this avoids orienting the red cuts backward.
+            const auto west = getBlockShapeData(getBlockShapeWorld(wx - 1, centerY, wz)).topHeights;
+            const auto south = getBlockShapeData(getBlockShapeWorld(wx, centerY, wz - 1)).topHeights;
+            const auto east = getBlockShapeData(getBlockShapeWorld(wx + 1, centerY, wz)).topHeights;
+            const auto north = getBlockShapeData(getBlockShapeWorld(wx, centerY, wz + 1)).topHeights;
 
-            // West cell's east edge rises toward north; south cell's north
-            // edge rises toward east. This is the validated NE connector layout.
+            // Each test describes the two low endpoints meeting at the center
+            // corner. The matching shape orientation is derived from that corner,
+            // rather than forcing every junction into the NE/SW pair.
             if (westY == centerY && southY == centerY &&
-                westProfile[2] > westProfile[1] &&
-                southProfile[2] > southProfile[3]) {
+                west[2] > west[1] && south[2] > south[3]) {
                 setBlockShapeWorld(wx - 1, centerY, wz, BlockShape::CornerCutTopNorthEast);
                 setBlockShapeWorld(wx, centerY, wz, BlockShape::OpenBottomCornerComplementNorthEast);
                 setBlockShapeWorld(wx, centerY, wz - 1, BlockShape::CornerCutTopNorthEast);
                 continue;
             }
 
-            // Rotated counterpart: east cell's west edge rises toward south;
-            // north cell's south edge rises toward west.
+            if (westY == centerY && northY == centerY &&
+                west[1] > west[2] && north[1] > north[0]) {
+                setBlockShapeWorld(wx - 1, centerY, wz, BlockShape::CornerCutTopSouthEast);
+                setBlockShapeWorld(wx, centerY, wz, BlockShape::OpenBottomCornerComplementSouthEast);
+                setBlockShapeWorld(wx, centerY, wz + 1, BlockShape::CornerCutTopSouthEast);
+                continue;
+            }
+
             if (eastY == centerY && northY == centerY &&
-                eastProfile[0] > eastProfile[3] &&
-                northProfile[0] > northProfile[1]) {
+                east[0] > east[3] && north[0] > north[1]) {
                 setBlockShapeWorld(wx + 1, centerY, wz, BlockShape::CornerCutTopSouthWest);
                 setBlockShapeWorld(wx, centerY, wz, BlockShape::OpenBottomCornerComplementSouthWest);
                 setBlockShapeWorld(wx, centerY, wz + 1, BlockShape::CornerCutTopSouthWest);
+                continue;
+            }
+
+            if (eastY == centerY && southY == centerY &&
+                east[3] > east[0] && south[3] > south[2]) {
+                setBlockShapeWorld(wx + 1, centerY, wz, BlockShape::CornerCutTopNorthWest);
+                setBlockShapeWorld(wx, centerY, wz, BlockShape::OpenBottomCornerComplementNorthWest);
+                setBlockShapeWorld(wx, centerY, wz - 1, BlockShape::CornerCutTopNorthWest);
             }
         }
     }
