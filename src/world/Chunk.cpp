@@ -101,6 +101,28 @@ void Chunk::generateTerrain() {
         }
         return std::max(1, std::min(height, SIZE_Y - 3));
     };
+    // Convert the shared corner-height pattern into the matching mesh shape.
+    // Corner order is SW, SE, NE, NW. The smoothed height field guarantees
+    // adjacent corner levels differ by at most one, so every profile is binary.
+    const auto terrainProfileShape = [](int sw, int se, int ne, int nw) -> BlockShape {
+        if      (sw == 0 && se == 0 && ne == 0 && nw == 0) return BlockShape::TerrainSurface;
+        if      (sw == 1 && se == 1 && ne == 1 && nw == 1) return BlockShape::Cube;
+        if      (sw == 0 && se == 0 && ne == 1 && nw == 1) return BlockShape::RampNorth;
+        if      (sw == 1 && se == 1 && ne == 0 && nw == 0) return BlockShape::RampSouth;
+        if      (sw == 0 && se == 1 && ne == 1 && nw == 0) return BlockShape::RampEast;
+        if      (sw == 1 && se == 0 && ne == 0 && nw == 1) return BlockShape::RampWest;
+        if      (sw == 0 && se == 1 && ne == 1 && nw == 1) return BlockShape::CornerRampSouthWest;
+        if      (sw == 1 && se == 0 && ne == 1 && nw == 1) return BlockShape::CornerRampSouthEast;
+        if      (sw == 1 && se == 1 && ne == 0 && nw == 1) return BlockShape::CornerRampNorthEast;
+        if      (sw == 1 && se == 1 && ne == 1 && nw == 0) return BlockShape::CornerRampNorthWest;
+        if      (sw == 1 && se == 0 && ne == 0 && nw == 0) return BlockShape::CornerWedgeSouthWest;
+        if      (sw == 0 && se == 1 && ne == 0 && nw == 0) return BlockShape::CornerWedgeSouthEast;
+        if      (sw == 0 && se == 0 && ne == 1 && nw == 0) return BlockShape::CornerWedgeNorthEast;
+        if      (sw == 0 && se == 0 && ne == 0 && nw == 1) return BlockShape::CornerWedgeNorthWest;
+        if      (sw == 1 && se == 0 && ne == 1 && nw == 0) return BlockShape::SaddleSouthWestNorthEast;
+        if      (sw == 0 && se == 1 && ne == 0 && nw == 1) return BlockShape::SaddleSouthEastNorthWest;
+        return BlockShape::TerrainSurface;
+    };
     constexpr int haloSizeX = SIZE_X + 2;
     constexpr int haloSizeZ = SIZE_Z + 2;
     std::array<int, haloSizeX * haloSizeZ> heights{};
@@ -118,7 +140,23 @@ void Chunk::generateTerrain() {
                 if (y > surfaceY) setBlock(x, y, z, BlockType::Air);
                 else if (y == surfaceY) {
                     setBlock(x, y, z, BlockType::Grass);
-                    setBlockShape(x, y, z, BlockShape::TerrainSurface);
+
+                    // Every surface cell derives its shape from the same
+                    // four shared world-corner levels used by the mesh.
+                    // This makes the terrain use real ramp, wedge and saddle
+                    // geometry instead of treating those profiles as colors.
+                    const auto cornerOffset = [&](int cx, int cz) {
+                        const int h00 = heights[cacheIndex(cx - 1, cz - 1)];
+                        const int h10 = heights[cacheIndex(cx,     cz - 1)];
+                        const int h11 = heights[cacheIndex(cx,     cz)];
+                        const int h01 = heights[cacheIndex(cx - 1, cz)];
+                        return std::min(std::min(h00, h10), std::min(h11, h01)) + 1 - surfaceY;
+                    };
+                    const int sw = cornerOffset(x,     z);
+                    const int se = cornerOffset(x + 1, z);
+                    const int ne = cornerOffset(x + 1, z + 1);
+                    const int nw = cornerOffset(x,     z + 1);
+                    setBlockShape(x, y, z, terrainProfileShape(sw, se, ne, nw));
                 } else if (y >= surfaceY - 3) setBlock(x, y, z, BlockType::Dirt);
                 else setBlock(x, y, z, BlockType::Stone);
             }
