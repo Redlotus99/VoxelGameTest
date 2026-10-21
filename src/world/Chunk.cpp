@@ -88,7 +88,12 @@ void Chunk::generateTerrain() {
     // per cell. Adjacent cells therefore use identical heights at both ends
     // of every shared edge.
     const auto sampleHeight = [](int worldX, int worldZ) -> int {
-        const float noise = glm::perlin(glm::vec2(worldX, worldZ) * 0.02f);
+        // Keep adjacent sampled heights within the one-block profile vocabulary.
+        // At the previous frequency, a cell could span more than one block in
+        // height; chooseShape() then fell back to a cube that could not match
+        // the shared corner heights. Lower frequency preserves the same broad
+        // height range while making the transitions representable by our shapes.
+        const float noise = glm::perlin(glm::vec2(worldX, worldZ) * 0.01f);
         int height = 24 + static_cast<int>(noise * 14.0f);
         return std::max(1, std::min(height, SIZE_Y - 2));
     };
@@ -97,10 +102,10 @@ void Chunk::generateTerrain() {
         const int low = *std::min_element(cornerHeights.begin(), cornerHeights.end());
         const int high = *std::max_element(cornerHeights.begin(), cornerHeights.end());
 
-        // The current terrain profile vocabulary represents one-block height
-        // transitions. Perlin sampling at this scale should keep neighboring
-        // vertex heights within one block; the fallback remains conservative
-        // if that assumption is ever violated.
+        // The profile vocabulary represents one-block transitions. The terrain
+        // sampling frequency is deliberately low enough to avoid unsupported
+        // multi-level differences inside a single cell. Keep the fallback as a
+        // defensive guard, not as a normal terrain-shaping path.
         if (high - low > 1) {
             return BlockShape::Cube;
         }

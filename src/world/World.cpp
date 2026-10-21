@@ -235,6 +235,13 @@ void World::generateCornerCutTestArrangement() {
     setBlockWorld(14, platformY + 1, 14, BlockType::Stone);
     setBlockShapeWorld(14, platformY + 1, 14, BlockShape::CornerCutTopSouthEast);
 
+    // Different-height seam: the ramp's low west edge meets the top of the
+    // cube immediately to its west. This reproduces the terrain generator's
+    // representation of equal world-space heights stored in adjacent layers.
+    setBlockWorld(5, platformY + 1, 12, BlockType::Stone);
+    setBlockWorld(6, platformY + 2, 12, BlockType::Stone);
+    setBlockShapeWorld(6, platformY + 2, 12, BlockShape::RampEast);
+
     // Side-face clipping strip. These unlike neighboring profiles deliberately
     // share vertical cell boundaries so partial coverage can be inspected
     // without terrain noise obscuring the result.
