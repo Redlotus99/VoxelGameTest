@@ -22,6 +22,59 @@ void World::generate(int radius) {
             }
         }
     }
+
+    // Run the junction pass only after every chunk has generated its surface,
+    // so the decisions use real neighboring shapes and work across chunk seams.
+    // The first pair is the validated red-yellow-red arrangement: west RampNorth,
+    // center complement, south RampEast. The opposite diagonal uses the 180-degree
+    // rotated complementary shape. Only same-level grass surface cells qualify.
+    const int minWorld = -radius * Chunk::SIZE_X;
+    const int maxWorld = (radius + 1) * Chunk::SIZE_X - 1;
+    const auto surfaceYAt = [this](int wx, int wz) {
+        for (int y = Chunk::SIZE_Y - 2; y >= 1; --y) {
+            if (getBlockWorld(wx, y, wz) == BlockType::Grass &&
+                getBlockWorld(wx, y + 1, wz) == BlockType::Air) {
+                return y;
+            }
+        }
+        return -1;
+    };
+
+    for (int wz = minWorld + 1; wz < maxWorld; ++wz) {
+        for (int wx = minWorld + 1; wx < maxWorld; ++wx) {
+            const int centerY = surfaceYAt(wx, wz);
+            if (centerY < 1) {
+                continue;
+            }
+
+            // Do not overwrite an already explicit/test shape.
+            if (usesExplicitBlockShapeGeometry(getBlockShapeWorld(wx, centerY, wz))) {
+                continue;
+            }
+
+            const int westY = surfaceYAt(wx - 1, wz);
+            const int southY = surfaceYAt(wx, wz - 1);
+            const int eastY = surfaceYAt(wx + 1, wz);
+            const int northY = surfaceYAt(wx, wz + 1);
+
+            if (westY == centerY && southY == centerY &&
+                getBlockShapeWorld(wx - 1, centerY, wz) == BlockShape::RampNorth &&
+                getBlockShapeWorld(wx, centerY, wz - 1) == BlockShape::RampEast) {
+                setBlockShapeWorld(wx - 1, centerY, wz, BlockShape::CornerCutTopNorthEast);
+                setBlockShapeWorld(wx, centerY, wz, BlockShape::OpenBottomCornerComplementNorthEast);
+                setBlockShapeWorld(wx, centerY, wz - 1, BlockShape::CornerCutTopNorthEast);
+                continue;
+            }
+
+            if (eastY == centerY && northY == centerY &&
+                getBlockShapeWorld(wx + 1, centerY, wz) == BlockShape::RampSouth &&
+                getBlockShapeWorld(wx, centerY, wz + 1) == BlockShape::RampWest) {
+                setBlockShapeWorld(wx + 1, centerY, wz, BlockShape::CornerCutTopSouthWest);
+                setBlockShapeWorld(wx, centerY, wz, BlockShape::OpenBottomCornerComplementSouthWest);
+                setBlockShapeWorld(wx, centerY, wz + 1, BlockShape::CornerCutTopSouthWest);
+            }
+        }
+    }
 }
 
 Chunk* World::getChunk(glm::ivec3 position) {
