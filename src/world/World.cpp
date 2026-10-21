@@ -234,6 +234,26 @@ void World::generateCornerCutTestArrangement() {
     setBlockShapeWorld(15, platformY + 1, 14, BlockShape::RampNorth);
     setBlockWorld(14, platformY + 1, 14, BlockType::Stone);
     setBlockShapeWorld(14, platformY + 1, 14, BlockShape::CornerCutTopSouthEast);
+
+    // Side-face clipping strip. These unlike neighboring profiles deliberately
+    // share vertical cell boundaries so partial coverage can be inspected
+    // without terrain noise obscuring the result.
+    const BlockShape sideClipShapes[] = {
+        BlockShape::Cube,
+        BlockShape::RampNorth,
+        BlockShape::CornerWedgeNorthEast,
+        BlockShape::SaddleSouthWestNorthEast,
+        BlockShape::RampWest,
+        BlockShape::Cube,
+        BlockShape::CornerRampSouthWest,
+        BlockShape::RampEast
+    };
+    for (int i = 0; i < static_cast<int>(sizeof(sideClipShapes) / sizeof(sideClipShapes[0])); ++i) {
+        const int testX = 5 + i;
+        const int testZ = 16;
+        setBlockWorld(testX, platformY + 1, testZ, BlockType::Stone);
+        setBlockShapeWorld(testX, platformY + 1, testZ, sideClipShapes[i]);
+    }
 }
 
 bool World::raycast(glm::vec3 origin, glm::vec3 dir, float maxDist, glm::ivec3& hitBlock, glm::ivec3& prevBlock) const {
