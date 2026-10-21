@@ -88,6 +88,10 @@ BlockShape World::getBlockShapeWorld(int wx, int wy, int wz) const {
     return it->second->getBlockShape(localX, wy, localZ);
 }
 
+BlockShape World::getShapeAt(int wx, int wy, int wz) const {
+    return getBlockShapeWorld(wx, wy, wz);
+}
+
 bool World::isSolid(int wx, int wy, int wz) const {
     return getBlockWorld(wx, wy, wz) != BlockType::Air;
 }
