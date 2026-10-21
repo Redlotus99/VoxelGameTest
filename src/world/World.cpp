@@ -256,12 +256,13 @@ void World::generateCornerCutTestArrangement() {
     setBlockWorld(7, diagonalTestY, 8, BlockType::Stone);
     setBlockShapeWorld(7, diagonalTestY, 8, BlockShape::CornerCutTopNorthEast);
 
-    // Fill the diagonal's neighboring cells with two aligned yellow wedges.
+    // Fit the new open-bottom diagonal connector between the red anchors.
+    // Its single sloped face bridges the red pieces without adding a bottom.
     setBlockWorld(6, diagonalTestY, 6, BlockType::Stone);
-    setBlockShapeWorld(6, diagonalTestY, 6, BlockShape::CornerWedgeNorthEast);
+    setBlockShapeWorld(6, diagonalTestY, 6, BlockShape::OpenBottomSlopeSouthWest);
 
     setBlockWorld(7, diagonalTestY, 7, BlockType::Stone);
-    setBlockShapeWorld(7, diagonalTestY, 7, BlockShape::CornerWedgeNorthEast);
+    setBlockShapeWorld(7, diagonalTestY, 7, BlockShape::OpenBottomSlopeSouthWest);
 
     // The corner transition uses a different orientation to turn the slope.
     setBlockWorld(8, diagonalTestY, 8, BlockType::Stone);
