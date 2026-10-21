@@ -177,7 +177,7 @@ Mesh Chunk::buildMesh(
             case BlockShape::CornerCutTopNorthEast: return glm::vec3(0.75f, 0.00f, 0.30f);
             case BlockShape::CornerCutTopNorthWest: return glm::vec3(1.00f, 0.25f, 0.35f);
             case BlockShape::CornerCutTopSouthEast: return glm::vec3(0.85f, 0.10f, 0.65f);
-            case BlockShape::OpenBottomSlopeNorthEast: return glm::vec3(1.00f, 0.75f, 0.05f);
+            case BlockShape::OpenBottomCornerComplementNorthEast: return glm::vec3(1.00f, 0.75f, 0.05f);
             case BlockShape::Count: break;
         }
         return glm::vec3(1.0f, 0.0f, 1.0f); // bright magenta for an invalid shape
