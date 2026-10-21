@@ -51,6 +51,8 @@ int main(int argc, char* argv[]) {
         // Main loop
         Uint32 lastTime = SDL_GetTicks();
         bool previousJumpKey = false;
+        bool previousFlyKey = false;
+        bool flyMode = false;
         while (!window.shouldClose()) {
             // Calculate delta time
             Uint32 currentTime = SDL_GetTicks();
@@ -75,33 +77,55 @@ int main(int argc, char* argv[]) {
             bool right = window.isKeyDown(SDL_SCANCODE_D);
             bool down = window.isKeyDown(SDL_SCANCODE_LSHIFT);
             bool jumpKey = window.isKeyDown(SDL_SCANCODE_SPACE);
-            
-            // Create movement direction vector
-            glm::vec3 moveDir(0.0f);
-            
-            // Get camera front vector
-            glm::vec3 front = camera.getFront();
-            
-            // Compute movement in walking mode (flyMode false)
-            glm::vec3 forwardDir = glm::normalize(glm::vec3(front.x, 0.0f, front.z));
-            glm::vec3 rightDir = glm::normalize(glm::cross(forwardDir, glm::vec3(0, 1, 0)));
-            
-            if (forward) moveDir += forwardDir;
-            if (back) moveDir -= forwardDir;
-            if (right) moveDir += rightDir;
-            if (left) moveDir -= rightDir;
-            
-            // Normalize the movement direction to maintain consistent speed
-            if (glm::length(moveDir) > 0.0f) {
-                moveDir = glm::normalize(moveDir);
-            }
-            
-            // Jump only on the key-down edge, not continuously while Space is held.
-            bool jump = jumpKey && !previousJumpKey;
-            previousJumpKey = jumpKey;
+            bool flyKey = window.isKeyDown(SDL_SCANCODE_F);
 
-            // Update player
-            player.update(deltaTime, world, moveDir, jump);
+            // Toggle flight once per F key press.
+            if (flyKey && !previousFlyKey) {
+                flyMode = !flyMode;
+                player.velocity = glm::vec3(0.0f);
+                player.onGround = false;
+            }
+            previousFlyKey = flyKey;
+
+            // Create movement direction vector.
+            glm::vec3 moveDir(0.0f);
+            const glm::vec3 front = camera.getFront();
+            const glm::vec3 worldUp(0.0f, 1.0f, 0.0f);
+            const glm::vec3 horizontalFront = glm::vec3(front.x, 0.0f, front.z);
+            const glm::vec3 forwardDir = glm::length(horizontalFront) > 0.0001f
+                ? glm::normalize(horizontalFront) : glm::vec3(0.0f, 0.0f, -1.0f);
+            const glm::vec3 rightDir = glm::normalize(glm::cross(forwardDir, worldUp));
+
+            if (flyMode) {
+                // Flight follows the camera pitch, with Space/Shift for vertical movement.
+                if (forward) moveDir += front;
+                if (back) moveDir -= front;
+                if (right) moveDir += rightDir;
+                if (left) moveDir -= rightDir;
+                if (jumpKey) moveDir += worldUp;
+                if (down) moveDir -= worldUp;
+
+                if (glm::length(moveDir) > 0.0f) {
+                    moveDir = glm::normalize(moveDir);
+                    player.position += moveDir * (Player::WALK_SPEED * 2.0f) * deltaTime;
+                }
+                player.velocity = glm::vec3(0.0f);
+                player.onGround = false;
+            } else {
+                if (forward) moveDir += forwardDir;
+                if (back) moveDir -= forwardDir;
+                if (right) moveDir += rightDir;
+                if (left) moveDir -= rightDir;
+
+                if (glm::length(moveDir) > 0.0f) {
+                    moveDir = glm::normalize(moveDir);
+                }
+
+                // Jump only on the key-down edge, not continuously while Space is held.
+                const bool jump = jumpKey && !previousJumpKey;
+                player.update(deltaTime, world, moveDir, jump);
+            }
+            previousJumpKey = jumpKey;
             
             // Update camera to follow player
             camera.Position = player.getEyePosition();
