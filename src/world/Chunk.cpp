@@ -349,29 +349,37 @@ Mesh Chunk::buildMesh(
                     }
                 }
 
-                // Keep one tetrahedron mesh definition and rotate its vertices
-                // 180 degrees in-cell when the south-west orientation is selected.
+                // The two tetrahedron orientations share the same faces.
+                // For the south-west variant, explicitly map every vertex to
+                // its opposite XZ corner so the single bottom point is SW.
                 if (shape == BlockShape::OpenBottomCornerComplementNorthEast ||
                     shape == BlockShape::OpenBottomCornerComplementSouthWest) {
                     const bool rotated180 = shape == BlockShape::OpenBottomCornerComplementSouthWest;
-                    const auto orient = [&](const glm::vec3& point) {
-                        if (!rotated180) return point;
-                        return glm::vec3(2.0f * x + 1.0f - point.x,
-                                         point.y,
-                                         2.0f * z + 1.0f - point.z);
-                    };
-                    const glm::vec3 bottomNE = orient(glm::vec3(x + 1.0f, y, z + 1.0f));
-                    const glm::vec3 topNW = orient(glm::vec3(x, y + 1.0f, z + 1.0f));
-                    const glm::vec3 topNE = orient(glm::vec3(x + 1.0f, y + 1.0f, z + 1.0f));
-                    const glm::vec3 topSE = orient(glm::vec3(x + 1.0f, y + 1.0f, z));
+                    const glm::vec3 bottom = rotated180
+                        ? glm::vec3(x, y, z)
+                        : glm::vec3(x + 1.0f, y, z + 1.0f);
+                    const glm::vec3 topNW = glm::vec3(x, y + 1.0f, z + 1.0f);
+                    const glm::vec3 topNE = glm::vec3(x + 1.0f, y + 1.0f, z + 1.0f);
+                    const glm::vec3 topSE = glm::vec3(x + 1.0f, y + 1.0f, z);
+                    const glm::vec3 topSW = glm::vec3(x, y + 1.0f, z);
                     const glm::vec3 topColor = baseColor * getFaceBrightness(0);
                     const glm::vec3 slopeColor = baseColor * getFaceBrightness(6);
                     const glm::vec3 sideXColor = baseColor * getFaceBrightness(2);
                     const glm::vec3 sideZColor = baseColor * getFaceBrightness(4);
-                    emitTriangle(topNW, topNE, topSE, topColor);
-                    emitTriangle(bottomNE, topNW, topSE, slopeColor);
-                    emitTriangle(bottomNE, topSE, topNE, sideXColor);
-                    emitTriangle(bottomNE, topNE, topNW, sideZColor);
+
+                    if (rotated180) {
+                        // Rotate the original top triangle and its three side
+                        // triangles 180 degrees around the cell's vertical axis.
+                        emitTriangle(topSE, topSW, topNW, topColor);
+                        emitTriangle(bottom, topSE, topNW, slopeColor);
+                        emitTriangle(bottom, topNW, topSW, sideXColor);
+                        emitTriangle(bottom, topSW, topSE, sideZColor);
+                    } else {
+                        emitTriangle(topNW, topNE, topSE, topColor);
+                        emitTriangle(bottom, topNW, topSE, slopeColor);
+                        emitTriangle(bottom, topSE, topNE, sideXColor);
+                        emitTriangle(bottom, topNE, topNW, sideZColor);
+                    }
                     continue;
                 }
 
