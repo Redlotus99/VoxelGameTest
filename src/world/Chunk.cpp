@@ -88,14 +88,15 @@ void Chunk::generateTerrain() {
     // per cell. Adjacent cells therefore use identical heights at both ends
     // of every shared edge.
     const auto sampleHeight = [](int worldX, int worldZ) -> int {
-        // Keep adjacent shared-grid samples close enough for the available
-        // one-block ramps and wedges to represent them. If a cell spans more
-        // than one vertical block, chooseShape() must fall back to a cube,
-        // breaking continuity with its neighbors. Lower the sampling frequency
-        // while retaining the broad height range to avoid those unsupported
-        // abrupt transitions.
-        const float noise = glm::perlin(glm::vec2(worldX, worldZ) * 0.01f);
-        int height = 24 + static_cast<int>(noise * 14.0f);
+        // Combine broad hills with a subtle, faster variation layer. The
+        // secondary layer adds more local rises and dips without introducing
+        // the abrupt height changes that the one-block ramp/wedge vocabulary
+        // cannot represent cleanly.
+        const glm::vec2 position(worldX, worldZ);
+        const float broadNoise = glm::perlin(position * 0.01f);
+        const float detailNoise = glm::perlin(position * 0.035f);
+        const float terrainNoise = broadNoise * 14.0f + detailNoise * 3.0f;
+        const int height = 24 + static_cast<int>(terrainNoise);
         return std::max(1, std::min(height, SIZE_Y - 2));
     };
 
