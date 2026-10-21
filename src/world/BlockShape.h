@@ -20,6 +20,11 @@ enum class BlockShape : std::uint8_t {
     CornerWedgeSouthEast,
     CornerWedgeNorthEast,
     CornerWedgeNorthWest,
+    // Complements of the corner wedges: solid above a diagonal bottom.
+    CornerComplementSouthWest,
+    CornerComplementSouthEast,
+    CornerComplementNorthEast,
+    CornerComplementNorthWest,
     // Explicit mesh-template shapes: diagonal cuts remove a corner from
     // either the bottom or top of the cell.
     CornerCutSouthWest,
@@ -41,12 +46,65 @@ enum class BlockShape : std::uint8_t {
 // 0 = southwest (x=0,z=0), 1 = southeast (x=1,z=0),
 // 2 = northeast (x=1,z=1), 3 = northwest (x=0,z=1).
 //
-// Heights describe the top profile of a solid cell whose bottom is y=0.
-// A value of 1 at every corner is a full cube. Shapes that remove material
-// from a corner use explicit mesh geometry instead of this height profile.
+// A cell occupies the volume between its bottom and top corner profiles.
+// Corner order is SW, SE, NE, NW for both profiles. This supports ordinary
+// ramps (bottom=0, sloped top) and their complementary triangular prisms
+// (sloped bottom, top=1) using the same representation.
+struct CellShape {
+    std::array<float, 4> bottom;
+    std::array<float, 4> top;
+};
+
+// Legacy top-only profile retained for existing mesh paths while CellShape
+// support is introduced incrementally.
 struct BlockShapeData {
     std::array<float, 4> topHeights;
 };
+
+inline constexpr CellShape getCellShapeData(BlockShape shape) {
+    switch (shape) {
+        case BlockShape::CornerComplementSouthWest:
+            return {{{1.0f, 0.0f, 0.0f, 0.0f}}, {{1.0f, 1.0f, 1.0f, 1.0f}}};
+        case BlockShape::CornerComplementSouthEast:
+            return {{{0.0f, 1.0f, 0.0f, 0.0f}}, {{1.0f, 1.0f, 1.0f, 1.0f}}};
+        case BlockShape::CornerComplementNorthEast:
+            return {{{0.0f, 0.0f, 1.0f, 0.0f}}, {{1.0f, 1.0f, 1.0f, 1.0f}}};
+        case BlockShape::CornerComplementNorthWest:
+            return {{{0.0f, 0.0f, 0.0f, 1.0f}}, {{1.0f, 1.0f, 1.0f, 1.0f}}};
+        case BlockShape::RampNorth:
+            return {{{0.0f, 0.0f, 0.0f, 0.0f}}, {{0.0f, 0.0f, 1.0f, 1.0f}}};
+        case BlockShape::RampSouth:
+            return {{{0.0f, 0.0f, 0.0f, 0.0f}}, {{1.0f, 1.0f, 0.0f, 0.0f}}};
+        case BlockShape::RampEast:
+            return {{{0.0f, 0.0f, 0.0f, 0.0f}}, {{0.0f, 1.0f, 1.0f, 0.0f}}};
+        case BlockShape::RampWest:
+            return {{{0.0f, 0.0f, 0.0f, 0.0f}}, {{1.0f, 0.0f, 0.0f, 1.0f}}};
+        case BlockShape::CornerWedgeSouthWest:
+            return {{{0.0f, 0.0f, 0.0f, 0.0f}}, {{1.0f, 0.0f, 0.0f, 0.0f}}};
+        case BlockShape::CornerWedgeSouthEast:
+            return {{{0.0f, 0.0f, 0.0f, 0.0f}}, {{0.0f, 1.0f, 0.0f, 0.0f}}};
+        case BlockShape::CornerWedgeNorthEast:
+            return {{{0.0f, 0.0f, 0.0f, 0.0f}}, {{0.0f, 0.0f, 1.0f, 0.0f}}};
+        case BlockShape::CornerWedgeNorthWest:
+            return {{{0.0f, 0.0f, 0.0f, 0.0f}}, {{0.0f, 0.0f, 0.0f, 1.0f}}};
+        case BlockShape::Cube:
+        case BlockShape::CornerRampSouthWest:
+        case BlockShape::CornerRampSouthEast:
+        case BlockShape::CornerRampNorthEast:
+        case BlockShape::CornerRampNorthWest:
+        case BlockShape::SaddleSouthWestNorthEast:
+        case BlockShape::SaddleSouthEastNorthWest:
+        case BlockShape::CornerCutSouthWest:
+        case BlockShape::CornerCutTopSouthWest:
+        case BlockShape::CornerCutTopNorthEast:
+        case BlockShape::CornerCutTopNorthWest:
+        case BlockShape::CornerCutTopSouthEast:
+        case BlockShape::TerrainSurface:
+        case BlockShape::Count:
+            return {{{0.0f, 0.0f, 0.0f, 0.0f}}, {{1.0f, 1.0f, 1.0f, 1.0f}}};
+    }
+    return {{{0.0f, 0.0f, 0.0f, 0.0f}}, {{1.0f, 1.0f, 1.0f, 1.0f}}};
+}
 
 inline constexpr bool usesExplicitBlockShapeGeometry(BlockShape shape) {
     return shape == BlockShape::CornerCutSouthWest ||
