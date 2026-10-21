@@ -554,14 +554,28 @@ Mesh Chunk::buildMesh(
                         const glm::vec3 yellowSideX = yellow * getFaceBrightness(2);
                         const glm::vec3 yellowSideZ = yellow * getFaceBrightness(4);
 
-                        // Shared cut/interface face A-B-C. This is the same
-                        // three points as cutA/cutB/cutC, emitted only once.
-                        emitTriangle(cutA, cutB, cutC, yellowSlopeColor);
+                        // Orient each triangle away from the tetrahedron's
+                        // centroid. This explicitly gives every yellow face
+                        // outward winding, including the shared interface.
+                        const glm::vec3 tetraCenter =
+                            (cutBottom + cutTopX + cutTopZ + d) * 0.25f;
+                        const auto emitOutward = [&](glm::vec3 a, glm::vec3 b,
+                                                     glm::vec3 c, const glm::vec3& color) {
+                            const glm::vec3 faceCenter = (a + b + c) / 3.0f;
+                            const glm::vec3 normal = glm::cross(b - a, c - a);
+                            if (glm::dot(normal, tetraCenter - faceCenter) > 0.0f) {
+                                std::swap(b, c);
+                            }
+                            emitTriangle(a, b, c, color);
+                        };
+
+                        // Shared cut/interface face A-B-C, emitted only once.
+                        emitOutward(cutBottom, cutTopX, cutTopZ, yellowSlopeColor);
                         // Remaining three tetrahedron faces, with D at the
                         // removed top northeast corner.
-                        emitTriangle(cutTopX, d, cutTopZ, yellowColor);
-                        emitTriangle(cutBottom, cutTopZ, d, yellowSideX);
-                        emitTriangle(cutBottom, d, cutTopX, yellowSideZ);
+                        emitOutward(cutTopX, d, cutTopZ, yellowColor);
+                        emitOutward(cutBottom, cutTopZ, d, yellowSideX);
+                        emitOutward(cutBottom, d, cutTopX, yellowSideZ);
                     } else {
                         emitTriangle(cutA, cutB, cutC,
                                      baseColor * getFaceBrightness(6));
