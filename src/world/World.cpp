@@ -235,26 +235,21 @@ void World::generateCornerCutTestArrangement() {
     setBlockWorld(14, platformY + 1, 14, BlockType::Stone);
     setBlockShapeWorld(14, platformY + 1, 14, BlockShape::CornerCutTopSouthEast);
 
-    // Different-height seam: the ramp's low west edge meets the top of the
-    // cube immediately to its west. This reproduces the terrain generator's
-    // representation of equal world-space heights stored in adjacent layers.
+    // Same-height cube/ramp seams: the cube's top must meet the ramp's
+    // high edge. RampWest is high on its west edge, so it joins the cube
+    // immediately to its west without raising the ramp by an extra block.
     setBlockWorld(5, platformY + 1, 12, BlockType::Stone);
-    setBlockWorld(6, platformY + 2, 12, BlockType::Stone);
-    setBlockShapeWorld(6, platformY + 2, 12, BlockShape::RampEast);
+    setBlockWorld(6, platformY + 1, 12, BlockType::Stone);
+    setBlockShapeWorld(6, platformY + 1, 12, BlockShape::RampWest);
 
-    // Side-profile tests use world-height-aligned pairs rather than placing
-    // cubes and ramps at the same Y. A cube at platformY + 1 has a top at
-    // platformY + 2; the ramp beside it sits one layer higher, with its low
-    // edge at that same world height. Same-layer cube/ramp neighbors create
-    // a real one-block cliff and are not a valid seamless-transition test.
     setBlockWorld(5, platformY + 1, 16, BlockType::Stone);
-    setBlockWorld(6, platformY + 2, 16, BlockType::Stone);
-    setBlockShapeWorld(6, platformY + 2, 16, BlockShape::RampEast);
+    setBlockWorld(6, platformY + 1, 16, BlockType::Stone);
+    setBlockShapeWorld(6, platformY + 1, 16, BlockShape::RampWest);
 
-    // Keep a second aligned pair facing the opposite direction for comparison.
+    // Mirror the seam: the cube is east of the ramp's high east edge.
     setBlockWorld(11, platformY + 1, 16, BlockType::Stone);
-    setBlockWorld(10, platformY + 2, 16, BlockType::Stone);
-    setBlockShapeWorld(10, platformY + 2, 16, BlockShape::RampWest);
+    setBlockWorld(10, platformY + 1, 16, BlockType::Stone);
+    setBlockShapeWorld(10, platformY + 1, 16, BlockShape::RampEast);
 }
 
 bool World::raycast(glm::vec3 origin, glm::vec3 dir, float maxDist, glm::ivec3& hitBlock, glm::ivec3& prevBlock) const {
