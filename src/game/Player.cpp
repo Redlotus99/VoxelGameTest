@@ -194,9 +194,23 @@ void Player::update(float dt, const World& world, glm::vec3 moveDir, bool jump) 
     moveHorizontal(velocity.x * dt, true);
     moveHorizontal(velocity.z * dt, false);
 
-    if (onGround && !jump) {
-        velocity.y = 0.0f;
-        return;
+    if (wasGrounded && !jump) {
+        float groundY = position.y;
+        if (findGroundHeight(world, position, position.y,
+                             kMaxStepHeight, kGroundSnapDistance, groundY) &&
+            groundY >= position.y - kGroundSnapDistance &&
+            groundY <= position.y + kMaxStepHeight) {
+            glm::vec3 groundedPosition = position;
+            groundedPosition.y = groundY;
+            if (!collides(world, groundedPosition)) {
+                position = groundedPosition;
+                velocity.y = 0.0f;
+                onGround = true;
+                return;
+            }
+        }
+        // The footprint has left the supporting surface; resume falling.
+        onGround = false;
     }
 
     const float oldY = position.y;
