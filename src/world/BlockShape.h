@@ -34,6 +34,9 @@ enum class BlockShape : std::uint8_t {
     CornerCutTopNorthEast,
     CornerCutTopNorthWest,
     CornerCutTopSouthEast,
+    // Open-bottom tetrahedral slope: one raised back corner and a single
+    // diagonal face descending to the two neighboring bottom corners.
+    OpenBottomSlopeSouthWest,
     // Saddle profiles keep opposite corners high and the other two low.
     SaddleSouthWestNorthEast,
     SaddleSouthEastNorthWest,
@@ -99,6 +102,7 @@ inline constexpr CellShape getCellShapeData(BlockShape shape) {
         case BlockShape::CornerCutTopNorthEast:
         case BlockShape::CornerCutTopNorthWest:
         case BlockShape::CornerCutTopSouthEast:
+        case BlockShape::OpenBottomSlopeSouthWest:
         case BlockShape::TerrainSurface:
         case BlockShape::Count:
             return {{{0.0f, 0.0f, 0.0f, 0.0f}}, {{1.0f, 1.0f, 1.0f, 1.0f}}};
@@ -111,7 +115,8 @@ inline constexpr bool usesExplicitBlockShapeGeometry(BlockShape shape) {
            shape == BlockShape::CornerCutTopSouthWest ||
            shape == BlockShape::CornerCutTopNorthEast ||
            shape == BlockShape::CornerCutTopNorthWest ||
-           shape == BlockShape::CornerCutTopSouthEast;
+           shape == BlockShape::CornerCutTopSouthEast ||
+           shape == BlockShape::OpenBottomSlopeSouthWest;
 }
 
 // Select the top-corner cut for a perpendicular ramp junction. Each
@@ -180,6 +185,7 @@ inline constexpr BlockShapeData getBlockShapeData(BlockShape shape) {
         case BlockShape::CornerCutTopNorthEast:
         case BlockShape::CornerCutTopNorthWest:
         case BlockShape::CornerCutTopSouthEast:
+        case BlockShape::OpenBottomSlopeSouthWest:
         case BlockShape::TerrainSurface:
         case BlockShape::Count:
             break;
