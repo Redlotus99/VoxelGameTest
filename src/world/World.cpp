@@ -240,22 +240,18 @@ void World::generateCornerCutTestArrangement() {
     setBlockWorld(14, platformY + 1, 14, BlockType::Stone);
     setBlockShapeWorld(14, platformY + 1, 14, BlockShape::CornerCutTopSouthEast);
 
-    // Alternating triangular-prism ramp row, one cell per piece.
-    // RampEast rises toward +X: west edge low (0), east edge high (1).
-    // RampWest is its 180-degree Y rotation: west edge high (1), east edge low (0).
-    // Each shared boundary matches: 1/1, then 0/0, repeating.
-    constexpr int zigzagY = platformY + 4;
-    constexpr int zigzagZ = 6;
-    const BlockShape zigzagShapes[] = {
-        BlockShape::RampEast,
-        BlockShape::RampWest,
-        BlockShape::RampEast,
-        BlockShape::RampWest
-    };
-    for (int i = 0; i < 4; ++i) {
-        setBlockWorld(5 + i, zigzagY, zigzagZ, BlockType::Stone);
-        setBlockShapeWorld(5 + i, zigzagY, zigzagZ, zigzagShapes[i]);
-    }
+    // Straight red -> yellow -> red connector test, directly in front of spawn.
+    // The yellow complementary tetrahedron is rotated 180 degrees in its cell.
+    constexpr int diagonalTestY = platformY + 4;
+
+    setBlockWorld(5, diagonalTestY, 6, BlockType::Stone);
+    setBlockShapeWorld(5, diagonalTestY, 6, BlockShape::CornerCutTopNorthEast);
+
+    setBlockWorld(6, diagonalTestY, 6, BlockType::Stone);
+    setBlockShapeWorld(6, diagonalTestY, 6, BlockShape::OpenBottomCornerComplementNorthEast);
+
+    setBlockWorld(7, diagonalTestY, 6, BlockType::Stone);
+    setBlockShapeWorld(7, diagonalTestY, 6, BlockShape::CornerCutTopNorthEast);
 
     // Same-height cube/ramp seams: the cube's top must meet the ramp's
     // high edge. RampWest is high on its west edge, so it joins the cube
