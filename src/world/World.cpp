@@ -240,20 +240,32 @@ void World::generateCornerCutTestArrangement() {
     setBlockWorld(14, platformY + 1, 14, BlockType::Stone);
     setBlockShapeWorld(14, platformY + 1, 14, BlockShape::CornerCutTopSouthEast);
 
-    // Floating red-yellow-red junction test, directly in front of the
-    // shape-test spawn. These cells share full faces (not just corners).
-    // Rotate the yellow corner wedge 180 degrees so its slope faces the first
-    // red cut; the second red cut butts directly against the other side.
+    // Diagonal 45-degree slope experiment, directly in front of the
+    // shape-test spawn. Three red corner-cut anchors touch corner-to-corner.
+    // Three yellow pieces fill the cells along the front/side of that diagonal:
+    // two matching wedges followed by a differently oriented corner wedge.
+    // All pieces stay aligned to the voxel grid; no mesh rotation is used.
     constexpr int diagonalTestY = platformY + 4;
+
     setBlockWorld(5, diagonalTestY, 6, BlockType::Stone);
-    // Rotate the pink cut 180 degrees: southwest cut becomes northeast cut.
     setBlockShapeWorld(5, diagonalTestY, 6, BlockShape::CornerCutTopNorthEast);
+
+    setBlockWorld(6, diagonalTestY, 7, BlockType::Stone);
+    setBlockShapeWorld(6, diagonalTestY, 7, BlockShape::CornerCutTopNorthEast);
+
+    setBlockWorld(7, diagonalTestY, 8, BlockType::Stone);
+    setBlockShapeWorld(7, diagonalTestY, 8, BlockShape::CornerCutTopNorthEast);
+
+    // Fill the diagonal's neighboring cells with two aligned yellow wedges.
     setBlockWorld(6, diagonalTestY, 6, BlockType::Stone);
-    setBlockShapeWorld(6, diagonalTestY, 6, BlockShape::CornerWedgeSouthWest);
-    setBlockWorld(7, diagonalTestY, 6, BlockType::Stone);
-    // The red cut at (7,44,6) receives a test-only -45-degree Y rotation
-    // in Chunk::buildMesh, leaving the other test and terrain blocks untouched.
-    setBlockShapeWorld(7, diagonalTestY, 6, BlockShape::CornerCutTopNorthEast);
+    setBlockShapeWorld(6, diagonalTestY, 6, BlockShape::CornerWedgeNorthEast);
+
+    setBlockWorld(7, diagonalTestY, 7, BlockType::Stone);
+    setBlockShapeWorld(7, diagonalTestY, 7, BlockShape::CornerWedgeNorthEast);
+
+    // The corner transition uses a different orientation to turn the slope.
+    setBlockWorld(8, diagonalTestY, 8, BlockType::Stone);
+    setBlockShapeWorld(8, diagonalTestY, 8, BlockShape::CornerWedgeSouthWest);
 
     // Same-height cube/ramp seams: the cube's top must meet the ramp's
     // high edge. RampWest is high on its west edge, so it joins the cube
