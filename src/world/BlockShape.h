@@ -37,6 +37,8 @@ enum class BlockShape : std::uint8_t {
     // Tetrahedral complement of CornerCutTopNorthEast: flat triangular top,
     // one northeast bottom vertex, and a matching diagonal cut face.
     OpenBottomCornerComplementNorthEast,
+    // 180-degree rotated orientation of the tetrahedral complement.
+    OpenBottomCornerComplementSouthWest,
     // Saddle profiles keep opposite corners high and the other two low.
     SaddleSouthWestNorthEast,
     SaddleSouthEastNorthWest,
@@ -103,6 +105,7 @@ inline constexpr CellShape getCellShapeData(BlockShape shape) {
         case BlockShape::CornerCutTopNorthWest:
         case BlockShape::CornerCutTopSouthEast:
         case BlockShape::OpenBottomCornerComplementNorthEast:
+        case BlockShape::OpenBottomCornerComplementSouthWest:
         case BlockShape::TerrainSurface:
         case BlockShape::Count:
             return {{{0.0f, 0.0f, 0.0f, 0.0f}}, {{1.0f, 1.0f, 1.0f, 1.0f}}};
@@ -116,7 +119,8 @@ inline constexpr bool usesExplicitBlockShapeGeometry(BlockShape shape) {
            shape == BlockShape::CornerCutTopNorthEast ||
            shape == BlockShape::CornerCutTopNorthWest ||
            shape == BlockShape::CornerCutTopSouthEast ||
-           shape == BlockShape::OpenBottomCornerComplementNorthEast;
+           shape == BlockShape::OpenBottomCornerComplementNorthEast ||
+           shape == BlockShape::OpenBottomCornerComplementSouthWest;
 }
 
 // Select the top-corner cut for a perpendicular ramp junction. Each
