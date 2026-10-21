@@ -385,7 +385,10 @@ Mesh Chunk::buildMesh(
                             emitTriangle(sw, nw, se, topColor);
                             emitTriangle(nw, ne, se, topColor);
                         }
-                    continue;
+                    // Continue through the regular block-face pass below so
+                    // the terrain cell still emits its sides and bottom. The
+                    // shared-corner top replaces only the ordinary top face.
+
                 }
 
                 // Keep the original yellow tetrahedron mesh and rotate it
@@ -664,6 +667,12 @@ Mesh Chunk::buildMesh(
 
                 const BlockShapeData shapeData = getBlockShapeData(shape);
                 for (int face = 0; face < 6; ++face) {
+                    // Natural terrain tops were already emitted using shared
+                    // world-corner heights above. Keep the ordinary face pass
+                    // for side clipping, but don't draw a second, unit-cell top.
+                    if (naturalTerrainTop && face == 0) {
+                        continue;
+                    }
                     int nx = x, ny = y, nz = z;
                     switch (face) {
                         case 0: ++ny; break;
