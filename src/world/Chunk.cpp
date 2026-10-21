@@ -357,14 +357,24 @@ Mesh Chunk::buildMesh(
                     const bool rotateHorizontal180 =
                         shape == BlockShape::OpenBottomCornerComplementSouthWest;
                     const auto orient = [&](const glm::vec3& p) {
-                        if (!rotateHorizontal180) return p;
-                        return glm::vec3(2.0f * x + 1.0f - p.x,
-                                         p.y,
-                                         2.0f * z + 1.0f - p.z);
+                        // Rotate the original tetrahedron rigidly within its
+                        // cell: local (x,y,z) -> (1-y, 1-x, 1-z).
+                        const glm::vec3 local = p - glm::vec3(x, y, z);
+                        glm::vec3 rotated(
+                            1.0f - local.y,
+                            1.0f - local.x,
+                            1.0f - local.z);
+
+                        // Preserve the existing horizontal 180-degree variant.
+                        if (rotateHorizontal180) {
+                            rotated.x = 1.0f - rotated.x;
+                            rotated.z = 1.0f - rotated.z;
+                        }
+                        return glm::vec3(x, y, z) + rotated;
                     };
 
-                    // Original tetrahedron vertices: preserve its geometry;
-                    // only transform their X/Z positions for the rotated form.
+                    // Keep the original tetrahedron vertices and triangle order;
+                    // transform positions only, without reordering indices.
                     const glm::vec3 bottom = orient(glm::vec3(x + 1.0f, y, z + 1.0f));
                     const glm::vec3 topNW = orient(glm::vec3(x, y + 1.0f, z + 1.0f));
                     const glm::vec3 topNE = orient(glm::vec3(x + 1.0f, y + 1.0f, z + 1.0f));
