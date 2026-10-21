@@ -288,7 +288,38 @@ Mesh Chunk::buildMesh(
                         const glm::vec3 nw(x, y + offsetAt(worldX, worldZ, 0, 1), z + 1);
                         const int d1 = std::abs(static_cast<int>(sw.y - ne.y));
                         const int d2 = std::abs(static_cast<int>(se.y - nw.y));
-                        const glm::vec3 topColor = baseColor * getFaceBrightness(0);
+
+                        // Terrain cells share one mesh type, so tint each top
+                        // by its actual four-corner profile. This brings the
+                        // shape diagnostics onto the generated terrain itself.
+                        const int swH = static_cast<int>(sw.y) - y;
+                        const int seH = static_cast<int>(se.y) - y;
+                        const int neH = static_cast<int>(ne.y) - y;
+                        const int nwH = static_cast<int>(nw.y) - y;
+                        const int lowH = std::min(std::min(swH, seH), std::min(neH, nwH));
+                        const int a = swH - lowH;
+                        const int b = seH - lowH;
+                        const int c = neH - lowH;
+                        const int d = nwH - lowH;
+                        BlockShape profile = BlockShape::TerrainSurface;
+                        if      (a == 0 && b == 0 && c > 0 && d > 0) profile = BlockShape::RampNorth;
+                        else if (a > 0 && b > 0 && c == 0 && d == 0) profile = BlockShape::RampSouth;
+                        else if (a == 0 && b > 0 && c > 0 && d == 0) profile = BlockShape::RampEast;
+                        else if (a > 0 && b == 0 && c == 0 && d > 0) profile = BlockShape::RampWest;
+                        else if (a == 0 && b > 0 && c > 0 && d > 0) profile = BlockShape::CornerRampSouthWest;
+                        else if (a > 0 && b == 0 && c > 0 && d > 0) profile = BlockShape::CornerRampSouthEast;
+                        else if (a > 0 && b > 0 && c == 0 && d > 0) profile = BlockShape::CornerRampNorthEast;
+                        else if (a > 0 && b > 0 && c > 0 && d == 0) profile = BlockShape::CornerRampNorthWest;
+                        else if (a > 0 && b == 0 && c == 0 && d == 0) profile = BlockShape::CornerWedgeSouthWest;
+                        else if (a == 0 && b > 0 && c == 0 && d == 0) profile = BlockShape::CornerWedgeSouthEast;
+                        else if (a == 0 && b == 0 && c > 0 && d == 0) profile = BlockShape::CornerWedgeNorthEast;
+                        else if (a == 0 && b == 0 && c == 0 && d > 0) profile = BlockShape::CornerWedgeNorthWest;
+                        else if (a > 0 && b == 0 && c > 0 && d == 0) profile = BlockShape::SaddleSouthWestNorthEast;
+                        else if (a == 0 && b > 0 && c == 0 && d > 0) profile = BlockShape::SaddleSouthEastNorthWest;
+                        const glm::vec3 terrainColor = kShapeDebugTintEnabled
+                            ? getShapeDebugColor(profile)
+                            : getBlockColor(blockType);
+                        const glm::vec3 topColor = terrainColor * getFaceBrightness(0);
                         if (d1 <= d2) {
                             emitTriangle(sw, nw, ne, topColor);
                             emitTriangle(sw, ne, se, topColor);
