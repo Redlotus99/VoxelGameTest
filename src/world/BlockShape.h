@@ -69,6 +69,37 @@ struct BlockShapeData {
     std::array<float, 4> topHeights;
 };
 
+// Canonical classification for a natural terrain cell's four shared corner
+// heights. Inputs may be absolute heights or offsets; the lowest corner is
+// normalized to zero so generation and mesh diagnostics use identical rules.
+// Corner order is SW, SE, NE, NW.
+inline constexpr BlockShape getTerrainProfileShape(int sw, int se, int ne, int nw) {
+    const int low = (sw < se ? (sw < ne ? (sw < nw ? sw : nw) : (ne < nw ? ne : nw))
+                             : (se < ne ? (se < nw ? se : nw) : (ne < nw ? ne : nw)));
+    sw -= low;
+    se -= low;
+    ne -= low;
+    nw -= low;
+
+    if      (sw == 0 && se == 0 && ne == 0 && nw == 0) return BlockShape::TerrainSurface;
+    if      (sw > 0 && se > 0 && ne > 0 && nw > 0) return BlockShape::Cube;
+    if      (sw == 0 && se == 0 && ne > 0 && nw > 0) return BlockShape::RampNorth;
+    if      (sw > 0 && se > 0 && ne == 0 && nw == 0) return BlockShape::RampSouth;
+    if      (sw == 0 && se > 0 && ne > 0 && nw == 0) return BlockShape::RampEast;
+    if      (sw > 0 && se == 0 && ne == 0 && nw > 0) return BlockShape::RampWest;
+    if      (sw == 0 && se > 0 && ne > 0 && nw > 0) return BlockShape::CornerRampSouthWest;
+    if      (sw > 0 && se == 0 && ne > 0 && nw > 0) return BlockShape::CornerRampSouthEast;
+    if      (sw > 0 && se > 0 && ne == 0 && nw > 0) return BlockShape::CornerRampNorthEast;
+    if      (sw > 0 && se > 0 && ne > 0 && nw == 0) return BlockShape::CornerRampNorthWest;
+    if      (sw > 0 && se == 0 && ne == 0 && nw == 0) return BlockShape::CornerWedgeSouthWest;
+    if      (sw == 0 && se > 0 && ne == 0 && nw == 0) return BlockShape::CornerWedgeSouthEast;
+    if      (sw == 0 && se == 0 && ne > 0 && nw == 0) return BlockShape::CornerWedgeNorthEast;
+    if      (sw == 0 && se == 0 && ne == 0 && nw > 0) return BlockShape::CornerWedgeNorthWest;
+    if      (sw > 0 && se == 0 && ne > 0 && nw == 0) return BlockShape::SaddleSouthWestNorthEast;
+    if      (sw == 0 && se > 0 && ne == 0 && nw > 0) return BlockShape::SaddleSouthEastNorthWest;
+    return BlockShape::TerrainSurface;
+}
+
 inline constexpr CellShape getCellShapeData(BlockShape shape) {
     switch (shape) {
         case BlockShape::CornerComplementSouthWest:
