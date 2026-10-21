@@ -88,12 +88,13 @@ void Chunk::generateTerrain() {
     // per cell. Adjacent cells therefore use identical heights at both ends
     // of every shared edge.
     const auto sampleHeight = [](int worldX, int worldZ) -> int {
-        // Keep adjacent sampled heights within the one-block profile vocabulary.
-        // At the previous frequency, a cell could span more than one block in
-        // height; chooseShape() then fell back to a cube that could not match
-        // the shared corner heights. Lower frequency preserves the same broad
-        // height range while making the transitions representable by our shapes.
-        const float noise = glm::perlin(glm::vec2(worldX, worldZ) * 0.01f);
+        // Keep adjacent shared-grid samples close enough for the available
+        // one-block ramps and wedges to represent them. If a cell spans more
+        // than one vertical block, chooseShape() must fall back to a cube,
+        // breaking continuity with its neighbors. Lower the sampling frequency
+        // while retaining the broad height range to avoid those unsupported
+        // abrupt transitions.
+        const float noise = glm::perlin(glm::vec2(worldX, worldZ) * 0.005f);
         int height = 24 + static_cast<int>(noise * 14.0f);
         return std::max(1, std::min(height, SIZE_Y - 2));
     };
