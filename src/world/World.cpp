@@ -240,21 +240,15 @@ void World::generateCornerCutTestArrangement() {
     setBlockWorld(14, platformY + 1, 14, BlockType::Stone);
     setBlockShapeWorld(14, platformY + 1, 14, BlockShape::CornerCutTopSouthEast);
 
-    // Diagonal 45-degree chain test: two red top-corner cuts caddy-cornered
-    // with a yellow single-corner wedge between them. This is intentionally
-    // isolated from the other references so the diagonal silhouette is easy
-    // to inspect. The supporting platform is extended beneath this test.
-    for (int z = 4; z <= 9; ++z) {
-        for (int x = 18; x <= 23; ++x) {
-            setBlockWorld(x, platformY, z, BlockType::Stone);
-        }
-    }
-    setBlockWorld(19, platformY + 1, 5, BlockType::Stone);
-    setBlockShapeWorld(19, platformY + 1, 5, BlockShape::CornerCutTopSouthWest);
-    setBlockWorld(20, platformY + 1, 6, BlockType::Stone);
-    setBlockShapeWorld(20, platformY + 1, 6, BlockShape::CornerWedgeNorthEast);
-    setBlockWorld(21, platformY + 1, 7, BlockType::Stone);
-    setBlockShapeWorld(21, platformY + 1, 7, BlockShape::CornerCutTopNorthEast);
+    // Diagonal 45-degree chain test, placed near the shape-test spawn so it
+    // is visible without a long walk: two red top-corner cuts caddy-cornered
+    // with a yellow single-corner wedge between them.
+    setBlockWorld(5, platformY + 1, 9, BlockType::Stone);
+    setBlockShapeWorld(5, platformY + 1, 9, BlockShape::CornerCutTopSouthWest);
+    setBlockWorld(6, platformY + 1, 10, BlockType::Stone);
+    setBlockShapeWorld(6, platformY + 1, 10, BlockShape::CornerWedgeNorthEast);
+    setBlockWorld(7, platformY + 1, 11, BlockType::Stone);
+    setBlockShapeWorld(7, platformY + 1, 11, BlockShape::CornerCutTopNorthEast);
 
     // Same-height cube/ramp seams: the cube's top must meet the ramp's
     // high edge. RampWest is high on its west edge, so it joins the cube
