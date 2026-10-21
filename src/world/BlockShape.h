@@ -74,29 +74,25 @@ struct BlockShapeData {
 // normalized to zero so generation and mesh diagnostics use identical rules.
 // Corner order is SW, SE, NE, NW.
 inline constexpr BlockShape getTerrainProfileShape(int sw, int se, int ne, int nw) {
-    const int low = (sw < se ? (sw < ne ? (sw < nw ? sw : nw) : (ne < nw ? ne : nw))
-                             : (se < ne ? (se < nw ? se : nw) : (ne < nw ? ne : nw)));
-    sw -= low;
-    se -= low;
-    ne -= low;
-    nw -= low;
-
+    // Inputs are corner offsets from the cell's lowest corner: each is 0 or 1.
+    // Keep the all-zero and all-one cases distinct: flat low profiles use the
+    // natural surface label, while flat high profiles are full cubes.
     if      (sw == 0 && se == 0 && ne == 0 && nw == 0) return BlockShape::TerrainSurface;
-    if      (sw > 0 && se > 0 && ne > 0 && nw > 0) return BlockShape::Cube;
-    if      (sw == 0 && se == 0 && ne > 0 && nw > 0) return BlockShape::RampNorth;
-    if      (sw > 0 && se > 0 && ne == 0 && nw == 0) return BlockShape::RampSouth;
-    if      (sw == 0 && se > 0 && ne > 0 && nw == 0) return BlockShape::RampEast;
-    if      (sw > 0 && se == 0 && ne == 0 && nw > 0) return BlockShape::RampWest;
-    if      (sw == 0 && se > 0 && ne > 0 && nw > 0) return BlockShape::CornerRampSouthWest;
-    if      (sw > 0 && se == 0 && ne > 0 && nw > 0) return BlockShape::CornerRampSouthEast;
-    if      (sw > 0 && se > 0 && ne == 0 && nw > 0) return BlockShape::CornerRampNorthEast;
-    if      (sw > 0 && se > 0 && ne > 0 && nw == 0) return BlockShape::CornerRampNorthWest;
-    if      (sw > 0 && se == 0 && ne == 0 && nw == 0) return BlockShape::CornerWedgeSouthWest;
-    if      (sw == 0 && se > 0 && ne == 0 && nw == 0) return BlockShape::CornerWedgeSouthEast;
-    if      (sw == 0 && se == 0 && ne > 0 && nw == 0) return BlockShape::CornerWedgeNorthEast;
-    if      (sw == 0 && se == 0 && ne == 0 && nw > 0) return BlockShape::CornerWedgeNorthWest;
-    if      (sw > 0 && se == 0 && ne > 0 && nw == 0) return BlockShape::SaddleSouthWestNorthEast;
-    if      (sw == 0 && se > 0 && ne == 0 && nw > 0) return BlockShape::SaddleSouthEastNorthWest;
+    if      (sw == 1 && se == 1 && ne == 1 && nw == 1) return BlockShape::Cube;
+    if      (sw == 0 && se == 0 && ne == 1 && nw == 1) return BlockShape::RampNorth;
+    if      (sw == 1 && se == 1 && ne == 0 && nw == 0) return BlockShape::RampSouth;
+    if      (sw == 0 && se == 1 && ne == 1 && nw == 0) return BlockShape::RampEast;
+    if      (sw == 1 && se == 0 && ne == 0 && nw == 1) return BlockShape::RampWest;
+    if      (sw == 0 && se == 1 && ne == 1 && nw == 1) return BlockShape::CornerRampSouthWest;
+    if      (sw == 1 && se == 0 && ne == 1 && nw == 1) return BlockShape::CornerRampSouthEast;
+    if      (sw == 1 && se == 1 && ne == 0 && nw == 1) return BlockShape::CornerRampNorthEast;
+    if      (sw == 1 && se == 1 && ne == 1 && nw == 0) return BlockShape::CornerRampNorthWest;
+    if      (sw == 1 && se == 0 && ne == 0 && nw == 0) return BlockShape::CornerWedgeSouthWest;
+    if      (sw == 0 && se == 1 && ne == 0 && nw == 0) return BlockShape::CornerWedgeSouthEast;
+    if      (sw == 0 && se == 0 && ne == 1 && nw == 0) return BlockShape::CornerWedgeNorthEast;
+    if      (sw == 0 && se == 0 && ne == 0 && nw == 1) return BlockShape::CornerWedgeNorthWest;
+    if      (sw == 1 && se == 0 && ne == 1 && nw == 0) return BlockShape::SaddleSouthWestNorthEast;
+    if      (sw == 0 && se == 1 && ne == 0 && nw == 1) return BlockShape::SaddleSouthEastNorthWest;
     return BlockShape::TerrainSurface;
 }
 
