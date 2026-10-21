@@ -242,25 +242,19 @@ void World::generateCornerCutTestArrangement() {
     setBlockWorld(6, platformY + 2, 12, BlockType::Stone);
     setBlockShapeWorld(6, platformY + 2, 12, BlockShape::RampEast);
 
-    // Side-face clipping strip. These unlike neighboring profiles deliberately
-    // share vertical cell boundaries so partial coverage can be inspected
-    // without terrain noise obscuring the result.
-    const BlockShape sideClipShapes[] = {
-        BlockShape::Cube,
-        BlockShape::RampNorth,
-        BlockShape::CornerWedgeNorthEast,
-        BlockShape::SaddleSouthWestNorthEast,
-        BlockShape::RampWest,
-        BlockShape::Cube,
-        BlockShape::CornerRampSouthWest,
-        BlockShape::RampEast
-    };
-    for (int i = 0; i < static_cast<int>(sizeof(sideClipShapes) / sizeof(sideClipShapes[0])); ++i) {
-        const int testX = 5 + i;
-        const int testZ = 16;
-        setBlockWorld(testX, platformY + 1, testZ, BlockType::Stone);
-        setBlockShapeWorld(testX, platformY + 1, testZ, sideClipShapes[i]);
-    }
+    // Side-profile tests use world-height-aligned pairs rather than placing
+    // cubes and ramps at the same Y. A cube at platformY + 1 has a top at
+    // platformY + 2; the ramp beside it sits one layer higher, with its low
+    // edge at that same world height. Same-layer cube/ramp neighbors create
+    // a real one-block cliff and are not a valid seamless-transition test.
+    setBlockWorld(5, platformY + 1, 16, BlockType::Stone);
+    setBlockWorld(6, platformY + 2, 16, BlockType::Stone);
+    setBlockShapeWorld(6, platformY + 2, 16, BlockShape::RampEast);
+
+    // Keep a second aligned pair facing the opposite direction for comparison.
+    setBlockWorld(11, platformY + 1, 16, BlockType::Stone);
+    setBlockWorld(10, platformY + 2, 16, BlockType::Stone);
+    setBlockShapeWorld(10, platformY + 2, 16, BlockShape::RampWest);
 }
 
 bool World::raycast(glm::vec3 origin, glm::vec3 dir, float maxDist, glm::ivec3& hitBlock, glm::ivec3& prevBlock) const {
