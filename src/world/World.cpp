@@ -248,7 +248,7 @@ void World::generateCornerCutTestArrangement() {
     setBlockShapeWorld(5, diagonalTestY, 6, BlockShape::CornerCutTopNorthEast);
 
     setBlockWorld(6, diagonalTestY, 6, BlockType::Stone);
-    setBlockShapeWorld(6, diagonalTestY, 6, BlockShape::OpenBottomCornerComplementSouthWest);
+    setBlockShapeWorld(6, diagonalTestY, 6, BlockShape::OpenBottomCornerComplementNorthEast);
 
     setBlockWorld(7, diagonalTestY, 6, BlockType::Stone);
     setBlockShapeWorld(7, diagonalTestY, 6, BlockShape::CornerCutTopNorthEast);
