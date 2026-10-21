@@ -104,7 +104,7 @@ void Chunk::generateTerrain() {
     constexpr int haloSizeX = SIZE_X + 2;
     constexpr int haloSizeZ = SIZE_Z + 2;
     std::array<int, haloSizeX * haloSizeZ> heights{};
-    const auto cacheIndex = [](int x, int z) { return (x + 1) + haloSizeX * (z + 1); };
+    const auto cacheIndex = [=](int x, int z) { return (x + 1) + haloSizeX * (z + 1); };
     for (int z = -1; z <= SIZE_Z; ++z) {
         for (int x = -1; x <= SIZE_X; ++x) {
             heights[cacheIndex(x, z)] = terrainHeight(
