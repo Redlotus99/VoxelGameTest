@@ -32,6 +32,8 @@ enum class BlockShape : std::uint8_t {
     // Saddle profiles keep opposite corners high and the other two low.
     SaddleSouthWestNorthEast,
     SaddleSouthEastNorthWest,
+    // Natural terrain top built from shared world-space corner heights.
+    TerrainSurface,
     Count
 };
 
@@ -120,6 +122,7 @@ inline constexpr BlockShapeData getBlockShapeData(BlockShape shape) {
         case BlockShape::CornerCutTopNorthEast:
         case BlockShape::CornerCutTopNorthWest:
         case BlockShape::CornerCutTopSouthEast:
+        case BlockShape::TerrainSurface:
         case BlockShape::Count:
             break;
     }
