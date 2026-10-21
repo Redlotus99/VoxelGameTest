@@ -359,9 +359,9 @@ Mesh Chunk::buildMesh(
                         const int ci = profileCornerIndex(px, pz);
                         return top ? cell.top[ci] : cell.bottom[ci];
                     };
-                    const auto pointAt = [&](const float corner[3]) {
-                        const bool top = face == 0 ||
-                            (face != 1 && corner[1] > 0.5f);
+                    const auto pointAt = [&](const float corner[3], int faceIndex) {
+                        const bool top = faceIndex == 0 ||
+                            (faceIndex != 1 && corner[1] > 0.5f);
                         return glm::vec3(x + corner[0],
                             y + heightAt(corner[0], corner[2], top),
                             z + corner[2]);
@@ -380,7 +380,7 @@ Mesh Chunk::buildMesh(
                             m_position.x * SIZE_X + nx, ny, m_position.z * SIZE_Z + nz);
                         if (neighbor != BlockType::Air) continue;
                         glm::vec3 p[4];
-                        for (int i=0;i<4;++i) p[i]=pointAt(faceCorners[face][i]);
+                        for (int i=0;i<4;++i) p[i]=pointAt(faceCorners[face][i], face);
                         const glm::vec3 color = baseColor * getFaceBrightness(face);
                         if (face == 0) {
                             emitQuad(p, color);
