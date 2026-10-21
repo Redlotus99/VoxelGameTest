@@ -241,16 +241,15 @@ void World::generateCornerCutTestArrangement() {
     setBlockShapeWorld(14, platformY + 1, 14, BlockShape::CornerCutTopSouthEast);
 
     // Diagonal 45-degree connector test, directly in front of the spawn:
-    // red corner-cut -> new yellow open-bottom slope -> red corner-cut.
-    // Keep the three pieces in one diagonal row, with the new shape replacing
-    // the middle red piece so it can be checked as a true connector.
+    // red corner-cut -> rotated yellow open-bottom slope -> red corner-cut.
+    // Keep all three pieces directly adjacent on the same diagonal line.
     constexpr int diagonalTestY = platformY + 4;
 
     setBlockWorld(5, diagonalTestY, 6, BlockType::Stone);
     setBlockShapeWorld(5, diagonalTestY, 6, BlockShape::CornerCutTopNorthEast);
 
     setBlockWorld(6, diagonalTestY, 7, BlockType::Stone);
-    setBlockShapeWorld(6, diagonalTestY, 7, BlockShape::OpenBottomSlopeSouthWest);
+    setBlockShapeWorld(6, diagonalTestY, 7, BlockShape::OpenBottomSlopeNorthEast);
 
     setBlockWorld(7, diagonalTestY, 8, BlockType::Stone);
     setBlockShapeWorld(7, diagonalTestY, 8, BlockShape::CornerCutTopNorthEast);
