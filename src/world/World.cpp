@@ -212,6 +212,11 @@ void World::generateCornerCutTestArrangement() {
     setBlockWorld(15, platformY + 1, 7, BlockType::Stone);
     setBlockShapeWorld(15, platformY + 1, 7, BlockShape::CornerWedgeNorthEast);
 
+    // Complementary prism: the inverse half of a cube, solid above a
+    // diagonal bottom. Kept beside the wedge for silhouette comparison.
+    setBlockWorld(13, platformY + 1, 7, BlockType::Stone);
+    setBlockShapeWorld(13, platformY + 1, 7, BlockShape::CornerComplementSouthWest);
+
     // Rotated junction references. Each center cut should match the two
     // perpendicular ramps around it, proving all four orientations render.
     setBlockWorld(13, platformY + 1, 10, BlockType::Stone);
