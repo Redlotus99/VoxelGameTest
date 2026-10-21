@@ -851,18 +851,25 @@ Mesh Chunk::buildMesh(
                              shape == BlockShape::CornerWedgeSouthWest ||
                              shape == BlockShape::CornerWedgeSouthEast ||
                              shape == BlockShape::CornerWedgeNorthEast ||
-                             shape == BlockShape::CornerWedgeNorthWest)) {
-                            // Corner ramps/wedges have one exceptional corner.
-                            // Split the top along the diagonal that joins that
-                            // corner to its opposite; the default diagonal can
-                            // leave a flat triangle beside a sloping triangle,
-                            // which reads as a jutting 45-degree edge.
+                             shape == BlockShape::CornerWedgeNorthWest ||
+                             shape == BlockShape::SaddleSouthWestNorthEast ||
+                             shape == BlockShape::SaddleSouthEastNorthWest)) {
+                            // Corner ramps/wedges split toward the exceptional
+                            // corner. Saddles split along the diagonal joining
+                            // the two equal-height corners so both triangles
+                            // remain planar 45-degree faces.
                             const auto& h = shapeData.topHeights;
                             const bool northWestExceptional =
                                 (h[3] != h[0] && h[3] != h[1] && h[3] != h[2]);
                             const bool southEastExceptional =
                                 (h[1] != h[0] && h[1] != h[2] && h[1] != h[3]);
-                            const bool useDiagonal02 = northWestExceptional || southEastExceptional;
+                            const bool saddleSouthWestNorthEast =
+                                shape == BlockShape::SaddleSouthWestNorthEast;
+                            const bool saddleSouthEastNorthWest =
+                                shape == BlockShape::SaddleSouthEastNorthWest;
+                            const bool useDiagonal02 = saddleSouthWestNorthEast ||
+                                (!saddleSouthEastNorthWest &&
+                                 (northWestExceptional || southEastExceptional));
                             if (useDiagonal02) {
                                 indices.insert(indices.end(), {
                                     base, base + 1, base + 2,
