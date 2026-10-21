@@ -240,6 +240,35 @@ Mesh Chunk::buildMesh(
             profileCornerIndex(localX, localZ)];
     };
 
+    // Recompute the same world-space terrain profile used by generation.
+    // These helpers are also used when clipping ordinary block faces against
+    // a neighboring TerrainSurface, whose edge is not a full cube edge.
+    const auto terrainHeightAt = [](int worldX, int worldZ) -> int {
+        const auto rawHeight = [](int x, int z) {
+            const float noise = glm::perlin(glm::vec2(
+                static_cast<float>(x), static_cast<float>(z)) * 0.02f);
+            return std::max(1, std::min(
+                static_cast<int>(noise * 14.0f + 24.0f), SIZE_Y - 3));
+        };
+        int height = SIZE_Y;
+        for (int dz = -2; dz <= 2; ++dz) {
+            for (int dx = -2; dx <= 2; ++dx) {
+                height = std::min(height, rawHeight(worldX + dx, worldZ + dz) +
+                    std::max(std::abs(dx), std::abs(dz)));
+            }
+        }
+        return std::max(1, std::min(height, SIZE_Y - 3));
+    };
+    const auto terrainCornerWorldY = [&](int worldX, int worldZ, int cornerX, int cornerZ) {
+        int level = SIZE_Y;
+        for (int dz = cornerZ - 1; dz <= cornerZ; ++dz) {
+            for (int dx = cornerX - 1; dx <= cornerX; ++dx) {
+                level = std::min(level, terrainHeightAt(worldX + dx, worldZ + dz));
+            }
+        }
+        return level + 1;
+    };
+
     for (int z = 0; z < SIZE_Z; ++z) {
         for (int y = 0; y < SIZE_Y; ++y) {
             for (int x = 0; x < SIZE_X; ++x) {
@@ -261,26 +290,8 @@ Mesh Chunk::buildMesh(
                     if (getWorldBlock(worldX, y + 1, worldZ) != BlockType::Air) {
                         shape = BlockShape::Cube;
                     } else {
-                        const auto heightAt = [&](int wx, int wz) -> int {
-                            const auto raw = [](int rx, int rz) {
-                                const float n = glm::perlin(glm::vec2(
-                                    static_cast<float>(rx), static_cast<float>(rz)) * 0.02f);
-                                return std::max(1, std::min(static_cast<int>(n * 14.0f + 24.0f), SIZE_Y - 3));
-                            };
-                            int h = SIZE_Y;
-                            for (int dz = -2; dz <= 2; ++dz)
-                                for (int dx = -2; dx <= 2; ++dx)
-                                    h = std::min(h, raw(wx + dx, wz + dz) +
-                                        std::max(std::abs(dx), std::abs(dz)));
-                            return std::max(1, std::min(h, SIZE_Y - 3));
-                        };
                         const auto offsetAt = [&](int wx, int wz, int cx, int cz) {
-                            const int h = heightAt(wx, wz);
-                            int level = h;
-                            for (int dz = cz - 1; dz <= cz; ++dz)
-                                for (int dx = cx - 1; dx <= cx; ++dx)
-                                    level = std::min(level, heightAt(wx + dx, wz + dz));
-                            return level + 1 - h;
+                            return terrainCornerWorldY(wx, wz, cx, cz) - terrainHeightAt(wx, wz);
                         };
                         const glm::vec3 sw(x, y + offsetAt(worldX, worldZ, 0, 0), z);
                         const glm::vec3 se(x + 1, y + offsetAt(worldX, worldZ, 1, 0), z);
@@ -552,12 +563,36 @@ Mesh Chunk::buildMesh(
                             shape, xSide ? currentX : 0.0f, xSide ? 0.0f : currentZ);
                         const float currentHigh = edgeTopHeight(
                             shape, xSide ? currentX : 1.0f, xSide ? 1.0f : currentZ);
-                        const float neighborLow = neighborAir ? 0.0f : edgeTopHeight(
+                        float neighborLow = neighborAir ? 0.0f : edgeTopHeight(
                             neighborShape, xSide ? neighborX : 0.0f,
                             xSide ? 0.0f : neighborZ);
-                        const float neighborHigh = neighborAir ? 0.0f : edgeTopHeight(
+                        float neighborHigh = neighborAir ? 0.0f : edgeTopHeight(
                             neighborShape, xSide ? neighborX : 1.0f,
                             xSide ? 1.0f : neighborZ);
+
+                        // A natural terrain neighbor has world-space corner
+                        // heights, not the unit-height profile of a cube. Use
+                        // its true edge so a cube/ramp face cannot protrude
+                        // through a 45-degree terrain edge.
+                        if (!neighborAir && neighborShape == BlockShape::TerrainSurface) {
+                            const int neighborWorldX = m_position.x * SIZE_X + nx;
+                            const int neighborWorldZ = m_position.z * SIZE_Z + nz;
+                            if (xSide) {
+                                neighborLow = static_cast<float>(
+                                    terrainCornerWorldY(neighborWorldX, neighborWorldZ,
+                                        static_cast<int>(neighborX), 0) - y);
+                                neighborHigh = static_cast<float>(
+                                    terrainCornerWorldY(neighborWorldX, neighborWorldZ,
+                                        static_cast<int>(neighborX), 1) - y);
+                            } else {
+                                neighborLow = static_cast<float>(
+                                    terrainCornerWorldY(neighborWorldX, neighborWorldZ,
+                                        0, static_cast<int>(neighborZ)) - y);
+                                neighborHigh = static_cast<float>(
+                                    terrainCornerWorldY(neighborWorldX, neighborWorldZ,
+                                        1, static_cast<int>(neighborZ)) - y);
+                            }
+                        }
 
                         struct SidePoint { float t; float y; };
                         const auto neighborHeightAt = [&](float t) {
