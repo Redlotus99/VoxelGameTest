@@ -250,12 +250,11 @@ void World::generateCornerCutTestArrangement() {
     setBlockWorld(6, diagonalTestY, 6, BlockType::Stone);
     setBlockShapeWorld(6, diagonalTestY, 6, BlockShape::OpenBottomCornerComplementNorthEast);
 
-    setBlockWorld(7, diagonalTestY, 6, BlockType::Stone);
-    // Keep the third red's cut plane parallel to the first red's cut plane.
-    // The yellow connector's diagonal face has the same plane orientation, so
-    // changing the removed corner here would rotate the red cut away from it.
-    // Do not move either reference block or change the yellow geometry.
-    setBlockShapeWorld(7, diagonalTestY, 6, BlockShape::CornerCutTopNorthEast);
+    // Move the third red one cell left and one cell back from its previous
+    // position so its diagonal cut can meet the yellow at the intended angle.
+    // The first red and yellow reference blocks remain fixed.
+    setBlockWorld(6, diagonalTestY, 5, BlockType::Stone);
+    setBlockShapeWorld(6, diagonalTestY, 5, BlockShape::CornerCutTopNorthEast);
 
     // Same-height cube/ramp seams: the cube's top must meet the ramp's
     // high edge. RampWest is high on its west edge, so it joins the cube
