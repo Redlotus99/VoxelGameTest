@@ -337,8 +337,14 @@ Mesh Chunk::buildMesh(
                         const int neH = static_cast<int>(ne.y) - y;
                         const int nwH = static_cast<int>(nw.y) - y;
                         const BlockShape profile = getTerrainProfileShape(swH, seH, neH, nwH);
+                        // Keep automatically selected connector labels visible
+                        // in diagnostic mode while the vertices still follow the
+                        // shared terrain profile rather than a fixed unit template.
+                        const BlockShape displayShape = usesExplicitBlockShapeGeometry(shape)
+                            ? shape
+                            : profile;
                         const glm::vec3 terrainColor = kShapeDebugTintEnabled
-                            ? getShapeDebugColor(profile)
+                            ? getShapeDebugColor(displayShape)
                             : getBlockColor(blockType);
                         const glm::vec3 topColor = terrainColor * getFaceBrightness(0);
 
