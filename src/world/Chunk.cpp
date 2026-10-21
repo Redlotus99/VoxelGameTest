@@ -349,32 +349,29 @@ Mesh Chunk::buildMesh(
                     }
                 }
 
-                // Tetrahedral complement. The south-west variant is the
-                // exact 180-degree rotation of the north-east variant.
+                // Keep one tetrahedron mesh definition and rotate its vertices
+                // 180 degrees in-cell when the south-west orientation is selected.
                 if (shape == BlockShape::OpenBottomCornerComplementNorthEast ||
                     shape == BlockShape::OpenBottomCornerComplementSouthWest) {
                     const bool rotated180 = shape == BlockShape::OpenBottomCornerComplementSouthWest;
-                    const glm::vec3 bottomNE(x + 1.0f, y, z + 1.0f);
-                    const glm::vec3 bottomSW(x, y, z);
-                    const glm::vec3 topNW(x, y + 1.0f, z + 1.0f);
-                    const glm::vec3 topNE(x + 1.0f, y + 1.0f, z + 1.0f);
-                    const glm::vec3 topSE(x + 1.0f, y + 1.0f, z);
-                    const glm::vec3 topSW(x, y + 1.0f, z);
+                    const auto orient = [&](const glm::vec3& point) {
+                        if (!rotated180) return point;
+                        return glm::vec3(2.0f * x + 1.0f - point.x,
+                                         point.y,
+                                         2.0f * z + 1.0f - point.z);
+                    };
+                    const glm::vec3 bottomNE = orient(glm::vec3(x + 1.0f, y, z + 1.0f));
+                    const glm::vec3 topNW = orient(glm::vec3(x, y + 1.0f, z + 1.0f));
+                    const glm::vec3 topNE = orient(glm::vec3(x + 1.0f, y + 1.0f, z + 1.0f));
+                    const glm::vec3 topSE = orient(glm::vec3(x + 1.0f, y + 1.0f, z));
                     const glm::vec3 topColor = baseColor * getFaceBrightness(0);
                     const glm::vec3 slopeColor = baseColor * getFaceBrightness(6);
                     const glm::vec3 sideXColor = baseColor * getFaceBrightness(2);
                     const glm::vec3 sideZColor = baseColor * getFaceBrightness(4);
-                    if (!rotated180) {
-                        emitTriangle(topNW, topNE, topSE, topColor);
-                        emitTriangle(bottomNE, topNW, topSE, slopeColor);
-                        emitTriangle(bottomNE, topSE, topNE, sideXColor);
-                        emitTriangle(bottomNE, topNE, topNW, sideZColor);
-                    } else {
-                        emitTriangle(topSE, topSW, topNW, topColor);
-                        emitTriangle(bottomSW, topSE, topNW, slopeColor);
-                        emitTriangle(bottomSW, topNW, topSW, sideXColor);
-                        emitTriangle(bottomSW, topSW, topSE, sideZColor);
-                    }
+                    emitTriangle(topNW, topNE, topSE, topColor);
+                    emitTriangle(bottomNE, topNW, topSE, slopeColor);
+                    emitTriangle(bottomNE, topSE, topNE, sideXColor);
+                    emitTriangle(bottomNE, topNE, topNW, sideZColor);
                     continue;
                 }
 
