@@ -285,9 +285,18 @@ Mesh Chunk::buildMesh(
                 }
 
                 BlockShape shape = getBlockShape(x, y, z);
-                const glm::vec3 baseColor = kShapeDebugTintEnabled
-                    ? getShapeDebugColor(shape)
-                    : getBlockColor(blockType);
+                const int worldX = m_position.x * SIZE_X + x;
+                const int worldZ = m_position.z * SIZE_Z + z;
+                const bool isZigzagRampTest =
+                    y == 44 && worldZ == 6 && worldX >= 5 && worldX <= 8 &&
+                    (shape == BlockShape::RampEast || shape == BlockShape::RampWest);
+                const glm::vec3 baseColor = isZigzagRampTest
+                    ? ((worldX % 2 == 1)
+                        ? glm::vec3(0.90f, 0.08f, 0.08f)   // red: east-rising
+                        : glm::vec3(1.00f, 0.78f, 0.08f))  // yellow: 180-degree Y rotation
+                    : (kShapeDebugTintEnabled
+                        ? getShapeDebugColor(shape)
+                        : getBlockColor(blockType));
 
                 // Natural terrain uses a shared-corner top surface. A block
                 // above it intentionally flattens this cell to a normal cube.
