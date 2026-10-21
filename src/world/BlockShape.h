@@ -70,8 +70,8 @@ struct BlockShapeData {
 };
 
 // Canonical classification for a natural terrain cell's four shared corner
-// heights. Inputs may be absolute heights or offsets; the lowest corner is
-// normalized to zero so generation and mesh diagnostics use identical rules.
+// offsets. Both generation and mesh diagnostics pass the normalized 0/1 profile,
+// so all four rotated ramp/wedge orientations use the same mapping.
 // Corner order is SW, SE, NE, NW.
 inline constexpr BlockShape getTerrainProfileShape(int sw, int se, int ne, int nw) {
     // Inputs are corner offsets from the cell's lowest corner: each is 0 or 1.
