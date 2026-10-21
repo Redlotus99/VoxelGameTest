@@ -88,15 +88,31 @@ void Chunk::generateTerrain() {
     // per cell. Adjacent cells therefore use identical heights at both ends
     // of every shared edge.
     const auto sampleHeight = [](int worldX, int worldZ) -> int {
-        // Combine broad hills with a subtle, faster variation layer. The
-        // secondary layer adds more local rises and dips without introducing
-        // the abrupt height changes that the one-block ramp/wedge vocabulary
-        // cannot represent cleanly.
-        const glm::vec2 position(worldX, worldZ);
-        const float broadNoise = glm::perlin(position * 0.01f);
-        const float detailNoise = glm::perlin(position * 0.035f);
-        const float terrainNoise = broadNoise * 14.0f + detailNoise * 3.0f;
-        const int height = 24 + static_cast<int>(terrainNoise);
+        // Smooth the continuous noise before quantizing it into block heights.
+        // Without this small neighborhood filter, tiny noise differences can
+        // turn a single grid corner into an isolated high point, forcing a
+        // sharp corner wedge into an otherwise gentle run of terrain.
+        const auto rawTerrainNoise = [](int x, int z) {
+            const glm::vec2 position(x, z);
+            const float broadNoise = glm::perlin(position * 0.01f);
+            const float detailNoise = glm::perlin(position * 0.035f);
+            return broadNoise * 14.0f + detailNoise * 3.0f;
+        };
+
+        // A light 3x3 weighted average keeps broad hills intact while damping
+        // one-vertex spikes. Because every cell samples this same world-space
+        // function, adjacent cells still share exactly matching edge heights.
+        float smoothedNoise = rawTerrainNoise(worldX, worldZ) * 4.0f;
+        smoothedNoise += rawTerrainNoise(worldX - 1, worldZ) * 2.0f;
+        smoothedNoise += rawTerrainNoise(worldX + 1, worldZ) * 2.0f;
+        smoothedNoise += rawTerrainNoise(worldX, worldZ - 1) * 2.0f;
+        smoothedNoise += rawTerrainNoise(worldX, worldZ + 1) * 2.0f;
+        smoothedNoise += rawTerrainNoise(worldX - 1, worldZ - 1);
+        smoothedNoise += rawTerrainNoise(worldX + 1, worldZ - 1);
+        smoothedNoise += rawTerrainNoise(worldX - 1, worldZ + 1);
+        smoothedNoise += rawTerrainNoise(worldX + 1, worldZ + 1);
+
+        const int height = 24 + static_cast<int>(smoothedNoise / 16.0f);
         return std::max(1, std::min(height, SIZE_Y - 2));
     };
 
