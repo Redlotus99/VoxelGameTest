@@ -348,20 +348,24 @@ Mesh Chunk::buildMesh(
                     }
                 }
 
-                // Open-bottom diagonal connector rotated 180 degrees. The
-                // raised northeast top corner slopes down to the southeast and
-                // northwest bottom corners. The bottom face is omitted.
-                if (shape == BlockShape::OpenBottomSlopeNorthEast) {
-                    const glm::vec3 raised(x + 1.0f, y + 1.0f, z + 1.0f);
-                    const glm::vec3 bottomSW(x, y, z);
-                    const glm::vec3 bottomSE(x + 1.0f, y, z);
-                    const glm::vec3 bottomNW(x, y, z + 1.0f);
+                // Exact tetrahedral complement of CornerCutTopNorthEast.
+                // The three top vertices form a flat, upward-facing triangle;
+                // the fourth vertex is the northeast bottom corner. The
+                // diagonal face matches the red cut's plane. There is no
+                // bottom face (only a single bottom vertex).
+                if (shape == BlockShape::OpenBottomCornerComplementNorthEast) {
+                    const glm::vec3 bottomNE(x + 1.0f, y, z + 1.0f);
+                    const glm::vec3 topNW(x, y + 1.0f, z + 1.0f);
+                    const glm::vec3 topNE(x + 1.0f, y + 1.0f, z + 1.0f);
+                    const glm::vec3 topSE(x + 1.0f, y + 1.0f, z);
+                    const glm::vec3 topColor = baseColor * getFaceBrightness(0);
                     const glm::vec3 slopeColor = baseColor * getFaceBrightness(6);
                     const glm::vec3 sideXColor = baseColor * getFaceBrightness(2);
                     const glm::vec3 sideZColor = baseColor * getFaceBrightness(4);
-                    emitTriangle(raised, bottomSE, bottomNW, slopeColor);
-                    emitTriangle(raised, bottomSW, bottomNW, sideXColor);
-                    emitTriangle(raised, bottomSE, bottomSW, sideZColor);
+                    emitTriangle(topNW, topNE, topSE, topColor);
+                    emitTriangle(bottomNE, topNW, topSE, slopeColor);
+                    emitTriangle(bottomNE, topSE, topNE, sideXColor);
+                    emitTriangle(bottomNE, topNE, topNW, sideZColor);
                     continue;
                 }
 
