@@ -101,27 +101,10 @@ void Chunk::generateTerrain() {
         }
         return std::max(1, std::min(height, SIZE_Y - 3));
     };
-    // Convert the shared corner-height pattern into the matching mesh shape.
-    // Corner order is SW, SE, NE, NW. The smoothed height field guarantees
-    // adjacent corner levels differ by at most one, so every profile is binary.
+    // One canonical classifier defines the four-corner profile for every
+    // generated surface, including all rotated ramp/wedge orientations.
     const auto terrainProfileShape = [](int sw, int se, int ne, int nw) -> BlockShape {
-        if      (sw == 0 && se == 0 && ne == 0 && nw == 0) return BlockShape::TerrainSurface;
-        if      (sw == 1 && se == 1 && ne == 1 && nw == 1) return BlockShape::Cube;
-        if      (sw == 0 && se == 0 && ne == 1 && nw == 1) return BlockShape::RampNorth;
-        if      (sw == 1 && se == 1 && ne == 0 && nw == 0) return BlockShape::RampSouth;
-        if      (sw == 0 && se == 1 && ne == 1 && nw == 0) return BlockShape::RampEast;
-        if      (sw == 1 && se == 0 && ne == 0 && nw == 1) return BlockShape::RampWest;
-        if      (sw == 0 && se == 1 && ne == 1 && nw == 1) return BlockShape::CornerRampSouthWest;
-        if      (sw == 1 && se == 0 && ne == 1 && nw == 1) return BlockShape::CornerRampSouthEast;
-        if      (sw == 1 && se == 1 && ne == 0 && nw == 1) return BlockShape::CornerRampNorthEast;
-        if      (sw == 1 && se == 1 && ne == 1 && nw == 0) return BlockShape::CornerRampNorthWest;
-        if      (sw == 1 && se == 0 && ne == 0 && nw == 0) return BlockShape::CornerWedgeSouthWest;
-        if      (sw == 0 && se == 1 && ne == 0 && nw == 0) return BlockShape::CornerWedgeSouthEast;
-        if      (sw == 0 && se == 0 && ne == 1 && nw == 0) return BlockShape::CornerWedgeNorthEast;
-        if      (sw == 0 && se == 0 && ne == 0 && nw == 1) return BlockShape::CornerWedgeNorthWest;
-        if      (sw == 1 && se == 0 && ne == 1 && nw == 0) return BlockShape::SaddleSouthWestNorthEast;
-        if      (sw == 0 && se == 1 && ne == 0 && nw == 1) return BlockShape::SaddleSouthEastNorthWest;
-        return BlockShape::TerrainSurface;
+        return getTerrainProfileShape(sw, se, ne, nw);
     };
     constexpr int haloSizeX = SIZE_X + 2;
     constexpr int haloSizeZ = SIZE_Z + 2;
@@ -357,26 +340,7 @@ Mesh Chunk::buildMesh(
                         const int seH = static_cast<int>(se.y) - y;
                         const int neH = static_cast<int>(ne.y) - y;
                         const int nwH = static_cast<int>(nw.y) - y;
-                        const int lowH = std::min(std::min(swH, seH), std::min(neH, nwH));
-                        const int a = swH - lowH;
-                        const int b = seH - lowH;
-                        const int c = neH - lowH;
-                        const int d = nwH - lowH;
-                        BlockShape profile = BlockShape::TerrainSurface;
-                        if      (a == 0 && b == 0 && c > 0 && d > 0) profile = BlockShape::RampNorth;
-                        else if (a > 0 && b > 0 && c == 0 && d == 0) profile = BlockShape::RampSouth;
-                        else if (a == 0 && b > 0 && c > 0 && d == 0) profile = BlockShape::RampEast;
-                        else if (a > 0 && b == 0 && c == 0 && d > 0) profile = BlockShape::RampWest;
-                        else if (a == 0 && b > 0 && c > 0 && d > 0) profile = BlockShape::CornerRampSouthWest;
-                        else if (a > 0 && b == 0 && c > 0 && d > 0) profile = BlockShape::CornerRampSouthEast;
-                        else if (a > 0 && b > 0 && c == 0 && d > 0) profile = BlockShape::CornerRampNorthEast;
-                        else if (a > 0 && b > 0 && c > 0 && d == 0) profile = BlockShape::CornerRampNorthWest;
-                        else if (a > 0 && b == 0 && c == 0 && d == 0) profile = BlockShape::CornerWedgeSouthWest;
-                        else if (a == 0 && b > 0 && c == 0 && d == 0) profile = BlockShape::CornerWedgeSouthEast;
-                        else if (a == 0 && b == 0 && c > 0 && d == 0) profile = BlockShape::CornerWedgeNorthEast;
-                        else if (a == 0 && b == 0 && c == 0 && d > 0) profile = BlockShape::CornerWedgeNorthWest;
-                        else if (a > 0 && b == 0 && c > 0 && d == 0) profile = BlockShape::SaddleSouthWestNorthEast;
-                        else if (a == 0 && b > 0 && c == 0 && d > 0) profile = BlockShape::SaddleSouthEastNorthWest;
+                        const BlockShape profile = getTerrainProfileShape(swH, seH, neH, nwH);
                         const glm::vec3 terrainColor = kShapeDebugTintEnabled
                             ? getShapeDebugColor(profile)
                             : getBlockColor(blockType);
