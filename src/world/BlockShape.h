@@ -102,7 +102,7 @@ inline constexpr CellShape getCellShapeData(BlockShape shape) {
         case BlockShape::CornerCutTopNorthEast:
         case BlockShape::CornerCutTopNorthWest:
         case BlockShape::CornerCutTopSouthEast:
-        case BlockShape::OpenBottomSlopeNorthEast:
+        case BlockShape::OpenBottomCornerComplementNorthEast:
         case BlockShape::TerrainSurface:
         case BlockShape::Count:
             return {{{0.0f, 0.0f, 0.0f, 0.0f}}, {{1.0f, 1.0f, 1.0f, 1.0f}}};
@@ -116,7 +116,7 @@ inline constexpr bool usesExplicitBlockShapeGeometry(BlockShape shape) {
            shape == BlockShape::CornerCutTopNorthEast ||
            shape == BlockShape::CornerCutTopNorthWest ||
            shape == BlockShape::CornerCutTopSouthEast ||
-           shape == BlockShape::OpenBottomSlopeNorthEast;
+           shape == BlockShape::OpenBottomCornerComplementNorthEast;
 }
 
 // Select the top-corner cut for a perpendicular ramp junction. Each
@@ -185,7 +185,7 @@ inline constexpr BlockShapeData getBlockShapeData(BlockShape shape) {
         case BlockShape::CornerCutTopNorthEast:
         case BlockShape::CornerCutTopNorthWest:
         case BlockShape::CornerCutTopSouthEast:
-        case BlockShape::OpenBottomSlopeNorthEast:
+        case BlockShape::OpenBottomCornerComplementNorthEast:
         case BlockShape::TerrainSurface:
         case BlockShape::Count:
             break;
