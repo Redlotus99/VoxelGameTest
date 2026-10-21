@@ -335,7 +335,8 @@ Mesh Chunk::buildMesh(
                 const int worldZ = m_position.z * SIZE_Z + z;
                 const bool naturalTerrainTop =
                     blockType == BlockType::Grass &&
-                    getWorldBlock(worldX, y + 1, worldZ) == BlockType::Air;
+                    getWorldBlock(worldX, y + 1, worldZ) == BlockType::Air &&
+                    !usesExplicitBlockShapeGeometry(shape);
                 if (naturalTerrainTop) {
                     const auto offsetAt = [&](int wx, int wz, int cx, int cz) {
                             return terrainCornerWorldY(wx, wz, cx, cz) - terrainHeightAt(wx, wz);
