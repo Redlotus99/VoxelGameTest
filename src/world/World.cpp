@@ -240,20 +240,18 @@ void World::generateCornerCutTestArrangement() {
     setBlockWorld(14, platformY + 1, 14, BlockType::Stone);
     setBlockShapeWorld(14, platformY + 1, 14, BlockShape::CornerCutTopSouthEast);
 
-    // Diagonal 45-degree connector test, directly in front of the spawn:
-    // red corner-cut -> yellow complementary tetrahedron -> red corner-cut.
-    // The yellow has a flat upward-facing triangular top and the same diagonal
-    // cut plane as the red shape, for checking the intended complementary fit.
+    // Straight red -> yellow -> red connector test, directly in front of spawn.
+    // The yellow complementary tetrahedron is rotated 180 degrees in its cell.
     constexpr int diagonalTestY = platformY + 4;
 
     setBlockWorld(5, diagonalTestY, 6, BlockType::Stone);
     setBlockShapeWorld(5, diagonalTestY, 6, BlockShape::CornerCutTopNorthEast);
 
-    setBlockWorld(6, diagonalTestY, 7, BlockType::Stone);
-    setBlockShapeWorld(6, diagonalTestY, 7, BlockShape::OpenBottomCornerComplementNorthEast);
+    setBlockWorld(6, diagonalTestY, 6, BlockType::Stone);
+    setBlockShapeWorld(6, diagonalTestY, 6, BlockShape::OpenBottomCornerComplementSouthWest);
 
-    setBlockWorld(7, diagonalTestY, 8, BlockType::Stone);
-    setBlockShapeWorld(7, diagonalTestY, 8, BlockShape::CornerCutTopNorthEast);
+    setBlockWorld(7, diagonalTestY, 6, BlockType::Stone);
+    setBlockShapeWorld(7, diagonalTestY, 6, BlockShape::CornerCutTopNorthEast);
 
     // Same-height cube/ramp seams: the cube's top must meet the ramp's
     // high edge. RampWest is high on its west edge, so it joins the cube
