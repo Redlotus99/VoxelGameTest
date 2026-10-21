@@ -216,7 +216,9 @@ Mesh Chunk::buildMesh(
             case BlockShape::CornerCutTopNorthWest: return glm::vec3(1.00f, 0.25f, 0.35f);
             case BlockShape::CornerCutTopSouthEast: return glm::vec3(0.85f, 0.10f, 0.65f);
             case BlockShape::OpenBottomCornerComplementNorthEast:
-            case BlockShape::OpenBottomCornerComplementSouthWest: return glm::vec3(1.00f, 0.75f, 0.05f);
+            case BlockShape::OpenBottomCornerComplementSouthWest:
+            case BlockShape::OpenBottomCornerComplementNorthWest:
+            case BlockShape::OpenBottomCornerComplementSouthEast: return glm::vec3(1.00f, 0.75f, 0.05f);
             case BlockShape::Count: break;
         }
         return glm::vec3(1.0f, 0.0f, 1.0f); // bright magenta for an invalid shape
@@ -396,9 +398,15 @@ Mesh Chunk::buildMesh(
                 // 180 degrees horizontally (around the cell's vertical axis)
                 // when the south-west orientation is selected.
                 if (shape == BlockShape::OpenBottomCornerComplementNorthEast ||
-                    shape == BlockShape::OpenBottomCornerComplementSouthWest) {
+                    shape == BlockShape::OpenBottomCornerComplementSouthWest ||
+                    shape == BlockShape::OpenBottomCornerComplementNorthWest ||
+                    shape == BlockShape::OpenBottomCornerComplementSouthEast) {
                     const bool rotateHorizontal180 =
                         shape == BlockShape::OpenBottomCornerComplementSouthWest;
+                    const bool rotateToNorthWest =
+                        shape == BlockShape::OpenBottomCornerComplementNorthWest;
+                    const bool rotateToSouthEast =
+                        shape == BlockShape::OpenBottomCornerComplementSouthEast;
                     const auto orient = [&](const glm::vec3& p) {
                         // Rotate the original tetrahedron rigidly within its
                         // cell: local (x,y,z) -> (1-y, 1-x, 1-z).
@@ -412,6 +420,14 @@ Mesh Chunk::buildMesh(
                         if (rotateHorizontal180) {
                             rotated.x = 1.0f - rotated.x;
                             rotated.z = 1.0f - rotated.z;
+                        } else if (rotateToNorthWest) {
+                            const float oldX = rotated.x;
+                            rotated.x = 1.0f - rotated.z;
+                            rotated.z = oldX;
+                        } else if (rotateToSouthEast) {
+                            const float oldX = rotated.x;
+                            rotated.x = rotated.z;
+                            rotated.z = 1.0f - oldX;
                         }
                         return glm::vec3(x, y, z) + rotated;
                     };
