@@ -204,23 +204,11 @@ Mesh Chunk::buildMesh(
         {{1,0,0},{0,0,0},{0,1,0},{1,1,0}}   // 5 -Z
     };
 
-    // Shape-test-only transform applied to the selected red block's emitted
-    // vertices. Production blocks retain zero rotation.
-    float activeTestRotationY = 0.0f;
-    glm::vec3 activeTestRotationCenter(0.0f);
     auto emitTriangle = [&](const glm::vec3& a, const glm::vec3& b,
                             const glm::vec3& c, const glm::vec3& color) {
         const uint32_t base = static_cast<uint32_t>(vertices.size() / 6);
         const glm::vec3 points[3] = {a, b, c};
-        const float cs = std::cos(activeTestRotationY);
-        const float sn = std::sin(activeTestRotationY);
-        for (const glm::vec3& original : points) {
-            glm::vec3 p = original;
-            if (activeTestRotationY != 0.0f) {
-                const glm::vec3 d = p - activeTestRotationCenter;
-                p.x = activeTestRotationCenter.x + d.x * cs + d.z * sn;
-                p.z = activeTestRotationCenter.z - d.x * sn + d.z * cs;
-            }
+        for (const glm::vec3& p : points) {
             vertices.push_back(p.x);
             vertices.push_back(p.y);
             vertices.push_back(p.z);
@@ -295,14 +283,6 @@ Mesh Chunk::buildMesh(
                 }
 
                 BlockShape shape = getBlockShape(x, y, z);
-                const int worldXForTest = m_position.x * SIZE_X + x;
-                const int worldZForTest = m_position.z * SIZE_Z + z;
-                // The shape-test red block at (7,44,6) is rotated -45 degrees
-                // around its own center. All other blocks remain grid-aligned.
-                activeTestRotationY =
-                    (y == 44 && worldXForTest == 7 && worldZForTest == 6)
-                    ? glm::radians(-45.0f) : 0.0f;
-                activeTestRotationCenter = glm::vec3(x + 0.5f, y + 0.5f, z + 0.5f);
                 const glm::vec3 baseColor = kShapeDebugTintEnabled
                     ? getShapeDebugColor(shape)
                     : getBlockColor(blockType);
