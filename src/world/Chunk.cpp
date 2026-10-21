@@ -536,8 +536,36 @@ Mesh Chunk::buildMesh(
                     if (glm::dot(normal, removedTop - cutCenter) < 0.0f) {
                         std::swap(cutB, cutC);
                     }
-                    emitTriangle(cutA, cutB, cutC,
-                                 baseColor * getFaceBrightness(6));
+                    const bool showMatingTetrahedron =
+                        m_position.x * SIZE_X + x == 5 &&
+                        y == 44 &&
+                        m_position.z * SIZE_Z + z == 6;
+
+                    if (showMatingTetrahedron) {
+                        // Shape-test diagnostic: fill the removed northeast
+                        // corner with the complementary tetrahedron in this
+                        // exact same cell. Its A/B/C face is the same triangle
+                        // as the red cut face, so emit that interface once,
+                        // in yellow, rather than z-fighting two coincident faces.
+                        const glm::vec3 yellow(1.0f, 0.78f, 0.08f);
+                        const glm::vec3 d = removedTop;
+                        const glm::vec3 yellowColor = yellow * getFaceBrightness(0);
+                        const glm::vec3 yellowSlopeColor = yellow * getFaceBrightness(6);
+                        const glm::vec3 yellowSideX = yellow * getFaceBrightness(2);
+                        const glm::vec3 yellowSideZ = yellow * getFaceBrightness(4);
+
+                        // Shared cut/interface face A-B-C. This is the same
+                        // three points as cutA/cutB/cutC, emitted only once.
+                        emitTriangle(cutA, cutB, cutC, yellowSlopeColor);
+                        // Remaining three tetrahedron faces, with D at the
+                        // removed top northeast corner.
+                        emitTriangle(cutTopX, d, cutTopZ, yellowColor);
+                        emitTriangle(cutBottom, cutTopZ, d, yellowSideX);
+                        emitTriangle(cutBottom, d, cutTopX, yellowSideZ);
+                    } else {
+                        emitTriangle(cutA, cutB, cutC,
+                                     baseColor * getFaceBrightness(6));
+                    }
                     continue;
                 }
 
