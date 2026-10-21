@@ -349,38 +349,36 @@ Mesh Chunk::buildMesh(
                     }
                 }
 
-                // The yellow complement uses a tetrahedron whose single
-                // bottom corner is opposite the red piece's low corner.
-                // Its sloped face is the upward-facing diagonal triangle.
+                // Keep the original yellow tetrahedron mesh and rotate it
+                // 180 degrees horizontally (around the cell's vertical axis)
+                // when the south-west orientation is selected.
                 if (shape == BlockShape::OpenBottomCornerComplementNorthEast ||
                     shape == BlockShape::OpenBottomCornerComplementSouthWest) {
-                    const bool bottomAtSouthWest =
+                    const bool rotateHorizontal180 =
                         shape == BlockShape::OpenBottomCornerComplementSouthWest;
-                    const glm::vec3 bottom = bottomAtSouthWest
-                        ? glm::vec3(x, y, z)
-                        : glm::vec3(x + 1.0f, y, z + 1.0f);
-                    const glm::vec3 topNW(x, y + 1.0f, z + 1.0f);
-                    const glm::vec3 topNE(x + 1.0f, y + 1.0f, z + 1.0f);
-                    const glm::vec3 topSE(x + 1.0f, y + 1.0f, z);
-                    const glm::vec3 topSW(x, y + 1.0f, z);
+                    const auto orient = [&](const glm::vec3& p) {
+                        if (!rotateHorizontal180) return p;
+                        return glm::vec3(2.0f * x + 1.0f - p.x,
+                                         p.y,
+                                         2.0f * z + 1.0f - p.z);
+                    };
+
+                    // Original tetrahedron vertices: preserve its geometry;
+                    // only transform their X/Z positions for the rotated form.
+                    const glm::vec3 bottom = orient(glm::vec3(x + 1.0f, y, z + 1.0f));
+                    const glm::vec3 topNW = orient(glm::vec3(x, y + 1.0f, z + 1.0f));
+                    const glm::vec3 topNE = orient(glm::vec3(x + 1.0f, y + 1.0f, z + 1.0f));
+                    const glm::vec3 topSE = orient(glm::vec3(x + 1.0f, y + 1.0f, z));
+                    const glm::vec3 topSW = orient(glm::vec3(x, y + 1.0f, z));
                     const glm::vec3 topColor = baseColor * getFaceBrightness(0);
                     const glm::vec3 slopeColor = baseColor * getFaceBrightness(6);
                     const glm::vec3 sideXColor = baseColor * getFaceBrightness(2);
                     const glm::vec3 sideZColor = baseColor * getFaceBrightness(4);
 
-                    if (bottomAtSouthWest) {
-                        // Keep the flat triangle horizontal at the top, and
-                        // make the SW-to-top diagonal the upward-facing slope.
-                        emitTriangle(topNW, topNE, topSE, topColor);
-                        emitTriangle(bottom, topNW, topSE, slopeColor);
-                        emitTriangle(bottom, topSE, topNE, sideXColor);
-                        emitTriangle(bottom, topNE, topNW, sideZColor);
-                    } else {
-                        emitTriangle(topNW, topNE, topSE, topColor);
-                        emitTriangle(bottom, topNW, topSE, slopeColor);
-                        emitTriangle(bottom, topSE, topNE, sideXColor);
-                        emitTriangle(bottom, topNE, topNW, sideZColor);
-                    }
+                    emitTriangle(topNW, topNE, topSE, topColor);
+                    emitTriangle(bottom, topNW, topSE, slopeColor);
+                    emitTriangle(bottom, topSE, topNE, sideXColor);
+                    emitTriangle(bottom, topNE, topNW, sideZColor);
                     continue;
                 }
 
