@@ -718,9 +718,18 @@ Mesh Chunk::buildMesh(
                         // heights, not the unit-height profile of a cube. Use
                         // its true edge so a cube/ramp face cannot protrude
                         // through a 45-degree terrain edge.
-                        if (!neighborAir && neighborShape == BlockShape::TerrainSurface) {
-                            const int neighborWorldX = m_position.x * SIZE_X + nx;
-                            const int neighborWorldZ = m_position.z * SIZE_Z + nz;
+                        const int neighborWorldX = m_position.x * SIZE_X + nx;
+                        const int neighborWorldZ = m_position.z * SIZE_Z + nz;
+                        // Generated terrain surfaces can be labeled as any ramp,
+                        // corner-ramp, wedge, or saddle. Do not special-case only
+                        // TerrainSurface: that label is used for the flat profile.
+                        // For every exposed natural grass top, compare against the
+                        // same absolute shared-corner heights used to build its mesh.
+                        const bool neighborIsNaturalTerrainTop =
+                            !neighborAir &&
+                            neighborBlock == BlockType::Grass &&
+                            getWorldBlock(neighborWorldX, ny + 1, neighborWorldZ) == BlockType::Air;
+                        if (neighborIsNaturalTerrainTop) {
                             if (xSide) {
                                 neighborLow = static_cast<float>(
                                     terrainCornerWorldY(neighborWorldX, neighborWorldZ,
