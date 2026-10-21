@@ -23,15 +23,15 @@ bool pointInsideExplicitShape(BlockShape shape, float x, float y, float z) {
     constexpr float eps = 0.0001f;
     switch (shape) {
         case BlockShape::CornerCutSouthWest:
-            return x + y + z < 1.0f - eps;
+            return x + y + z >= 1.0f - eps;
         case BlockShape::CornerCutTopSouthWest:
-            return x + z + (1.0f - y) > 1.0f + eps;
+            return x + z + (1.0f - y) >= 1.0f - eps;
         case BlockShape::CornerCutTopNorthEast:
-            return (1.0f - x) + (1.0f - z) + (1.0f - y) > 1.0f + eps;
+            return (1.0f - x) + (1.0f - z) + (1.0f - y) >= 1.0f - eps;
         case BlockShape::CornerCutTopNorthWest:
-            return x + (1.0f - z) + (1.0f - y) > 1.0f + eps;
+            return x + (1.0f - z) + (1.0f - y) >= 1.0f - eps;
         case BlockShape::CornerCutTopSouthEast:
-            return (1.0f - x) + z + (1.0f - y) > 1.0f + eps;
+            return (1.0f - x) + z + (1.0f - y) >= 1.0f - eps;
         default:
             return false;
     }
