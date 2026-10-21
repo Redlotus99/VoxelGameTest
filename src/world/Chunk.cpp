@@ -349,37 +349,31 @@ Mesh Chunk::buildMesh(
                     }
                 }
 
-                // The two tetrahedron orientations share the same faces.
-                // For the south-west variant, explicitly map every vertex to
-                // its opposite XZ corner so the single bottom point is SW.
+                // Tetrahedron that mates with CornerCutTopNorthEast:
+                // its flat triangular face is the same diagonal plane as the
+                // red piece's upward-facing slope, with the lone bottom corner
+                // on the opposite (south-west) corner.
                 if (shape == BlockShape::OpenBottomCornerComplementNorthEast ||
                     shape == BlockShape::OpenBottomCornerComplementSouthWest) {
-                    const bool rotated180 = shape == BlockShape::OpenBottomCornerComplementSouthWest;
-                    const glm::vec3 bottom = rotated180
+                    const bool oppositeBottomCorner =
+                        shape == BlockShape::OpenBottomCornerComplementSouthWest;
+                    const glm::vec3 bottomNE(x + 1.0f, y, z + 1.0f);
+                    const glm::vec3 topNW(x, y + 1.0f, z + 1.0f);
+                    const glm::vec3 topSE(x + 1.0f, y + 1.0f, z);
+                    const glm::vec3 loneCorner = oppositeBottomCorner
                         ? glm::vec3(x, y, z)
                         : glm::vec3(x + 1.0f, y, z + 1.0f);
-                    const glm::vec3 topNW = glm::vec3(x, y + 1.0f, z + 1.0f);
-                    const glm::vec3 topNE = glm::vec3(x + 1.0f, y + 1.0f, z + 1.0f);
-                    const glm::vec3 topSE = glm::vec3(x + 1.0f, y + 1.0f, z);
-                    const glm::vec3 topSW = glm::vec3(x, y + 1.0f, z);
                     const glm::vec3 topColor = baseColor * getFaceBrightness(0);
                     const glm::vec3 slopeColor = baseColor * getFaceBrightness(6);
                     const glm::vec3 sideXColor = baseColor * getFaceBrightness(2);
                     const glm::vec3 sideZColor = baseColor * getFaceBrightness(4);
 
-                    if (rotated180) {
-                        // Rotate the original top triangle and its three side
-                        // triangles 180 degrees around the cell's vertical axis.
-                        emitTriangle(topSE, topSW, topNW, topColor);
-                        emitTriangle(bottom, topSE, topNW, slopeColor);
-                        emitTriangle(bottom, topNW, topSW, sideXColor);
-                        emitTriangle(bottom, topSW, topSE, sideZColor);
-                    } else {
-                        emitTriangle(topNW, topNE, topSE, topColor);
-                        emitTriangle(bottom, topNW, topSE, slopeColor);
-                        emitTriangle(bottom, topSE, topNE, sideXColor);
-                        emitTriangle(bottom, topNE, topNW, sideZColor);
-                    }
+                    // This triangle lies exactly on the diagonal slope plane
+                    // used by the red CornerCutTopNorthEast shape.
+                    emitTriangle(bottomNE, topNW, topSE, slopeColor);
+                    emitTriangle(loneCorner, topNW, bottomNE, sideXColor);
+                    emitTriangle(loneCorner, bottomNE, topSE, sideZColor);
+                    emitTriangle(loneCorner, topSE, topNW, topColor);
                     continue;
                 }
 
