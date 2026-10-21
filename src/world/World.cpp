@@ -246,10 +246,13 @@ void World::generateCornerCutTestArrangement() {
     // red cut; the second red cut butts directly against the other side.
     constexpr int diagonalTestY = platformY + 4;
     setBlockWorld(5, diagonalTestY, 6, BlockType::Stone);
-    setBlockShapeWorld(5, diagonalTestY, 6, BlockShape::CornerCutTopSouthWest);
+    // Rotate the pink cut 180 degrees: southwest cut becomes northeast cut.
+    setBlockShapeWorld(5, diagonalTestY, 6, BlockShape::CornerCutTopNorthEast);
     setBlockWorld(6, diagonalTestY, 6, BlockType::Stone);
     setBlockShapeWorld(6, diagonalTestY, 6, BlockShape::CornerWedgeSouthWest);
     setBlockWorld(7, diagonalTestY, 6, BlockType::Stone);
+    // The red cut at (7,44,6) receives a test-only -45-degree Y rotation
+    // in Chunk::buildMesh, leaving the other test and terrain blocks untouched.
     setBlockShapeWorld(7, diagonalTestY, 6, BlockShape::CornerCutTopNorthEast);
 
     // Same-height cube/ramp seams: the cube's top must meet the ramp's
