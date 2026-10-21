@@ -359,7 +359,7 @@ Mesh Chunk::buildMesh(
                     const glm::vec3 slopeColor = baseColor * getFaceBrightness(6);
                     const glm::vec3 sideXColor = baseColor * getFaceBrightness(2);
                     const glm::vec3 sideZColor = baseColor * getFaceBrightness(4);
-                    emitTriangle(raised, bottomNW, bottomSE, slopeColor);
+                    emitTriangle(raised, bottomSE, bottomNW, slopeColor);
                     emitTriangle(raised, bottomSW, bottomNW, sideXColor);
                     emitTriangle(raised, bottomSE, bottomSW, sideZColor);
                     continue;
