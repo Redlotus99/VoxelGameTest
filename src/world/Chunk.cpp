@@ -161,6 +161,11 @@ Mesh Chunk::buildMesh(
             case BlockShape::CornerWedgeSouthEast: return glm::vec3(0.90f, 0.20f, 0.00f);
             case BlockShape::CornerWedgeNorthEast: return glm::vec3(1.00f, 0.75f, 0.05f);
             case BlockShape::CornerWedgeNorthWest: return glm::vec3(0.75f, 0.30f, 0.02f);
+            // Complementary corner prisms: amber palette.
+            case BlockShape::CornerComplementSouthWest: return glm::vec3(1.00f, 0.55f, 0.10f);
+            case BlockShape::CornerComplementSouthEast: return glm::vec3(0.95f, 0.40f, 0.05f);
+            case BlockShape::CornerComplementNorthEast: return glm::vec3(1.00f, 0.70f, 0.15f);
+            case BlockShape::CornerComplementNorthWest: return glm::vec3(0.80f, 0.35f, 0.05f);
             // Saddles: green palette.
             case BlockShape::SaddleSouthWestNorthEast: return glm::vec3(0.10f, 1.00f, 0.20f);
             case BlockShape::SaddleSouthEastNorthWest: return glm::vec3(0.00f, 0.60f, 0.20f);
@@ -340,6 +345,59 @@ Mesh Chunk::buildMesh(
                         }
                         continue;
                     }
+                }
+
+                // Complementary corner prisms are solid above a diagonal
+                // bottom. Their top is full-height; their bottom and side
+                // boundaries come from the shared CellShape profile.
+                if (shape == BlockShape::CornerComplementSouthWest ||
+                    shape == BlockShape::CornerComplementSouthEast ||
+                    shape == BlockShape::CornerComplementNorthEast ||
+                    shape == BlockShape::CornerComplementNorthWest) {
+                    const CellShape cell = getCellShapeData(shape);
+                    const auto heightAt = [&](float px, float pz, bool top) {
+                        const int ci = profileCornerIndex(px, pz);
+                        return top ? cell.top[ci] : cell.bottom[ci];
+                    };
+                    const auto pointAt = [&](const float corner[3], bool top) {
+                        return glm::vec3(x + corner[0],
+                            y + heightAt(corner[0], corner[2], top),
+                            z + corner[2]);
+                    };
+                    // The visible faces are emitted independently here; the
+                    // shared-edge subtraction pass will replace this simple
+                    // neighbor culling once all profile shapes use it.
+                    for (int face = 0; face < 6; ++face) {
+                        int nx=x, ny=y, nz=z;
+                        switch (face) {
+                            case 0: ++ny; break; case 1: --ny; break;
+                            case 2: ++nx; break; case 3: --nx; break;
+                            case 4: ++nz; break; case 5: --nz; break;
+                        }
+                        BlockType neighbor = getWorldBlock(
+                            m_position.x * SIZE_X + nx, ny, m_position.z * SIZE_Z + nz);
+                        if (neighbor != BlockType::Air) continue;
+                        glm::vec3 p[4];
+                        for (int i=0;i<4;++i) p[i]=pointAt(faceCorners[face][i], face != 1);
+                        const glm::vec3 color = baseColor * getFaceBrightness(face);
+                        if (face == 0) {
+                            emitQuad(p, color);
+                        } else if (face == 1) {
+                            // Split the sloped bottom into two planar triangles.
+                            emitTriangle(p[0], p[1], p[2], color);
+                            emitTriangle(p[0], p[2], p[3], color);
+                        } else {
+                            const auto area2 = [](const glm::vec3& a, const glm::vec3& b,
+                                                  const glm::vec3& d) {
+                                return glm::length(glm::cross(b-a, d-a));
+                            };
+                            if (area2(p[0],p[1],p[2]) > 0.0001f)
+                                emitTriangle(p[0],p[1],p[2],color);
+                            if (area2(p[0],p[2],p[3]) > 0.0001f)
+                                emitTriangle(p[0],p[2],p[3],color);
+                        }
+                    }
+                    continue;
                 }
 
                 // All four top-corner cuts share one mesh template. The removed
