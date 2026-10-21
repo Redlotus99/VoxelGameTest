@@ -89,7 +89,7 @@ void Chunk::generateTerrain() {
     const auto rawHeight = [](int worldX, int worldZ) -> int {
         const float noise = glm::perlin(glm::vec2(
             static_cast<float>(worldX), static_cast<float>(worldZ)) * 0.02f);
-        return std::max(1, std::min(static_cast<int>(noise * 14.0f + 24.0f), SIZE_Y - 3));
+        return std::max(1, std::min(static_cast<int>(noise * 18.0f + 24.0f), SIZE_Y - 3));
     };
     // Smooth the height field with a weighted neighborhood average. The old
     // min-plus-distance filter made broad, concentric terraces and exposed
@@ -284,7 +284,7 @@ Mesh Chunk::buildMesh(
             const float noise = glm::perlin(glm::vec2(
                 static_cast<float>(x), static_cast<float>(z)) * 0.02f);
             return std::max(1, std::min(
-                static_cast<int>(noise * 14.0f + 24.0f), SIZE_Y - 3));
+                static_cast<int>(noise * 18.0f + 24.0f), SIZE_Y - 3));
         };
         constexpr int weights[5] = {1, 2, 3, 2, 1};
         int weightedHeight = 0;
