@@ -88,18 +88,24 @@ void Chunk::generateTerrain() {
     // computes identical heights along shared boundaries.
     const auto rawHeight = [](int worldX, int worldZ) -> int {
         const float noise = glm::perlin(glm::vec2(
-            static_cast<float>(worldX), static_cast<float>(worldZ)) * 0.015f);
-        return std::max(1, std::min(static_cast<int>(noise * 10.0f + 24.0f), SIZE_Y - 3));
+            static_cast<float>(worldX), static_cast<float>(worldZ)) * 0.02f);
+        return std::max(1, std::min(static_cast<int>(noise * 14.0f + 24.0f), SIZE_Y - 3));
     };
+    // Smooth the height field with a weighted neighborhood average. The old
+    // min-plus-distance filter made broad, concentric terraces and exposed
+    // long jagged ledges; averaging preserves hills while removing those shelves.
     const auto terrainHeight = [&](int worldX, int worldZ) -> int {
-        int height = SIZE_Y;
+        constexpr int weights[5] = {1, 2, 3, 2, 1};
+        int weightedHeight = 0;
+        int totalWeight = 0;
         for (int dz = -2; dz <= 2; ++dz) {
             for (int dx = -2; dx <= 2; ++dx) {
-                height = std::min(height, rawHeight(worldX + dx, worldZ + dz) +
-                    std::max(std::abs(dx), std::abs(dz)));
+                const int weight = weights[dx + 2] * weights[dz + 2];
+                weightedHeight += rawHeight(worldX + dx, worldZ + dz) * weight;
+                totalWeight += weight;
             }
         }
-        return std::max(1, std::min(height, SIZE_Y - 3));
+        return std::max(1, std::min((weightedHeight + totalWeight / 2) / totalWeight, SIZE_Y - 3));
     };
     // One canonical classifier defines the four-corner profile for every
     // generated surface, including all rotated ramp/wedge orientations.
@@ -276,18 +282,22 @@ Mesh Chunk::buildMesh(
     const auto terrainHeightAt = [](int worldX, int worldZ) -> int {
         const auto rawHeight = [](int x, int z) {
             const float noise = glm::perlin(glm::vec2(
-                static_cast<float>(x), static_cast<float>(z)) * 0.015f);
+                static_cast<float>(x), static_cast<float>(z)) * 0.02f);
             return std::max(1, std::min(
-                static_cast<int>(noise * 10.0f + 24.0f), SIZE_Y - 3));
+                static_cast<int>(noise * 14.0f + 24.0f), SIZE_Y - 3));
         };
-        int height = SIZE_Y;
+        constexpr int weights[5] = {1, 2, 3, 2, 1};
+        int weightedHeight = 0;
+        int totalWeight = 0;
         for (int dz = -2; dz <= 2; ++dz) {
             for (int dx = -2; dx <= 2; ++dx) {
-                height = std::min(height, rawHeight(worldX + dx, worldZ + dz) +
-                    std::max(std::abs(dx), std::abs(dz)));
+                const int weight = weights[dx + 2] * weights[dz + 2];
+                weightedHeight += rawHeight(worldX + dx, worldZ + dz) * weight;
+                totalWeight += weight;
             }
         }
-        return std::max(1, std::min(height, SIZE_Y - 3));
+        return std::max(1, std::min(
+            (weightedHeight + totalWeight / 2) / totalWeight, SIZE_Y - 3));
     };
     const auto terrainCornerWorldY = [&](int worldX, int worldZ, int cornerX, int cornerZ) {
         int level = SIZE_Y;
