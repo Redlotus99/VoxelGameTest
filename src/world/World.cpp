@@ -23,9 +23,10 @@ void World::generate(int radius) {
         }
     }
 
-    // Find diagonal slope junctions only after all chunks have generated,
-    // so the test is consistent across chunk boundaries. The connector labels
-    // select terrain-aware rendering below; they do not replace shared heights.
+    // Detect connector candidates after all chunks have generated. Candidates
+    // are resolved in two phases so a later junction cannot overwrite part of
+    // an earlier red-yellow-red pattern. Three-cell patterns win over partial
+    // two-cell patterns; repeated non-overlapping patterns can form long runs.
     const int minWorld = -radius * Chunk::SIZE_X;
     const int maxWorld = (radius + 1) * Chunk::SIZE_X - 1;
     const auto surfaceYAt = [this](int wx, int wz) {
@@ -38,46 +39,158 @@ void World::generate(int radius) {
         return -1;
     };
 
+    struct ConnectorCell {
+        int x;
+        int y;
+        int z;
+        BlockShape shape;
+    };
+    struct ConnectorCandidate {
+        ConnectorCell cells[3];
+        int count;
+        int orientation;
+    };
+    std::vector<ConnectorCandidate> candidates;
+    candidates.reserve(static_cast<std::size_t>((maxWorld - minWorld) * (maxWorld - minWorld) / 8));
+
     for (int wz = minWorld + 1; wz < maxWorld; ++wz) {
         for (int wx = minWorld + 1; wx < maxWorld; ++wx) {
             const int centerY = surfaceYAt(wx, wz);
-            if (centerY < 1 ||
-                usesExplicitBlockShapeGeometry(getBlockShapeWorld(wx, centerY, wz))) {
-                continue;
-            }
+            if (centerY < 1) continue;
+
+            const BlockShape centerShape = getBlockShapeWorld(wx, centerY, wz);
+            if (usesExplicitBlockShapeGeometry(centerShape)) continue;
 
             const int westY = surfaceYAt(wx - 1, wz);
             const int southY = surfaceYAt(wx, wz - 1);
             const int eastY = surfaceYAt(wx + 1, wz);
             const int northY = surfaceYAt(wx, wz + 1);
-            const auto west = getBlockShapeData(getBlockShapeWorld(wx - 1, westY, wz)).topHeights;
-            const auto south = getBlockShapeData(getBlockShapeWorld(wx, southY, wz - 1)).topHeights;
-            const auto east = getBlockShapeData(getBlockShapeWorld(wx + 1, eastY, wz)).topHeights;
-            const auto north = getBlockShapeData(getBlockShapeWorld(wx, northY, wz + 1)).topHeights;
 
-            // Four rotations of the validated red-yellow-red arrangement.
-            // Each case requires the two adjacent slopes to meet at this level.
+            const auto profileAt = [this](int x, int y, int z) {
+                return getBlockShapeData(getBlockShapeWorld(x, y, z)).topHeights;
+            };
+            const auto west = profileAt(wx - 1, westY, wz);
+            const auto south = profileAt(wx, southY, wz - 1);
+            const auto east = profileAt(wx + 1, eastY, wz);
+            const auto north = profileAt(wx, northY, wz + 1);
+
+            // Each orientation is expressed as two independently testable
+            // slope arms. If both arms meet at this cell, use all three pieces;
+            // if only one arm is valid, use the matching two-piece partial.
+            bool armA = false, armB = false;
+            BlockShape redShape = BlockShape::CornerCutTopNorthEast;
+            BlockShape yellowShape = BlockShape::OpenBottomCornerComplementNorthEast;
+            int redAx = wx - 1, redAz = wz, redBx = wx, redBz = wz - 1;
+            int orientation = 0;
+
             if (westY == centerY && southY == centerY &&
                 west[2] > west[1] && south[2] > south[3]) {
-                setBlockShapeWorld(wx - 1, centerY, wz, BlockShape::CornerCutTopNorthEast);
-                setBlockShapeWorld(wx, centerY, wz, BlockShape::OpenBottomCornerComplementNorthEast);
-                setBlockShapeWorld(wx, centerY, wz - 1, BlockShape::CornerCutTopNorthEast);
+                armA = armB = true;
+                orientation = 0;
             } else if (westY == centerY && northY == centerY &&
-                west[1] > west[2] && north[1] > north[0]) {
-                setBlockShapeWorld(wx - 1, centerY, wz, BlockShape::CornerCutTopSouthEast);
-                setBlockShapeWorld(wx, centerY, wz, BlockShape::OpenBottomCornerComplementSouthEast);
-                setBlockShapeWorld(wx, centerY, wz + 1, BlockShape::CornerCutTopSouthEast);
+                       west[1] > west[2] && north[1] > north[0]) {
+                armA = armB = true;
+                redShape = BlockShape::CornerCutTopSouthEast;
+                yellowShape = BlockShape::OpenBottomCornerComplementSouthEast;
+                redAx = wx - 1; redAz = wz; redBx = wx; redBz = wz + 1;
+                orientation = 1;
             } else if (eastY == centerY && northY == centerY &&
-                east[0] > east[3] && north[0] > north[1]) {
-                setBlockShapeWorld(wx + 1, centerY, wz, BlockShape::CornerCutTopSouthWest);
-                setBlockShapeWorld(wx, centerY, wz, BlockShape::OpenBottomCornerComplementSouthWest);
-                setBlockShapeWorld(wx, centerY, wz + 1, BlockShape::CornerCutTopSouthWest);
+                       east[0] > east[3] && north[0] > north[1]) {
+                armA = armB = true;
+                redShape = BlockShape::CornerCutTopSouthWest;
+                yellowShape = BlockShape::OpenBottomCornerComplementSouthWest;
+                redAx = wx + 1; redAz = wz; redBx = wx; redBz = wz + 1;
+                orientation = 2;
             } else if (eastY == centerY && southY == centerY &&
-                east[3] > east[0] && south[3] > south[2]) {
-                setBlockShapeWorld(wx + 1, centerY, wz, BlockShape::CornerCutTopNorthWest);
-                setBlockShapeWorld(wx, centerY, wz, BlockShape::OpenBottomCornerComplementNorthWest);
-                setBlockShapeWorld(wx, centerY, wz - 1, BlockShape::CornerCutTopNorthWest);
+                       east[3] > east[0] && south[3] > south[2]) {
+                armA = armB = true;
+                redShape = BlockShape::CornerCutTopNorthWest;
+                yellowShape = BlockShape::OpenBottomCornerComplementNorthWest;
+                redAx = wx + 1; redAz = wz; redBx = wx; redBz = wz - 1;
+                orientation = 3;
+            } else {
+                // Partial patterns are considered only when a single arm
+                // independently matches one of the four known orientations.
+                if (westY == centerY && west[2] > west[1]) {
+                    armA = true; orientation = 0;
+                } else if (southY == centerY && south[2] > south[3]) {
+                    armB = true; orientation = 0;
+                } else if (westY == centerY && west[1] > west[2]) {
+                    armA = true; orientation = 1;
+                    redShape = BlockShape::CornerCutTopSouthEast;
+                    yellowShape = BlockShape::OpenBottomCornerComplementSouthEast;
+                    redAx = wx - 1; redAz = wz; redBx = wx; redBz = wz + 1;
+                } else if (northY == centerY && north[1] > north[0]) {
+                    armB = true; orientation = 1;
+                    redShape = BlockShape::CornerCutTopSouthEast;
+                    yellowShape = BlockShape::OpenBottomCornerComplementSouthEast;
+                    redAx = wx - 1; redAz = wz; redBx = wx; redBz = wz + 1;
+                } else if (eastY == centerY && east[0] > east[3]) {
+                    armA = true; orientation = 2;
+                    redShape = BlockShape::CornerCutTopSouthWest;
+                    yellowShape = BlockShape::OpenBottomCornerComplementSouthWest;
+                    redAx = wx + 1; redAz = wz; redBx = wx; redBz = wz + 1;
+                } else if (northY == centerY && north[0] > north[1]) {
+                    armB = true; orientation = 2;
+                    redShape = BlockShape::CornerCutTopSouthWest;
+                    yellowShape = BlockShape::OpenBottomCornerComplementSouthWest;
+                    redAx = wx + 1; redAz = wz; redBx = wx; redBz = wz + 1;
+                } else if (eastY == centerY && east[3] > east[0]) {
+                    armA = true; orientation = 3;
+                    redShape = BlockShape::CornerCutTopNorthWest;
+                    yellowShape = BlockShape::OpenBottomCornerComplementNorthWest;
+                    redAx = wx + 1; redAz = wz; redBx = wx; redBz = wz - 1;
+                } else if (southY == centerY && south[3] > south[2]) {
+                    armB = true; orientation = 3;
+                    redShape = BlockShape::CornerCutTopNorthWest;
+                    yellowShape = BlockShape::OpenBottomCornerComplementNorthWest;
+                    redAx = wx + 1; redAz = wz; redBx = wx; redBz = wz - 1;
+                }
             }
+
+            if (!armA && !armB) continue;
+            ConnectorCandidate candidate{};
+            candidate.orientation = orientation;
+            candidate.cells[0] = {wx, centerY, wz, yellowShape};
+            candidate.count = 1;
+            if (armA) candidate.cells[candidate.count++] = {redAx, centerY, redAz, redShape};
+            if (armB) candidate.cells[candidate.count++] = {redBx, centerY, redBz, redShape};
+            candidates.push_back(candidate);
+        }
+    }
+
+    // Longer complete patterns get first claim on their cells. This prevents
+    // overlapping junctions from turning a yellow center red (or vice versa).
+    std::stable_sort(candidates.begin(), candidates.end(),
+        [](const ConnectorCandidate& a, const ConnectorCandidate& b) {
+            if (a.count != b.count) return a.count > b.count;
+            return a.orientation < b.orientation;
+        });
+    struct ReservedCell { int x; int y; int z; };
+    std::vector<ReservedCell> reserved;
+    reserved.reserve(candidates.size() * 2);
+    const auto isReserved = [&reserved](int x, int y, int z) {
+        return std::any_of(reserved.begin(), reserved.end(),
+            [=](const ReservedCell& cell) {
+                return cell.x == x && cell.y == y && cell.z == z;
+            });
+    };
+    for (const ConnectorCandidate& candidate : candidates) {
+        bool conflict = false;
+        for (int i = 0; i < candidate.count; ++i) {
+            const ConnectorCell& cell = candidate.cells[i];
+            if (isReserved(cell.x, cell.y, cell.z) ||
+                getBlockWorld(cell.x, cell.y, cell.z) != BlockType::Grass ||
+                getBlockWorld(cell.x, cell.y + 1, cell.z) != BlockType::Air) {
+                conflict = true;
+                break;
+            }
+        }
+        if (conflict) continue;
+        for (int i = 0; i < candidate.count; ++i) {
+            const ConnectorCell& cell = candidate.cells[i];
+            setBlockShapeWorld(cell.x, cell.y, cell.z, cell.shape);
+            reserved.push_back({cell.x, cell.y, cell.z});
         }
     }
 }
