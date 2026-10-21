@@ -34,9 +34,9 @@ enum class BlockShape : std::uint8_t {
     CornerCutTopNorthEast,
     CornerCutTopNorthWest,
     CornerCutTopSouthEast,
-    // Open-bottom tetrahedral slope rotated 180 degrees: raised northeast corner,
-    // with a diagonal face descending to the two neighboring bottom corners.
-    OpenBottomSlopeNorthEast,
+    // Tetrahedral complement of CornerCutTopNorthEast: flat triangular top,
+    // one northeast bottom vertex, and a matching diagonal cut face.
+    OpenBottomCornerComplementNorthEast,
     // Saddle profiles keep opposite corners high and the other two low.
     SaddleSouthWestNorthEast,
     SaddleSouthEastNorthWest,
