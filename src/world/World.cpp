@@ -240,16 +240,15 @@ void World::generateCornerCutTestArrangement() {
     setBlockWorld(14, platformY + 1, 14, BlockType::Stone);
     setBlockShapeWorld(14, platformY + 1, 14, BlockShape::CornerCutTopSouthEast);
 
-    // Straight red -> yellow -> red connector test, directly in front of spawn.
-    // The yellow complementary tetrahedron is rotated 180 degrees in its cell.
+    // Same-cell mating test directly in front of spawn. Chunk rendering overlays
+    // a yellow complementary tetrahedron into this red cut's missing corner,
+    // using the same A/B/C vertices for their shared diagonal face.
     constexpr int diagonalTestY = platformY + 4;
 
     setBlockWorld(5, diagonalTestY, 6, BlockType::Stone);
     setBlockShapeWorld(5, diagonalTestY, 6, BlockShape::CornerCutTopNorthEast);
 
-    setBlockWorld(6, diagonalTestY, 6, BlockType::Stone);
-    setBlockShapeWorld(6, diagonalTestY, 6, BlockShape::OpenBottomCornerComplementNorthEast);
-
+    // Keep a standalone red cut beside the composite as a silhouette reference.
     setBlockWorld(7, diagonalTestY, 6, BlockType::Stone);
     setBlockShapeWorld(7, diagonalTestY, 6, BlockShape::CornerCutTopNorthEast);
 
