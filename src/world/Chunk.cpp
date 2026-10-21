@@ -349,31 +349,38 @@ Mesh Chunk::buildMesh(
                     }
                 }
 
-                // Tetrahedron that mates with CornerCutTopNorthEast:
-                // its flat triangular face is the same diagonal plane as the
-                // red piece's upward-facing slope, with the lone bottom corner
-                // on the opposite (south-west) corner.
+                // The yellow complement uses a tetrahedron whose single
+                // bottom corner is opposite the red piece's low corner.
+                // Its sloped face is the upward-facing diagonal triangle.
                 if (shape == BlockShape::OpenBottomCornerComplementNorthEast ||
                     shape == BlockShape::OpenBottomCornerComplementSouthWest) {
-                    const bool oppositeBottomCorner =
+                    const bool bottomAtSouthWest =
                         shape == BlockShape::OpenBottomCornerComplementSouthWest;
-                    const glm::vec3 bottomNE(x + 1.0f, y, z + 1.0f);
-                    const glm::vec3 topNW(x, y + 1.0f, z + 1.0f);
-                    const glm::vec3 topSE(x + 1.0f, y + 1.0f, z);
-                    const glm::vec3 loneCorner = oppositeBottomCorner
+                    const glm::vec3 bottom = bottomAtSouthWest
                         ? glm::vec3(x, y, z)
                         : glm::vec3(x + 1.0f, y, z + 1.0f);
+                    const glm::vec3 topNW(x, y + 1.0f, z + 1.0f);
+                    const glm::vec3 topNE(x + 1.0f, y + 1.0f, z + 1.0f);
+                    const glm::vec3 topSE(x + 1.0f, y + 1.0f, z);
+                    const glm::vec3 topSW(x, y + 1.0f, z);
                     const glm::vec3 topColor = baseColor * getFaceBrightness(0);
                     const glm::vec3 slopeColor = baseColor * getFaceBrightness(6);
                     const glm::vec3 sideXColor = baseColor * getFaceBrightness(2);
                     const glm::vec3 sideZColor = baseColor * getFaceBrightness(4);
 
-                    // This triangle lies exactly on the diagonal slope plane
-                    // used by the red CornerCutTopNorthEast shape.
-                    emitTriangle(bottomNE, topNW, topSE, slopeColor);
-                    emitTriangle(loneCorner, topNW, bottomNE, sideXColor);
-                    emitTriangle(loneCorner, bottomNE, topSE, sideZColor);
-                    emitTriangle(loneCorner, topSE, topNW, topColor);
+                    if (bottomAtSouthWest) {
+                        // Keep the flat triangle horizontal at the top, and
+                        // make the SW-to-top diagonal the upward-facing slope.
+                        emitTriangle(topNW, topNE, topSE, topColor);
+                        emitTriangle(bottom, topNW, topSE, slopeColor);
+                        emitTriangle(bottom, topSE, topNE, sideXColor);
+                        emitTriangle(bottom, topNE, topNW, sideZColor);
+                    } else {
+                        emitTriangle(topNW, topNE, topSE, topColor);
+                        emitTriangle(bottom, topNW, topSE, slopeColor);
+                        emitTriangle(bottom, topSE, topNE, sideXColor);
+                        emitTriangle(bottom, topNE, topNW, sideZColor);
+                    }
                     continue;
                 }
 
