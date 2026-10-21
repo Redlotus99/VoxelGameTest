@@ -262,6 +262,27 @@ Mesh Chunk::buildMesh(
         emitTriangle(corners[0], corners[2], corners[3], color);
     };
 
+    const auto profileCornerIndex = [](float px, float pz) {
+        return (pz < 0.5f)
+            ? ((px < 0.5f) ? 0 : 1)
+            : ((px < 0.5f) ? 3 : 2);
+    };
+
+    // Explicit top-corner cuts have the same edge-height profile as a corner
+    // ramp: the removed top corner is low and the other three are high.
+    const auto edgeTopHeight = [&](BlockShape edgeShape, float localX, float localZ) {
+        if (edgeShape == BlockShape::CornerCutTopSouthWest && localX < 0.5f && localZ < 0.5f)
+            return 0.0f;
+        if (edgeShape == BlockShape::CornerCutTopSouthEast && localX >= 0.5f && localZ < 0.5f)
+            return 0.0f;
+        if (edgeShape == BlockShape::CornerCutTopNorthEast && localX >= 0.5f && localZ >= 0.5f)
+            return 0.0f;
+        if (edgeShape == BlockShape::CornerCutTopNorthWest && localX < 0.5f && localZ >= 0.5f)
+            return 0.0f;
+        return getBlockShapeData(edgeShape).topHeights[
+            profileCornerIndex(localX, localZ)];
+    };
+
     for (int z = 0; z < SIZE_Z; ++z) {
         for (int y = 0; y < SIZE_Y; ++y) {
             for (int x = 0; x < SIZE_X; ++x) {
@@ -481,18 +502,81 @@ Mesh Chunk::buildMesh(
                         }
                     }
 
-                    // Do not reshape this block's bottom edge to match a
-                    // neighboring ramp. The old clipping path copied the
-                    // neighbor's top heights into this face's bottom vertices,
-                    // lifting parts of the side wall by a full block and making
-                    // the terrain look like a wedge was attached to a cube.
-                    // Shared occupied faces are omitted; exposed faces follow
-                    // this block's own profile. Proper partial-face clipping
-                    // needs polygon intersection, not moving boundary vertices.
-                    // A bottom-corner cut above this cube leaves only a
-                    // triangle exposed. A top-corner cut above touches the
-                    // supporting cube at only one point, so its whole top is
-                    // still exposed and must remain visible.
+                    // Clip vertical side faces against the neighboring shape's
+                    // actual edge profile. A neighboring ramp may cover only part
+                    // of this face; omitting the whole face leaves holes, while
+                    // emitting the whole face creates protruding overlaps.
+                    if (face >= 2 && face <= 5) {
+                        const bool neighborAir = neighborBlock == BlockType::Air;
+                        const bool xSide = face == 2 || face == 3;
+                        const float currentX = face == 2 ? 1.0f : 0.0f;
+                        const float currentZ = face == 4 ? 1.0f : 0.0f;
+                        const float neighborX = face == 2 ? 0.0f : (face == 3 ? 1.0f : 0.0f);
+                        const float neighborZ = face == 4 ? 0.0f : (face == 5 ? 1.0f : 0.0f);
+                        const float currentLow = edgeTopHeight(
+                            shape, xSide ? currentX : 0.0f, xSide ? 0.0f : currentZ);
+                        const float currentHigh = edgeTopHeight(
+                            shape, xSide ? currentX : 1.0f, xSide ? 1.0f : currentZ);
+                        const float neighborLow = neighborAir ? 0.0f : edgeTopHeight(
+                            neighborShape, xSide ? neighborX : 0.0f,
+                            xSide ? 0.0f : neighborZ);
+                        const float neighborHigh = neighborAir ? 0.0f : edgeTopHeight(
+                            neighborShape, xSide ? neighborX : 1.0f,
+                            xSide ? 1.0f : neighborZ);
+
+                        struct SidePoint { float t; float y; };
+                        const auto neighborHeightAt = [&](float t) {
+                            return neighborLow + (neighborHigh - neighborLow) * t;
+                        };
+                        const auto signedDistance = [&](const SidePoint& p) {
+                            return p.y - neighborHeightAt(p.t);
+                        };
+                        std::vector<SidePoint> polygon = {
+                            {0.0f, 0.0f}, {1.0f, 0.0f},
+                            {1.0f, currentHigh}, {0.0f, currentLow}
+                        };
+                        std::vector<SidePoint> clipped;
+                        clipped.reserve(6);
+                        for (std::size_t i = 0; i < polygon.size(); ++i) {
+                            const SidePoint a = polygon[i];
+                            const SidePoint b = polygon[(i + 1) % polygon.size()];
+                            const float da = signedDistance(a);
+                            const float db = signedDistance(b);
+                            const bool aOutside = da < -0.0001f;
+                            const bool bOutside = db < -0.0001f;
+                            if (!aOutside) clipped.push_back(a);
+                            if (aOutside != bOutside) {
+                                const float denominator = da - db;
+                                if (std::abs(denominator) > 0.000001f) {
+                                    const float amount = da / denominator;
+                                    clipped.push_back({
+                                        a.t + (b.t - a.t) * amount,
+                                        a.y + (b.y - a.y) * amount
+                                    });
+                                }
+                            }
+                        }
+
+                        const glm::vec3 sideColor = baseColor * getFaceBrightness(face);
+                        const auto toWorld = [&](const SidePoint& p) {
+                            if (face == 2) return glm::vec3(x + 1.0f, y + p.y, z + p.t);
+                            if (face == 3) return glm::vec3(x, y + p.y, z + p.t);
+                            if (face == 4) return glm::vec3(x + p.t, y + p.y, z + 1.0f);
+                            return glm::vec3(x + p.t, y + p.y, z);
+                        };
+                        if (clipped.size() >= 3) {
+                            const glm::vec3 first = toWorld(clipped[0]);
+                            for (std::size_t i = 1; i + 1 < clipped.size(); ++i) {
+                                emitTriangle(first, toWorld(clipped[i]),
+                                             toWorld(clipped[i + 1]), sideColor);
+                            }
+                        }
+                        continue;
+                    }
+
+                    // Top and bottom faces retain their existing shape-specific
+                    // handling. Vertical sides are clipped above using the exact
+                    // shared-edge height profiles rather than whole-face culling.
                     if (face == 0 && neighborBlock != BlockType::Air &&
                         neighborShape == BlockShape::CornerCutSouthWest) {
                         const glm::vec3 topSouthWest(x, y + 1.0f, z);
