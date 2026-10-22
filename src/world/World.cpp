@@ -2,6 +2,7 @@
 #include "world/TerrainHeight.h"
 #include "render/Shader.h"
 #include <algorithm>
+#include <array>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/noise.hpp>
 #include <cmath>
@@ -26,10 +27,9 @@ void World::generate(int radius) {
         }
     }
 
-    // Detect connector candidates after all chunks have generated. Candidates
-    // are resolved in two phases so a later junction cannot overwrite part of
-    // an earlier red-yellow-red pattern. Three-cell patterns win over partial
-    // two-cell patterns; repeated non-overlapping patterns can form long runs.
+    // Detect connector candidates after all chunks have generated. Only full
+    // three-cell red-yellow-red patterns with matching world-space corner
+    // slopes are accepted; candidates are resolved so patterns cannot overlap.
     const int minWorld = -radius * Chunk::SIZE_X;
     const int maxWorld = (radius + 1) * Chunk::SIZE_X - 1;
     const auto surfaceYAt = [this](int wx, int wz) {
