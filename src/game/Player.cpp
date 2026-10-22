@@ -8,7 +8,8 @@
 namespace {
 constexpr float kCollisionEpsilon = 0.001f;
 constexpr float kGroundSnapDistance = 0.12f;
-constexpr float kMaxStepHeight = 0.55f;
+constexpr float kMaxStepHeight = 0.85f;
+constexpr float kMaxHorizontalSubstep = 0.08f;
 
 float shapeTopAt(BlockShape shape, float x, float z) {
     const auto h = getBlockShapeData(shape).topHeights;
@@ -191,8 +192,19 @@ void Player::update(float dt, const World& world, glm::vec3 moveDir, bool jump) 
         velocity[xAxis ? 0 : 2] = 0.0f;
     };
 
-    moveHorizontal(velocity.x * dt, true);
-    moveHorizontal(velocity.z * dt, false);
+    // Sweep horizontal movement in short increments. A single frame-sized
+    // move can otherwise jump across a narrow ramp profile and collide with
+    // the tall side of the next cell before the ground-following code sees it.
+    const auto moveHorizontalSwept = [&](float delta, bool xAxis) {
+        const int steps = std::max(1, static_cast<int>(std::ceil(
+            std::abs(delta) / kMaxHorizontalSubstep)));
+        const float stepDelta = delta / static_cast<float>(steps);
+        for (int i = 0; i < steps; ++i) {
+            moveHorizontal(stepDelta, xAxis);
+        }
+    };
+    moveHorizontalSwept(velocity.x * dt, true);
+    moveHorizontalSwept(velocity.z * dt, false);
 
     if (wasGrounded && !jump) {
         float groundY = position.y;
