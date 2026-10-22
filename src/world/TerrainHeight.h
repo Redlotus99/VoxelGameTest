@@ -80,4 +80,57 @@ inline int surfaceHeight(int worldX, int worldZ, int maxHeight) {
     });
 }
 
+inline int wrapCoordinate(int value, int period) {
+    const int wrapped = value % period;
+    return wrapped < 0 ? wrapped + period : wrapped;
+}
+
+// Periodic terrain for finite worlds: every component repeats exactly at the
+// world period, including the shared corner profile at the opposite edge.
+inline int rawHeightPeriodic(int worldX, int worldZ, int maxHeight, int period) {
+    constexpr float tau = 6.2831853071795864769f;
+    const float x = tau * static_cast<float>(wrapCoordinate(worldX, period)) / static_cast<float>(period);
+    const float z = tau * static_cast<float>(wrapCoordinate(worldZ, period)) / static_cast<float>(period);
+    const float broad = std::sin(x) * std::cos(z * 2.0f) * 10.0f
+                      + std::cos(x * 2.0f) * std::sin(z) * 7.0f;
+    const float medium = std::sin(x * 4.0f + 0.4f) * std::cos(z * 3.0f) * 3.0f
+                       + std::cos(x * 3.0f) * std::sin(z * 5.0f + 0.8f) * 2.0f;
+    const float detail = std::sin(x * 8.0f + z * 6.0f) * 1.0f;
+    const float height = 24.0f + broad + medium + detail;
+    return std::max(1, std::min(static_cast<int>(std::round(height)), maxHeight));
+}
+
+inline int smoothedHeightPeriodic(int worldX, int worldZ, int maxHeight, int period) {
+    constexpr int weights[5] = {1, 2, 3, 2, 1};
+    int weightedHeight = 0;
+    int totalWeight = 0;
+    for (int dz = -2; dz <= 2; ++dz) {
+        for (int dx = -2; dx <= 2; ++dx) {
+            const int weight = weights[dx + 2] * weights[dz + 2];
+            weightedHeight += rawHeightPeriodic(worldX + dx, worldZ + dz, maxHeight, period) * weight;
+            totalWeight += weight;
+        }
+    }
+    return std::max(1, std::min((weightedHeight + totalWeight / 2) / totalWeight, maxHeight));
+}
+
+inline int cornerHeightPeriodic(int cornerX, int cornerZ, int maxHeight, int period) {
+    int lowest = maxHeight + 1;
+    for (int dz = cornerZ - 1; dz <= cornerZ; ++dz) {
+        for (int dx = cornerX - 1; dx <= cornerX; ++dx) {
+            lowest = std::min(lowest, smoothedHeightPeriodic(dx, dz, maxHeight, period));
+        }
+    }
+    return lowest + 1;
+}
+
+inline int surfaceHeightPeriodic(int worldX, int worldZ, int maxHeight, int period) {
+    return std::min({
+        cornerHeightPeriodic(worldX, worldZ, maxHeight, period),
+        cornerHeightPeriodic(worldX + 1, worldZ, maxHeight, period),
+        cornerHeightPeriodic(worldX + 1, worldZ + 1, maxHeight, period),
+        cornerHeightPeriodic(worldX, worldZ + 1, maxHeight, period)
+    });
+}
+
 } // namespace terrain
