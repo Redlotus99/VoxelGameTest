@@ -291,18 +291,20 @@ Mesh Chunk::buildMesh(
                     ? getShapeDebugColor(shape)
                     : getBlockColor(blockType);
 
-                // Natural grass at the terrain surface must use the shared
-                // world-corner mesh regardless of its diagnostic shape label.
-                // Otherwise ramp/wedge labels fall through to isolated unit-cell
-                // templates and can lose the continuous world-space corner profile.
+                // Natural grass normally uses the shared world-corner mesh,
+                // preserving identical terrain profiles across cell/chunk seams.
+                // If the terrain generator deliberately assigns a validated
+                // red/yellow connector shape, render that explicit geometry
+                // instead of merely tinting the shared profile.
                 const int worldX = m_position.x * SIZE_X + x;
                 const int worldZ = m_position.z * SIZE_Z + z;
-                // Keep the shared terrain profile attached to the grass cell
-                // even when a placed block occupies the cell above it. Otherwise
-                // placing a block switches the grass to a cube-template mesh.
-                const bool naturalTerrainTop = blockType == BlockType::Grass;
-                // Do not remove the entire sloped surface when a block is above.
-                // Its shared-corner top is still needed to preserve the slope profile.
+                const bool explicitTerrainConnector =
+                    blockType == BlockType::Grass && usesExplicitBlockShapeGeometry(shape);
+                // Keep ordinary grass on the shared profile even when a placed
+                // block occupies the cell above it. Explicit connector cells are
+                // the exception: their actual shape template must be rendered.
+                const bool naturalTerrainTop =
+                    blockType == BlockType::Grass && !explicitTerrainConnector;
                 const bool emitNaturalTerrainTop = naturalTerrainTop;
                 if (naturalTerrainTop) {
                     const auto offsetAt = [&](int wx, int wz, int cx, int cz) {
