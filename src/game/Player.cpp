@@ -75,7 +75,9 @@ bool findGroundHeight(const World& world, const glm::vec3& p,
         for (int cellY = maxCellY; cellY >= minCellY; --cellY) {
             if (!world.isSolid(cellX, cellY, cellZ)) continue;
             const BlockShape shape = world.getShapeAt(cellX, cellY, cellZ);
-            if (usesExplicitBlockShapeGeometry(shape)) continue;
+            const bool isTerrainGrass =
+                world.getBlockTypeAt(cellX, cellY, cellZ) == BlockType::Grass;
+            if (usesExplicitBlockShapeGeometry(shape) && !isTerrainGrass) continue;
 
             float surface = static_cast<float>(cellY) +
                             shapeTopAt(shape, localX, localZ);
@@ -126,7 +128,9 @@ bool Player::collides(const World& world, const glm::vec3& p) const {
                     const float bottom = p.y - static_cast<float>(y);
                     const float top = p.y + HEIGHT - static_cast<float>(y);
 
-                    if (usesExplicitBlockShapeGeometry(shape)) {
+                    const bool isTerrainGrass =
+                        world.getBlockTypeAt(x, y, z) == BlockType::Grass;
+                    if (usesExplicitBlockShapeGeometry(shape) && !isTerrainGrass) {
                         const float clampedBottom = std::clamp(bottom, 0.0001f, 0.9999f);
                         const float clampedTop = std::clamp(top, 0.0001f, 0.9999f);
                         if (pointInsideExplicitShape(shape, localX, clampedBottom, localZ) ||
