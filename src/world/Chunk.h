@@ -23,7 +23,7 @@ public:
     void setBlockShape(int x, int y, int z, BlockShape shape);
 
     void generateFlat();
-    void generateTerrain();
+    void generateTerrain(int wrapSize = 0);
     Mesh buildMesh(
         const std::function<BlockType(int wx, int wy, int wz)>& getWorldBlock,
         const std::function<BlockShape(int wx, int wy, int wz)>& getWorldShape,
