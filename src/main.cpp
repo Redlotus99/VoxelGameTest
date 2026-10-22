@@ -34,7 +34,14 @@ int main(int argc, char* argv[]) {
         // so slope orientations and chunk seams can be inspected over a larger area.
         world.generate(4);
 
-        const bool shapeTestMode = argc > 1 && std::string(argv[1]) == "--shape-test";
+        bool shapeTestMode = false;
+        bool terrainShapeDebugMode = false;
+        for (int i = 1; i < argc; ++i) {
+            const std::string argument = argv[i];
+            if (argument == "--shape-test") shapeTestMode = true;
+            else if (argument == "--terrain-shape-debug") terrainShapeDebugMode = true;
+        }
+        world.setShapeDebugMode(terrainShapeDebugMode);
         if (shapeTestMode) {
             world.generateCornerCutTestArrangement();
         }
