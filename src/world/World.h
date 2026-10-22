@@ -18,8 +18,8 @@ public:
     void generate(int radius);
     // Small flat grassland used to validate finite-world wraparound.
     void generatePlanetPrototype();
-    bool loadPlanetEdits(const std::string& path);
-    bool savePlanetEdits(const std::string& path) const;
+    bool loadPlanetEdits(const std::string& path, const std::string& planetId);
+    bool savePlanetEdits(const std::string& path, const std::string& planetId) const;
     bool isPlanetPrototype() const { return m_planetPrototype; }
     void wrapPosition(glm::vec3& position) const;
     Chunk* getChunk(glm::ivec3 position);
