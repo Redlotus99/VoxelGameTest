@@ -414,13 +414,16 @@ Mesh Chunk::buildMesh(
                             rotated.x = 1.0f - rotated.x;
                             rotated.z = 1.0f - rotated.z;
                         } else if (rotateToNorthWest) {
-                            const float oldX = rotated.x;
-                            rotated.x = 1.0f - rotated.z;
-                            rotated.z = oldX;
-                        } else if (rotateToSouthEast) {
+                            // North-west is the counter-clockwise quarter-turn
+                            // from the validated north-east reference shape.
                             const float oldX = rotated.x;
                             rotated.x = rotated.z;
                             rotated.z = 1.0f - oldX;
+                        } else if (rotateToSouthEast) {
+                            // South-east is the clockwise quarter-turn.
+                            const float oldX = rotated.x;
+                            rotated.x = 1.0f - rotated.z;
+                            rotated.z = oldX;
                         }
                         return glm::vec3(x, y, z) + rotated;
                     };
