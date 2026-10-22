@@ -292,9 +292,9 @@ bool World::getTerrainSurfaceHeight(float worldX, float worldZ, float& height) c
 
     // Match Chunk::buildMesh's diagonal choice for exceptional corners/saddles.
     const int swH = static_cast<int>(sw) - surfaceHeight(cellX, cellZ);
-    const int seH = static_cast<int>(se) - smoothedHeight(cellX, cellZ);
-    const int neH = static_cast<int>(ne) - smoothedHeight(cellX, cellZ);
-    const int nwH = static_cast<int>(nw) - smoothedHeight(cellX, cellZ);
+    const int seH = static_cast<int>(se) - surfaceHeight(cellX, cellZ);
+    const int neH = static_cast<int>(ne) - surfaceHeight(cellX, cellZ);
+    const int nwH = static_cast<int>(nw) - surfaceHeight(cellX, cellZ);
     const int d1 = std::abs(neH - swH);
     const int d2 = std::abs(nwH - seH);
     bool useSwNeDiagonal = d1 <= d2;
