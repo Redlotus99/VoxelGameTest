@@ -122,11 +122,14 @@ void Chunk::generateTerrain(int wrapSize) {
                     // This makes the terrain use real ramp, wedge and saddle
                     // geometry instead of treating those profiles as colors.
                     const auto cornerOffset = [&](int cx, int cz) {
-                        const int h00 = heights[cacheIndex(cx - 1, cz - 1)];
-                        const int h10 = heights[cacheIndex(cx,     cz - 1)];
-                        const int h11 = heights[cacheIndex(cx,     cz)];
-                        const int h01 = heights[cacheIndex(cx - 1, cz)];
-                        return std::min(std::min(h00, h10), std::min(h11, h01)) + 1 - surfaceY;
+                        const int worldCornerX = m_position.x * SIZE_X + cx;
+                        const int worldCornerZ = m_position.z * SIZE_Z + cz;
+                        const int cornerY = wrapSize > 0
+                            ? terrain::cornerHeightPeriodic(
+                                  worldCornerX, worldCornerZ, SIZE_Y - 3, wrapSize)
+                            : terrain::cornerHeight(
+                                  worldCornerX, worldCornerZ, SIZE_Y - 3);
+                        return cornerY - surfaceY;
                     };
                     const int sw = cornerOffset(x,     z);
                     const int se = cornerOffset(x + 1, z);
@@ -273,14 +276,12 @@ Mesh Chunk::buildMesh(
             ? terrain::surfaceHeightPeriodic(worldX, worldZ, SIZE_Y - 3, wrapSize)
             : terrain::surfaceHeight(worldX, worldZ, SIZE_Y - 3);
     };
-    const auto terrainCornerWorldY = [&](int worldX, int worldZ, int cornerX, int cornerZ) {
-        int level = SIZE_Y;
-        for (int dz = cornerZ - 1; dz <= cornerZ; ++dz) {
-            for (int dx = cornerX - 1; dx <= cornerX; ++dx) {
-                level = std::min(level, terrainHeightAt(worldX + dx, worldZ + dz));
-            }
-        }
-        return level + 1;
+    const auto terrainCornerWorldY = [wrapSize](int worldX, int worldZ, int cornerX, int cornerZ) {
+        const int cx = worldX + cornerX;
+        const int cz = worldZ + cornerZ;
+        return wrapSize > 0
+            ? terrain::cornerHeightPeriodic(cx, cz, SIZE_Y - 3, wrapSize)
+            : terrain::cornerHeight(cx, cz, SIZE_Y - 3);
     };
 
     for (int z = 0; z < SIZE_Z; ++z) {
