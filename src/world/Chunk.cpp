@@ -170,7 +170,7 @@ Mesh Chunk::buildMesh(
 
     // Temporary diagnostic mode: color geometry by shape instead of material.
     // Disable this switch to restore normal grass/dirt/stone coloring.
-    constexpr bool kShapeDebugTintEnabled = true;
+    constexpr bool kShapeDebugTintEnabled = false;
     auto getShapeDebugColor = [](BlockShape shape) -> glm::vec3 {
         switch (shape) {
             case BlockShape::Cube: return glm::vec3(0.55f, 0.55f, 0.55f); // neutral gray
@@ -362,6 +362,17 @@ Mesh Chunk::buildMesh(
                             ? getShapeDebugColor(displayShape)
                             : getBlockColor(blockType);
                         const glm::vec3 topColor = terrainColor * getFaceBrightness(0);
+                        // Shade each terrain triangle from its actual slope normal:
+                        // horizontal surfaces stay bright, steeper faces darken.
+                        const auto emitSlopeTriangle = [&](const glm::vec3& a,
+                                                            const glm::vec3& b,
+                                                            const glm::vec3& c) {
+                            glm::vec3 normal = glm::normalize(glm::cross(b - a, c - a));
+                            if (normal.y < 0.0f) normal = -normal;
+                            const float slopeBrightness = 0.55f + 0.45f *
+                                std::clamp(normal.y, 0.0f, 1.0f);
+                            emitTriangle(a, b, c, topColor * slopeBrightness);
+                        };
 
                         // Choose the diagonal from the actual corner profile,
                         // not only from diagonal height differences. For a
@@ -388,11 +399,11 @@ Mesh Chunk::buildMesh(
                         }
 
                         if (useSwNeDiagonal) {
-                            emitTriangle(sw, nw, ne, topColor);
-                            emitTriangle(sw, ne, se, topColor);
+                            emitSlopeTriangle(sw, nw, ne);
+                            emitSlopeTriangle(sw, ne, se);
                         } else {
-                            emitTriangle(sw, nw, se, topColor);
-                            emitTriangle(nw, ne, se, topColor);
+                            emitSlopeTriangle(sw, nw, se);
+                            emitSlopeTriangle(nw, ne, se);
                         }
                     // Continue through the regular block-face pass below so
                     // the terrain cell still emits its sides and bottom. The
