@@ -120,8 +120,8 @@ void World::generate(int radius) {
             } else if (westY == centerY && northY == centerY &&
                        west[1] > west[2] && north[1] > north[0]) {
                 armA = armB = true;
-                redShape = BlockShape::CornerCutTopSouthEast;
-                yellowShape = BlockShape::OpenBottomCornerComplementSouthEast;
+                redShape = BlockShape::CornerCutTopNorthWest;
+                yellowShape = BlockShape::OpenBottomCornerComplementNorthWest;
                 redAx = wx - 1; redAz = wz; redBx = wx; redBz = wz + 1;
                 orientation = 1;
             } else if (eastY == centerY && northY == centerY &&
@@ -134,8 +134,8 @@ void World::generate(int radius) {
             } else if (eastY == centerY && southY == centerY &&
                        east[3] > east[0] && south[3] > south[2]) {
                 armA = armB = true;
-                redShape = BlockShape::CornerCutTopNorthWest;
-                yellowShape = BlockShape::OpenBottomCornerComplementNorthWest;
+                redShape = BlockShape::CornerCutTopSouthEast;
+                yellowShape = BlockShape::OpenBottomCornerComplementSouthEast;
                 redAx = wx + 1; redAz = wz; redBx = wx; redBz = wz - 1;
                 orientation = 3;
             }
