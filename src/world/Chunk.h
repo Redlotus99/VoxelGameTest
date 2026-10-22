@@ -26,7 +26,8 @@ public:
     void generateTerrain();
     Mesh buildMesh(
         const std::function<BlockType(int wx, int wy, int wz)>& getWorldBlock,
-        const std::function<BlockShape(int wx, int wy, int wz)>& getWorldShape) const;
+        const std::function<BlockShape(int wx, int wy, int wz)>& getWorldShape,
+        bool shapeDebugMode = false) const;
     
     glm::ivec3 getPosition() const { return m_position; }
     
