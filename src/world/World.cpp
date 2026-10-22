@@ -35,7 +35,7 @@ void World::generatePlanetPrototype() {
         for (int z = 0; z < PLANET_CHUNKS; ++z) {
             const glm::ivec3 chunkPos(x, 0, z);
             auto chunk = std::make_unique<Chunk>(chunkPos);
-            chunk->generateFlat();
+            chunk->generateTerrain(PLANET_SIZE);
             m_chunks.emplace(packCoordinates(chunkPos), std::move(chunk));
         }
     }
@@ -132,14 +132,15 @@ BlockShape World::getShapeAt(int wx, int wy, int wz) const {
 }
 
 bool World::getTerrainSurfaceHeight(float worldX, float worldZ, float& height) const {
-    if (m_planetPrototype) { height = 12.0f; return true; }
     const int cellX = static_cast<int>(std::floor(worldX));
     const int cellZ = static_cast<int>(std::floor(worldZ));
     const float x = worldX - static_cast<float>(cellX);
     const float z = worldZ - static_cast<float>(cellZ);
 
-    const auto surfaceHeight = [](int wx, int wz) {
-        return terrain::surfaceHeight(wx, wz, Chunk::SIZE_Y - 3);
+    const auto surfaceHeight = [this](int wx, int wz) {
+        return m_planetPrototype
+            ? terrain::surfaceHeightPeriodic(wx, wz, Chunk::SIZE_Y - 3, PLANET_SIZE)
+            : terrain::surfaceHeight(wx, wz, Chunk::SIZE_Y - 3);
     };
     const auto cornerHeight = [&](int cx, int cz) {
         int lowest = Chunk::SIZE_Y;
