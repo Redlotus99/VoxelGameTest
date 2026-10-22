@@ -41,4 +41,28 @@ inline int smoothedHeight(int worldX, int worldZ, int maxHeight) {
         (weightedHeight + totalWeight / 2) / totalWeight, maxHeight));
 }
 
+
+// Shared world-grid corner level. A corner belongs to four cells, so it is
+// derived only from those cells' canonical smoothed samples.
+inline int cornerHeight(int cornerX, int cornerZ, int maxHeight) {
+    int lowest = maxHeight + 1;
+    for (int dz = cornerZ - 1; dz <= cornerZ; ++dz) {
+        for (int dx = cornerX - 1; dx <= cornerX; ++dx) {
+            lowest = std::min(lowest, smoothedHeight(dx, dz, maxHeight));
+        }
+    }
+    return lowest + 1;
+}
+
+// Place each grass surface cell at the lowest of its four shared corner
+// levels. This guarantees no corner falls below its cell base.
+inline int surfaceHeight(int worldX, int worldZ, int maxHeight) {
+    return std::min({
+        cornerHeight(worldX,     worldZ,     maxHeight),
+        cornerHeight(worldX + 1, worldZ,     maxHeight),
+        cornerHeight(worldX + 1, worldZ + 1, maxHeight),
+        cornerHeight(worldX,     worldZ + 1, maxHeight)
+    });
+}
+
 } // namespace terrain
