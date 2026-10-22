@@ -12,7 +12,37 @@ World::World() = default;
 
 World::~World() = default;
 
+int World::wrapCoordinate(int value) const {
+    if (!m_planetPrototype) return value;
+    const int wrapped = value % PLANET_SIZE;
+    return wrapped < 0 ? wrapped + PLANET_SIZE : wrapped;
+}
+
+void World::wrapPosition(glm::vec3& position) const {
+    if (!m_planetPrototype) return;
+    const float size = static_cast<float>(PLANET_SIZE);
+    position.x = std::fmod(position.x, size);
+    position.z = std::fmod(position.z, size);
+    if (position.x < 0.0f) position.x += size;
+    if (position.z < 0.0f) position.z += size;
+}
+
+void World::generatePlanetPrototype() {
+    m_chunks.clear();
+    m_meshes.clear();
+    m_planetPrototype = true;
+    for (int x = 0; x < PLANET_CHUNKS; ++x) {
+        for (int z = 0; z < PLANET_CHUNKS; ++z) {
+            const glm::ivec3 chunkPos(x, 0, z);
+            auto chunk = std::make_unique<Chunk>(chunkPos);
+            chunk->generateFlat();
+            m_chunks.emplace(packCoordinates(chunkPos), std::move(chunk));
+        }
+    }
+}
+
 void World::generate(int radius) {
+    m_planetPrototype = false;
     for (int x = -radius; x <= radius; ++x) {
         for (int z = -radius; z <= radius; ++z) {
             // Only generate at y = 0
@@ -39,6 +69,8 @@ Chunk* World::getChunk(glm::ivec3 position) {
 }
 
 BlockType World::getBlockWorld(int wx, int wy, int wz) const {
+    wx = wrapCoordinate(wx);
+    wz = wrapCoordinate(wz);
     // Calculate chunk coordinates
     int chunkX = wx / 16;
     int chunkZ = wz / 16;
@@ -76,6 +108,8 @@ BlockType World::getBlockWorld(int wx, int wy, int wz) const {
 }
 
 BlockShape World::getBlockShapeWorld(int wx, int wy, int wz) const {
+    wx = wrapCoordinate(wx);
+    wz = wrapCoordinate(wz);
     if (wy < 0 || wy >= Chunk::SIZE_Y) {
         return BlockShape::Cube;
     }
@@ -98,6 +132,7 @@ BlockShape World::getShapeAt(int wx, int wy, int wz) const {
 }
 
 bool World::getTerrainSurfaceHeight(float worldX, float worldZ, float& height) const {
+    if (m_planetPrototype) { height = 12.0f; return true; }
     const int cellX = static_cast<int>(std::floor(worldX));
     const int cellZ = static_cast<int>(std::floor(worldZ));
     const float x = worldX - static_cast<float>(cellX);
@@ -157,6 +192,8 @@ BlockType World::getBlockTypeAt(int wx, int wy, int wz) const {
 }
 
 void World::setBlockWorld(int wx, int wy, int wz, BlockType type) {
+    wx = wrapCoordinate(wx);
+    wz = wrapCoordinate(wz);
     if (wy < 0 || wy >= Chunk::SIZE_Y) {
         return;
     }
@@ -178,6 +215,11 @@ void World::setBlockWorld(int wx, int wy, int wz, BlockType type) {
     
     // Set the block in the chunk
     chunk->setBlock(lx, wy, lz, type);
+
+    if (m_planetPrototype) {
+        m_meshes.clear();
+        return;
+    }
     
     // Erase the mesh for this chunk so it gets rebuilt
     int64_t packed = packCoordinates(chunkPos);
@@ -211,6 +253,8 @@ void World::setBlockWorld(int wx, int wy, int wz, BlockType type) {
 
 
 void World::setBlockShapeWorld(int wx, int wy, int wz, BlockShape shape) {
+    wx = wrapCoordinate(wx);
+    wz = wrapCoordinate(wz);
     if (wy < 0 || wy >= Chunk::SIZE_Y) {
         return;
     }
@@ -226,7 +270,8 @@ void World::setBlockShapeWorld(int wx, int wy, int wz, BlockShape shape) {
     }
 
     chunk->setBlockShape(lx, wy, lz, shape);
-    m_meshes.erase(packCoordinates(chunkPos));
+    if (m_planetPrototype) m_meshes.clear();
+    else m_meshes.erase(packCoordinates(chunkPos));
 }
 
 void World::generateCornerCutTestArrangement() {
@@ -455,15 +500,19 @@ void World::draw(Shader& shader, const glm::mat4& view, const glm::mat4& project
             meshIt = m_meshes.emplace(packed, std::move(mesh)).first;
         }
         
-        // Calculate model matrix based on chunk position
-        glm::vec3 chunkPos = chunk->getPosition() * 16; // Assuming each chunk is 16x16x16 blocks
-        glm::mat4 model = glm::translate(glm::mat4(1.0f), chunkPos);
-        
-        // Set the model matrix
-        shader.setMat4("model", model);
-        
-        // Draw the mesh
-        meshIt->second.draw();
+        const glm::vec3 basePos = chunk->getPosition() * 16;
+        const int copyMin = m_planetPrototype ? -1 : 0;
+        const int copyMax = m_planetPrototype ? 1 : 0;
+        for (int copyX = copyMin; copyX <= copyMax; ++copyX) {
+            for (int copyZ = copyMin; copyZ <= copyMax; ++copyZ) {
+                const glm::vec3 drawPos = basePos + glm::vec3(
+                    static_cast<float>(copyX * PLANET_SIZE), 0.0f,
+                    static_cast<float>(copyZ * PLANET_SIZE));
+                const glm::mat4 model = glm::translate(glm::mat4(1.0f), drawPos);
+                shader.setMat4("model", model);
+                meshIt->second.draw();
+            }
+        }
     }
 }
 
