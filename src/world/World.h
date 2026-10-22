@@ -4,7 +4,6 @@
 #include <memory>
 #include <cstdint>
 #include <string>
-#include <unordered_map>
 #include "world/Chunk.h"
 #include "render/Mesh.h"
 #include <glm/glm.hpp>
