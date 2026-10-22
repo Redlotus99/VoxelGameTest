@@ -69,17 +69,40 @@ void World::generate(int radius) {
             const int eastY = surfaceYAt(wx + 1, wz);
             const int northY = surfaceYAt(wx, wz + 1);
 
-            const auto profileAt = [this](int x, int y, int z) {
-                return getBlockShapeData(getBlockShapeWorld(x, y, z)).topHeights;
+            // Read the actual shared world-space corner heights used by
+            // Chunk::buildMesh. BlockShapeData is only a normalized shape
+            // profile and returns a flat fallback for explicit cut shapes and
+            // TerrainSurface, so it must not drive terrain orientation.
+            const auto surfaceHeightAt = [](int x, int z) {
+                return terrain::surfaceHeight(x, z, Chunk::SIZE_Y - 3);
             };
-            const auto west = profileAt(wx - 1, westY, wz);
-            const auto south = profileAt(wx, southY, wz - 1);
-            const auto east = profileAt(wx + 1, eastY, wz);
-            const auto north = profileAt(wx, northY, wz + 1);
+            const auto terrainCornerWorldY = [&](int x, int z, int cornerX, int cornerZ) {
+                int lowest = Chunk::SIZE_Y;
+                for (int dz = cornerZ - 1; dz <= cornerZ; ++dz) {
+                    for (int dx = cornerX - 1; dx <= cornerX; ++dx) {
+                        lowest = std::min(lowest, surfaceHeightAt(x + dx, z + dz));
+                    }
+                }
+                return lowest + 1;
+            };
+            const auto profileAt = [&](int x, int z) {
+                // Corner order matches BlockShape.h: SW, SE, NE, NW.
+                return std::array<int, 4>{
+                    terrainCornerWorldY(x, z, 0, 0),
+                    terrainCornerWorldY(x, z, 1, 0),
+                    terrainCornerWorldY(x, z, 1, 1),
+                    terrainCornerWorldY(x, z, 0, 1)
+                };
+            };
+            const auto west = profileAt(wx - 1, wz);
+            const auto south = profileAt(wx, wz - 1);
+            const auto east = profileAt(wx + 1, wz);
+            const auto north = profileAt(wx, wz + 1);
 
-            // Each orientation is expressed as two independently testable
-            // slope arms. If both arms meet at this cell, use all three pieces;
-            // if only one arm is valid, use the matching two-piece partial.
+            // Only accept a complete three-cell junction. The two red arms
+            // must both have the intended rise direction in their real
+            // world-space corner heights, and all three cells must share the
+            // same base height. Never guess from a single arm.
             bool armA = false, armB = false;
             BlockShape redShape = BlockShape::CornerCutTopNorthEast;
             BlockShape yellowShape = BlockShape::OpenBottomCornerComplementNorthEast;
@@ -111,53 +134,18 @@ void World::generate(int radius) {
                 yellowShape = BlockShape::OpenBottomCornerComplementNorthWest;
                 redAx = wx + 1; redAz = wz; redBx = wx; redBz = wz - 1;
                 orientation = 3;
-            } else {
-                // Partial patterns are considered only when a single arm
-                // independently matches one of the four known orientations.
-                if (westY == centerY && west[2] > west[1]) {
-                    armA = true; orientation = 0;
-                } else if (southY == centerY && south[2] > south[3]) {
-                    armB = true; orientation = 0;
-                } else if (westY == centerY && west[1] > west[2]) {
-                    armA = true; orientation = 1;
-                    redShape = BlockShape::CornerCutTopSouthEast;
-                    yellowShape = BlockShape::OpenBottomCornerComplementSouthEast;
-                    redAx = wx - 1; redAz = wz; redBx = wx; redBz = wz + 1;
-                } else if (northY == centerY && north[1] > north[0]) {
-                    armB = true; orientation = 1;
-                    redShape = BlockShape::CornerCutTopSouthEast;
-                    yellowShape = BlockShape::OpenBottomCornerComplementSouthEast;
-                    redAx = wx - 1; redAz = wz; redBx = wx; redBz = wz + 1;
-                } else if (eastY == centerY && east[0] > east[3]) {
-                    armA = true; orientation = 2;
-                    redShape = BlockShape::CornerCutTopSouthWest;
-                    yellowShape = BlockShape::OpenBottomCornerComplementSouthWest;
-                    redAx = wx + 1; redAz = wz; redBx = wx; redBz = wz + 1;
-                } else if (northY == centerY && north[0] > north[1]) {
-                    armB = true; orientation = 2;
-                    redShape = BlockShape::CornerCutTopSouthWest;
-                    yellowShape = BlockShape::OpenBottomCornerComplementSouthWest;
-                    redAx = wx + 1; redAz = wz; redBx = wx; redBz = wz + 1;
-                } else if (eastY == centerY && east[3] > east[0]) {
-                    armA = true; orientation = 3;
-                    redShape = BlockShape::CornerCutTopNorthWest;
-                    yellowShape = BlockShape::OpenBottomCornerComplementNorthWest;
-                    redAx = wx + 1; redAz = wz; redBx = wx; redBz = wz - 1;
-                } else if (southY == centerY && south[3] > south[2]) {
-                    armB = true; orientation = 3;
-                    redShape = BlockShape::CornerCutTopNorthWest;
-                    yellowShape = BlockShape::OpenBottomCornerComplementNorthWest;
-                    redAx = wx + 1; redAz = wz; redBx = wx; redBz = wz - 1;
-                }
             }
 
-            if (!armA && !armB) continue;
+            // Partial patterns were responsible for isolated yellow/red
+            // cells that had no matching diagonal partner. Leave terrain
+            // untouched unless both perpendicular arms validate.
+            if (!armA || !armB) continue;
             ConnectorCandidate candidate{};
             candidate.orientation = orientation;
             candidate.cells[0] = {wx, centerY, wz, yellowShape};
             candidate.count = 1;
-            if (armA) candidate.cells[candidate.count++] = {redAx, centerY, redAz, redShape};
-            if (armB) candidate.cells[candidate.count++] = {redBx, centerY, redBz, redShape};
+            candidate.cells[candidate.count++] = {redAx, centerY, redAz, redShape};
+            candidate.cells[candidate.count++] = {redBx, centerY, redBz, redShape};
             candidates.push_back(candidate);
         }
     }
