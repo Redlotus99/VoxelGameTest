@@ -27,7 +27,8 @@ public:
     Mesh buildMesh(
         const std::function<BlockType(int wx, int wy, int wz)>& getWorldBlock,
         const std::function<BlockShape(int wx, int wy, int wz)>& getWorldShape,
-        bool shapeDebugMode = false) const;
+        bool shapeDebugMode = false,
+        int wrapSize = 0) const;
     
     glm::ivec3 getPosition() const { return m_position; }
     
