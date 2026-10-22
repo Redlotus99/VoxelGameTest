@@ -264,6 +264,74 @@ BlockShape World::getShapeAt(int wx, int wy, int wz) const {
     return getBlockShapeWorld(wx, wy, wz);
 }
 
+bool World::getTerrainSurfaceHeight(float worldX, float worldZ, float& height) const {
+    const int cellX = static_cast<int>(std::floor(worldX));
+    const int cellZ = static_cast<int>(std::floor(worldZ));
+    const float x = worldX - static_cast<float>(cellX);
+    const float z = worldZ - static_cast<float>(cellZ);
+
+    const auto smoothedHeight = [](int wx, int wz) {
+        const auto rawHeight = [](int x, int z) {
+            const float noise = glm::perlin(glm::vec2(
+                static_cast<float>(x), static_cast<float>(z)) * 0.01f);
+            return std::max(1, std::min(
+                static_cast<int>(noise * 18.0f + 24.0f), Chunk::SIZE_Y - 3));
+        };
+        constexpr int weights[5] = {1, 2, 3, 2, 1};
+        int sum = 0;
+        int total = 0;
+        for (int dz = -2; dz <= 2; ++dz) {
+            for (int dx = -2; dx <= 2; ++dx) {
+                const int weight = weights[dx + 2] * weights[dz + 2];
+                sum += rawHeight(wx + dx, wz + dz) * weight;
+                total += weight;
+            }
+        }
+        return std::max(1, std::min(
+            (sum + total / 2) / total, Chunk::SIZE_Y - 3));
+    };
+    const auto cornerHeight = [&](int cx, int cz) {
+        int lowest = Chunk::SIZE_Y;
+        for (int dz = cz - 1; dz <= cz; ++dz) {
+            for (int dx = cx - 1; dx <= cx; ++dx) {
+                lowest = std::min(lowest, smoothedHeight(dx, dz));
+            }
+        }
+        return static_cast<float>(lowest + 1);
+    };
+
+    const float sw = cornerHeight(cellX, cellZ);
+    const float se = cornerHeight(cellX + 1, cellZ);
+    const float ne = cornerHeight(cellX + 1, cellZ + 1);
+    const float nw = cornerHeight(cellX, cellZ + 1);
+
+    // Match Chunk::buildMesh's diagonal choice for exceptional corners/saddles.
+    const int swH = static_cast<int>(sw) - smoothedHeight(cellX, cellZ);
+    const int seH = static_cast<int>(se) - smoothedHeight(cellX, cellZ);
+    const int neH = static_cast<int>(ne) - smoothedHeight(cellX, cellZ);
+    const int nwH = static_cast<int>(nw) - smoothedHeight(cellX, cellZ);
+    const int d1 = std::abs(neH - swH);
+    const int d2 = std::abs(nwH - seH);
+    bool useSwNeDiagonal = d1 <= d2;
+    if (swH != seH && swH != neH && swH != nwH) useSwNeDiagonal = false;
+    else if (seH != swH && seH != neH && seH != nwH) useSwNeDiagonal = true;
+    else if (neH != swH && neH != seH && neH != nwH) useSwNeDiagonal = false;
+    else if (nwH != swH && nwH != seH && nwH != neH) useSwNeDiagonal = true;
+    else if (swH == neH && seH == nwH && swH != seH) useSwNeDiagonal = true;
+    else if (swH == neH && seH == nwH && swH == seH) useSwNeDiagonal = true;
+
+    if (useSwNeDiagonal) {
+        height = z >= x
+            ? sw * (1.0f - z) + nw * (z - x) + ne * x
+            : sw * (1.0f - x) + ne * z + se * (x - z);
+    } else {
+        height = x + z <= 1.0f
+            ? sw * (1.0f - x - z) + nw * z + se * x
+            : nw * (1.0f - x) + ne * (x + z - 1.0f) + se * (1.0f - z);
+    }
+    return true;
+}
+
 bool World::isSolid(int wx, int wy, int wz) const {
     return getBlockWorld(wx, wy, wz) != BlockType::Air;
 }
