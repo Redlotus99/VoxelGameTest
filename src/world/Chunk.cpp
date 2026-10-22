@@ -1,4 +1,5 @@
 #include "world/Chunk.h"
+#include "world/TerrainHeight.h"
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -87,26 +88,9 @@ void Chunk::generateFlat() {
 void Chunk::generateTerrain() {
     // Terrain is derived exclusively from world coordinates so every chunk
     // computes identical heights along shared boundaries.
-    const auto rawHeight = [](int worldX, int worldZ) -> int {
-        const float noise = glm::perlin(glm::vec2(
-            static_cast<float>(worldX), static_cast<float>(worldZ)) * 0.01f);
-        return std::max(1, std::min(static_cast<int>(noise * 18.0f + 24.0f), SIZE_Y - 3));
-    };
-    // Smooth the height field with a weighted neighborhood average. The old
-    // min-plus-distance filter made broad, concentric terraces and exposed
-    // long jagged ledges; averaging preserves hills while removing those shelves.
-    const auto terrainHeight = [&](int worldX, int worldZ) -> int {
-        constexpr int weights[5] = {1, 2, 3, 2, 1};
-        int weightedHeight = 0;
-        int totalWeight = 0;
-        for (int dz = -2; dz <= 2; ++dz) {
-            for (int dx = -2; dx <= 2; ++dx) {
-                const int weight = weights[dx + 2] * weights[dz + 2];
-                weightedHeight += rawHeight(worldX + dx, worldZ + dz) * weight;
-                totalWeight += weight;
-            }
-        }
-        return std::max(1, std::min((weightedHeight + totalWeight / 2) / totalWeight, SIZE_Y - 3));
+    // Keep terrain generation and collision on one canonical height function.
+    const auto terrainHeight = [](int worldX, int worldZ) -> int {
+        return terrain::smoothedHeight(worldX, worldZ, SIZE_Y - 3);
     };
     // One canonical classifier defines the four-corner profile for every
     // generated surface, including all rotated ramp/wedge orientations.
