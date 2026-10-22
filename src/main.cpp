@@ -52,8 +52,13 @@ int main(int argc, char* argv[]) {
             if (planetId.empty()) planetId = "grassland-01";
             world.generatePlanetPrototype();
             const std::string planetSavePath = "planet_" + planetId + "_edits.dat";
-            if (world.loadPlanetEdits(planetSavePath, planetId)) {
-                std::cout << "Loaded saved planet '" << planetId << "' from " << planetSavePath << "\n";
+            bool loadedPlanet = world.loadPlanetEdits(planetSavePath, planetId);
+            if (!loadedPlanet && planetId == "grassland-01") {
+                // Migrate the previous prototype save without discarding edits.
+                loadedPlanet = world.loadPlanetEdits("planet_edits.dat", planetId);
+            }
+            if (loadedPlanet) {
+                std::cout << "Loaded saved planet '" << planetId << "' (save: " << planetSavePath << " or legacy save).\n";
             } else {
                 std::cout << "No compatible save for planet '" << planetId << "'; starting with fresh terrain.\n";
             }
