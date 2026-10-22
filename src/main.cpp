@@ -30,7 +30,9 @@ int main(int argc, char* argv[]) {
         
         // Create and generate world
         World world;
-        world.generate(2);
+        // Expand from a 5x5 to a 9x9 chunk test world (144x144 terrain cells)
+        // so slope orientations and chunk seams can be inspected over a larger area.
+        world.generate(4);
 
         const bool shapeTestMode = argc > 1 && std::string(argv[1]) == "--shape-test";
         if (shapeTestMode) {
