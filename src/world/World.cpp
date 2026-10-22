@@ -272,14 +272,14 @@ bool World::getTerrainSurfaceHeight(float worldX, float worldZ, float& height) c
     const float x = worldX - static_cast<float>(cellX);
     const float z = worldZ - static_cast<float>(cellZ);
 
-    const auto smoothedHeight = [](int wx, int wz) {
-        return terrain::smoothedHeight(wx, wz, Chunk::SIZE_Y - 3);
+    const auto surfaceHeight = [](int wx, int wz) {
+        return terrain::surfaceHeight(wx, wz, Chunk::SIZE_Y - 3);
     };
     const auto cornerHeight = [&](int cx, int cz) {
         int lowest = Chunk::SIZE_Y;
         for (int dz = cz - 1; dz <= cz; ++dz) {
             for (int dx = cx - 1; dx <= cx; ++dx) {
-                lowest = std::min(lowest, smoothedHeight(dx, dz));
+                lowest = std::min(lowest, surfaceHeight(dx, dz));
             }
         }
         return static_cast<float>(lowest + 1);
@@ -291,7 +291,7 @@ bool World::getTerrainSurfaceHeight(float worldX, float worldZ, float& height) c
     const float nw = cornerHeight(cellX, cellZ + 1);
 
     // Match Chunk::buildMesh's diagonal choice for exceptional corners/saddles.
-    const int swH = static_cast<int>(sw) - smoothedHeight(cellX, cellZ);
+    const int swH = static_cast<int>(sw) - surfaceHeight(cellX, cellZ);
     const int seH = static_cast<int>(se) - smoothedHeight(cellX, cellZ);
     const int neH = static_cast<int>(ne) - smoothedHeight(cellX, cellZ);
     const int nwH = static_cast<int>(nw) - smoothedHeight(cellX, cellZ);
