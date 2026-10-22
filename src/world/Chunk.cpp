@@ -85,12 +85,14 @@ void Chunk::generateFlat() {
     }
 }
 
-void Chunk::generateTerrain() {
+void Chunk::generateTerrain(int wrapSize) {
     // Terrain is derived exclusively from world coordinates so every chunk
     // computes identical heights along shared boundaries.
     // Keep terrain generation and collision on one canonical height function.
-    const auto terrainHeight = [](int worldX, int worldZ) -> int {
-        return terrain::surfaceHeight(worldX, worldZ, SIZE_Y - 3);
+    const auto terrainHeight = [wrapSize](int worldX, int worldZ) -> int {
+        return wrapSize > 0
+            ? terrain::surfaceHeightPeriodic(worldX, worldZ, SIZE_Y - 3, wrapSize)
+            : terrain::surfaceHeight(worldX, worldZ, SIZE_Y - 3);
     };
     // One canonical classifier defines the four-corner profile for every
     // generated surface, including all rotated ramp/wedge orientations.
