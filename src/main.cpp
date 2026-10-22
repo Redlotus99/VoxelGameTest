@@ -28,33 +28,39 @@ int main(int argc, char* argv[]) {
         // Create LineRenderer
         LineRenderer lines;
         
-        // Create and generate world
+        // Select the world mode before generating chunks.
         World world;
-        // Expand from a 5x5 to a 9x9 chunk test world (144x144 terrain cells)
-        // so slope orientations and chunk seams can be inspected over a larger area.
-        world.generate(4);
-
         bool shapeTestMode = false;
         bool terrainShapeDebugMode = false;
+        bool planetTestMode = false;
         for (int i = 1; i < argc; ++i) {
             const std::string argument = argv[i];
             if (argument == "--shape-test") shapeTestMode = true;
             else if (argument == "--terrain-shape-debug") terrainShapeDebugMode = true;
+            else if (argument == "--planet-test") planetTestMode = true;
+        }
+
+        if (planetTestMode) {
+            world.generatePlanetPrototype();
+            std::cout << "Planet prototype: 128x128 blocks, grassland, wraparound enabled.\\n";
+        } else {
+            // Preserve the established terrain and shape-test baseline.
+            world.generate(4);
         }
         world.setShapeDebugMode(terrainShapeDebugMode);
-        if (shapeTestMode) {
+        if (shapeTestMode && !planetTestMode) {
             world.generateCornerCutTestArrangement();
         }
-        
         // Camera setup
         Camera camera(glm::vec3(8.0f, 16.0f, 24.0f));
         
         // Create player
         Player player;
-        if (shapeTestMode) {
-            // Spawn on a clear part of the elevated platform, away from the
-            // L-shaped test pieces, with extra clearance above the surface.
+        if (shapeTestMode && !planetTestMode) {
             player.position = glm::vec3(5.5f, 41.5f, 8.5f);
+        } else if (planetTestMode) {
+            player.position = glm::vec3(64.5f, 12.0f, 64.5f);
+            camera.Position = player.getEyePosition();
         }
         
         // Main loop
@@ -136,6 +142,9 @@ int main(int argc, char* argv[]) {
             }
             previousJumpKey = jumpKey;
             
+            // Wrap logical coordinates while preserving the existing controller.
+            world.wrapPosition(player.position);
+
             // Update camera to follow player
             camera.Position = player.getEyePosition();
             camera.processMouse(mouseDX, mouseDY);
