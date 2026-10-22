@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
 
         if (planetTestMode) {
             world.generatePlanetPrototype();
-            std::cout << "Planet prototype: 128x128 blocks, grassland, wraparound enabled.\\n";
+            std::cout << "Planet prototype: 128x128 blocks, grassland, wraparound enabled.\n";
         } else {
             // Preserve the established terrain and shape-test baseline.
             world.generate(4);
