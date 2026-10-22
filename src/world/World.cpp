@@ -620,7 +620,7 @@ void World::draw(Shader& shader, const glm::mat4& view, const glm::mat4& project
                 return getBlockShapeWorld(wx, wy, wz);
             };
             
-            Mesh mesh = chunk->buildMesh(getWorldBlock, getWorldShape);
+            Mesh mesh = chunk->buildMesh(getWorldBlock, getWorldShape, m_shapeDebugMode);
             meshIt = m_meshes.emplace(packed, std::move(mesh)).first;
         }
         
