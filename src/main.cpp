@@ -33,19 +33,29 @@ int main(int argc, char* argv[]) {
         bool shapeTestMode = false;
         bool terrainShapeDebugMode = false;
         bool planetTestMode = false;
+        std::string planetId = "grassland-01";
         for (int i = 1; i < argc; ++i) {
             const std::string argument = argv[i];
             if (argument == "--shape-test") shapeTestMode = true;
             else if (argument == "--terrain-shape-debug") terrainShapeDebugMode = true;
             else if (argument == "--planet-test") planetTestMode = true;
+            else if (argument == "--planet-id" && i + 1 < argc) planetId = argv[++i];
         }
 
         if (planetTestMode) {
+            // Keep planet IDs filename-safe and deterministic.
+            for (char& ch : planetId) {
+                const bool safe = (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')
+                    || (ch >= '0' && ch <= '9') || ch == '-' || ch == '_';
+                if (!safe) ch = '_';
+            }
+            if (planetId.empty()) planetId = "grassland-01";
             world.generatePlanetPrototype();
-            if (world.loadPlanetEdits("planet_edits.dat")) {
-                std::cout << "Loaded saved planet edits from planet_edits.dat\n";
+            const std::string planetSavePath = "planet_" + planetId + "_edits.dat";
+            if (world.loadPlanetEdits(planetSavePath, planetId)) {
+                std::cout << "Loaded saved planet '" << planetId << "' from " << planetSavePath << "\n";
             } else {
-                std::cout << "No compatible planet save found; starting with fresh terrain.\n";
+                std::cout << "No compatible save for planet '" << planetId << "'; starting with fresh terrain.\n";
             }
             std::cout << "Planet prototype: 128x128 blocks, grassland, wraparound enabled.\n";
         } else {
@@ -212,10 +222,11 @@ int main(int argc, char* argv[]) {
         }
         
         if (planetTestMode) {
-            if (world.savePlanetEdits("planet_edits.dat")) {
-                std::cout << "Saved planet edits to planet_edits.dat\n";
+            const std::string planetSavePath = "planet_" + planetId + "_edits.dat";
+            if (world.savePlanetEdits(planetSavePath, planetId)) {
+                std::cout << "Saved planet '" << planetId << "' edits to " << planetSavePath << "\n";
             } else {
-                std::cerr << "Warning: could not save planet edits to planet_edits.dat\n";
+                std::cerr << "Warning: could not save planet '" << planetId << "' to " << planetSavePath << "\n";
             }
         }
 
