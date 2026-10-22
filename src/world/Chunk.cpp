@@ -882,7 +882,13 @@ Mesh Chunk::buildMesh(
                         emitQuad(topCorners, baseColor * getFaceBrightness(face));
                     }
 
-                    if (neighborBlock == BlockType::Air) {
+                    // Keep the underside of a placed solid block when it sits
+                    // above natural grass terrain. The terrain top may slope below
+                    // this plane, so treating the grass as a fully covering neighbor
+                    // removes the block's bottom and exposes the slope through it.
+                    const bool bottomOverNaturalTerrain =
+                        face == 1 && neighborBlock == BlockType::Grass;
+                    if (neighborBlock == BlockType::Air || bottomOverNaturalTerrain) {
                         const float brightness = getFaceBrightness(face);
                         const uint32_t base = static_cast<uint32_t>(vertices.size() / 6);
                         for (int i = 0; i < 4; ++i) {
