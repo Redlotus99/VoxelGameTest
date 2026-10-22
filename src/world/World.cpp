@@ -104,12 +104,13 @@ void World::generate(int radius) {
             // world-space corner heights, and all three cells must share the
             // same base height. Never guess from a single arm.
             bool armA = false, armB = false;
-            // The generated terrain connectors were consistently facing
-            // opposite the intended diagonal. Rotate each template 180 degrees
-            // in place; keep the detected cell positions and the --shape-test
-            // reference arrangement unchanged.
-            BlockShape redShape = BlockShape::CornerCutTopSouthWest;
-            BlockShape yellowShape = BlockShape::OpenBottomCornerComplementSouthWest;
+            // The validated west/south junction uses the exact same
+            // geometry as the --shape-test reference: both red neighbors cut
+            // their northeast top corner, and the center uses the unrotated
+            // northeast complementary tetrahedron. Keep shape labels aligned
+            // with the actual vertices emitted by Chunk::buildMesh.
+            BlockShape redShape = BlockShape::CornerCutTopNorthEast;
+            BlockShape yellowShape = BlockShape::OpenBottomCornerComplementNorthEast;
             int redAx = wx - 1, redAz = wz, redBx = wx, redBz = wz - 1;
             int orientation = 0;
 
