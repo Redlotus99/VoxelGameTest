@@ -90,7 +90,7 @@ void Chunk::generateTerrain() {
     // computes identical heights along shared boundaries.
     // Keep terrain generation and collision on one canonical height function.
     const auto terrainHeight = [](int worldX, int worldZ) -> int {
-        return terrain::smoothedHeight(worldX, worldZ, SIZE_Y - 3);
+        return terrain::surfaceHeight(worldX, worldZ, SIZE_Y - 3);
     };
     // One canonical classifier defines the four-corner profile for every
     // generated surface, including all rotated ramp/wedge orientations.
@@ -268,7 +268,7 @@ Mesh Chunk::buildMesh(
         // Mesh vertices must use the exact same layered-noise sampler as
         // terrain generation and player collision. A second, older noise
         // formula here creates mismatched corner heights and visible gaps.
-        return terrain::smoothedHeight(worldX, worldZ, SIZE_Y - 3);
+        return terrain::surfaceHeight(worldX, worldZ, SIZE_Y - 3);
     };
     const auto terrainCornerWorldY = [&](int worldX, int worldZ, int cornerX, int cornerZ) {
         int level = SIZE_Y;
