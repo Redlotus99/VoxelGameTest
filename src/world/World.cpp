@@ -7,6 +7,7 @@
 #include <glm/gtc/noise.hpp>
 #include <cmath>
 #include <vector>
+#include <fstream>
 
 World::World() = default;
 
@@ -16,6 +17,69 @@ int World::wrapCoordinate(int value) const {
     if (!m_planetPrototype) return value;
     const int wrapped = value % PLANET_SIZE;
     return wrapped < 0 ? wrapped + PLANET_SIZE : wrapped;
+}
+
+std::uint32_t World::packBlockCoordinates(int x, int y, int z) const {
+    return (static_cast<std::uint32_t>(x) << 13)
+         | (static_cast<std::uint32_t>(y) << 7)
+         | static_cast<std::uint32_t>(z);
+}
+
+bool World::savePlanetEdits(const std::string& path) const {
+    if (!m_planetPrototype) return false;
+    std::ofstream file(path, std::ios::trunc);
+    if (!file) return false;
+    file << "VOXEL_PLANET_EDITS 1 " << PLANET_SIZE << ' ' << Chunk::SIZE_Y << '\n';
+    for (const auto& entry : m_blockEdits) {
+        const std::uint32_t key = entry.first;
+        const int x = static_cast<int>((key >> 13) & 0x7f);
+        const int y = static_cast<int>((key >> 7) & 0x3f);
+        const int z = static_cast<int>(key & 0x7f);
+        file << x << ' ' << y << ' ' << z << ' '
+             << static_cast<unsigned int>(entry.second.type) << ' '
+             << static_cast<unsigned int>(entry.second.shape) << '\n';
+    }
+    return file.good();
+}
+
+bool World::loadPlanetEdits(const std::string& path) {
+    if (!m_planetPrototype) return false;
+    std::ifstream file(path);
+    if (!file) return false;
+    std::string magic;
+    int version = 0, worldSize = 0, worldHeight = 0;
+    if (!(file >> magic >> version >> worldSize >> worldHeight)
+        || magic != "VOXEL_PLANET_EDITS" || version != 1
+        || worldSize != PLANET_SIZE || worldHeight != Chunk::SIZE_Y) return false;
+
+    std::unordered_map<std::uint32_t, BlockEdit> loaded;
+    int x = 0, y = 0, z = 0;
+    unsigned int type = 0, shape = 0;
+    while (file >> x >> y >> z >> type >> shape) {
+        if (x < 0 || x >= PLANET_SIZE || z < 0 || z >= PLANET_SIZE
+            || y < 0 || y >= Chunk::SIZE_Y
+            || type > static_cast<unsigned int>(BlockType::Stone)
+            || shape >= static_cast<unsigned int>(BlockShape::Count)) return false;
+        loaded[packBlockCoordinates(x, y, z)] = {
+            static_cast<BlockType>(type), static_cast<BlockShape>(shape)
+        };
+    }
+    if (!file.eof()) return false;
+
+    // Apply only after the entire file validates, avoiding partial restoration
+    // if a save is malformed or belongs to a different world size.
+    m_blockEdits.clear();
+    for (const auto& entry : loaded) {
+        const std::uint32_t key = entry.first;
+        const int bx = static_cast<int>((key >> 13) & 0x7f);
+        const int by = static_cast<int>((key >> 7) & 0x3f);
+        const int bz = static_cast<int>(key & 0x7f);
+        setBlockWorld(bx, by, bz, entry.second.type);
+        if (entry.second.type != BlockType::Air) {
+            setBlockShapeWorld(bx, by, bz, entry.second.shape);
+        }
+    }
+    return true;
 }
 
 void World::wrapPosition(glm::vec3& position) const {
@@ -212,6 +276,7 @@ void World::setBlockWorld(int wx, int wy, int wz, BlockType type) {
     
     // Set the block in the chunk
     chunk->setBlock(lx, wy, lz, type);
+    if (m_planetPrototype) m_blockEdits[packBlockCoordinates(wx, wy, wz)] = {type, chunk->getBlockShape(lx, wy, lz)};
 
     // A block edit only affects this chunk's mesh and, at a chunk edge,
     // the neighboring mesh that shares the edited boundary. In planet mode,
@@ -251,6 +316,7 @@ void World::setBlockShapeWorld(int wx, int wy, int wz, BlockShape shape) {
     }
 
     chunk->setBlockShape(lx, wy, lz, shape);
+    if (m_planetPrototype) m_blockEdits[packBlockCoordinates(wx, wy, wz)] = {chunk->getBlock(lx, wy, lz), shape};
     m_meshes.erase(packCoordinates(chunkPos));
 }
 
