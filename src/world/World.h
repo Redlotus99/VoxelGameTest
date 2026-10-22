@@ -17,6 +17,7 @@ public:
     void generate(int radius);
     Chunk* getChunk(glm::ivec3 position);
     void draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection);
+    void setShapeDebugMode(bool enabled) { m_shapeDebugMode = enabled; }
     bool isSolid(int wx, int wy, int wz) const;
     BlockType getBlockTypeAt(int wx, int wy, int wz) const;
     BlockShape getShapeAt(int wx, int wy, int wz) const;
@@ -35,4 +36,5 @@ private:
 
     std::unordered_map<int64_t, std::unique_ptr<Chunk>> m_chunks;
     std::unordered_map<int64_t, Mesh> m_meshes;
+    bool m_shapeDebugMode = false;
 };
