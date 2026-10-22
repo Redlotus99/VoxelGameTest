@@ -1,6 +1,7 @@
 #include "world/Chunk.h"
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 #include <vector>
 #include <glm/glm.hpp>
 #include <glm/gtc/noise.hpp>
@@ -346,6 +347,10 @@ Mesh Chunk::buildMesh(
                         const int seH = static_cast<int>(se.y) - y;
                         const int neH = static_cast<int>(ne.y) - y;
                         const int nwH = static_cast<int>(nw.y) - y;
+                        if (swH < 0 || seH < 0 || neH < 0 || nwH < 0) {
+                            std::cout << "BAD OFFSET at " << worldX << "," << y << "," << worldZ << ": "
+                                      << swH << "," << seH << "," << neH << "," << nwH << "\n";
+                        }
                         const BlockShape profile = getTerrainProfileShape(swH, seH, neH, nwH);
                         // Keep automatically selected connector labels visible
                         // in diagnostic mode while the vertices still follow the
