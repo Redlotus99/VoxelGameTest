@@ -77,8 +77,13 @@ bool findGroundHeight(const World& world, const glm::vec3& p,
             const BlockShape shape = world.getShapeAt(cellX, cellY, cellZ);
             if (usesExplicitBlockShapeGeometry(shape)) continue;
 
-            const float surface = static_cast<float>(cellY) +
-                                  shapeTopAt(shape, localX, localZ);
+            float surface = static_cast<float>(cellY) +
+                            shapeTopAt(shape, localX, localZ);
+            if (world.getBlockTypeAt(cellX, cellY, cellZ) == BlockType::Grass) {
+                // Match the shared-corner triangles rendered by Chunk::buildMesh,
+                // rather than approximating terrain with the stored shape label.
+                world.getTerrainSurfaceHeight(sample.x, sample.y, surface);
+            }
             if (surface > referenceY + maxRise + kCollisionEpsilon ||
                 surface < referenceY - maxDrop - kCollisionEpsilon) {
                 continue;
@@ -129,7 +134,11 @@ bool Player::collides(const World& world, const glm::vec3& p) const {
                             return true;
                         }
                     } else {
-                        const float surface = shapeTopAt(shape, localX, localZ);
+                        float surface = shapeTopAt(shape, localX, localZ);
+                        if (world.getBlockTypeAt(x, y, z) == BlockType::Grass) {
+                            world.getTerrainSurfaceHeight(sample.x, sample.y, surface);
+                            surface -= static_cast<float>(y);
+                        }
                         // The feet may touch the surface, but must not pass below it.
                         if (top > 0.0f && bottom < surface - kCollisionEpsilon) {
                             return true;
