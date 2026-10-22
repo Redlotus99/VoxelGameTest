@@ -75,10 +75,14 @@ bool World::loadPlanetEdits(const std::string& path, const std::string& planetId
     std::string magic;
     int version = 0, worldSize = 0, worldHeight = 0;
     std::string savedPlanetId;
-    if (!(file >> magic >> version >> worldSize >> worldHeight >> savedPlanetId)
-        || magic != "VOXEL_PLANET_EDITS" || version != 2
-        || worldSize != PLANET_SIZE || worldHeight != Chunk::SIZE_Y
-        || savedPlanetId != planetId) return false;
+    if (!(file >> magic >> version >> worldSize >> worldHeight)
+        || magic != "VOXEL_PLANET_EDITS"
+        || (version != 1 && version != 2)
+        || worldSize != PLANET_SIZE || worldHeight != Chunk::SIZE_Y) return false;
+    // Version 1 was the original single-planet save format. Accept it for
+    // migration, while version 2 binds the file to its explicit planet ID.
+    if (version == 2 && (!(file >> savedPlanetId) || savedPlanetId != planetId)) return false;
+    if (version == 1 && planetId != "grassland-01") return false;
 
     std::unordered_map<std::uint32_t, BlockEdit> loaded;
     int x = 0, y = 0, z = 0;
