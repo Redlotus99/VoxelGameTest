@@ -213,39 +213,23 @@ void World::setBlockWorld(int wx, int wy, int wz, BlockType type) {
     // Set the block in the chunk
     chunk->setBlock(lx, wy, lz, type);
 
-    if (m_planetPrototype) {
-        m_meshes.clear();
-        return;
-    }
-    
-    // Erase the mesh for this chunk so it gets rebuilt
-    int64_t packed = packCoordinates(chunkPos);
-    m_meshes.erase(packed);
-    
-    // Also erase meshes of adjacent chunks if we're at chunk boundaries
-    if (lx == 0) {
-        glm::ivec3 leftChunkPos(cx - 1, 0, cz);
-        int64_t leftPacked = packCoordinates(leftChunkPos);
-        m_meshes.erase(leftPacked);
-    }
-    
-    if (lx == Chunk::SIZE_X - 1) {
-        glm::ivec3 rightChunkPos(cx + 1, 0, cz);
-        int64_t rightPacked = packCoordinates(rightChunkPos);
-        m_meshes.erase(rightPacked);
-    }
-    
-    if (lz == 0) {
-        glm::ivec3 frontChunkPos(cx, 0, cz - 1);
-        int64_t frontPacked = packCoordinates(frontChunkPos);
-        m_meshes.erase(frontPacked);
-    }
-    
-    if (lz == Chunk::SIZE_Z - 1) {
-        glm::ivec3 backChunkPos(cx, 0, cz + 1);
-        int64_t backPacked = packCoordinates(backChunkPos);
-        m_meshes.erase(backPacked);
-    }
+    // A block edit only affects this chunk's mesh and, at a chunk edge,
+    // the neighboring mesh that shares the edited boundary. In planet mode,
+    // wrap neighboring chunk coordinates so edits at an outer edge invalidate
+    // the matching chunk on the opposite side instead of clearing every mesh.
+    const auto invalidateChunk = [this](int chunkX, int chunkZ) {
+        if (m_planetPrototype) {
+            chunkX = (chunkX % PLANET_CHUNKS + PLANET_CHUNKS) % PLANET_CHUNKS;
+            chunkZ = (chunkZ % PLANET_CHUNKS + PLANET_CHUNKS) % PLANET_CHUNKS;
+        }
+        m_meshes.erase(packCoordinates(glm::ivec3(chunkX, 0, chunkZ)));
+    };
+
+    invalidateChunk(cx, cz);
+    if (lx == 0) invalidateChunk(cx - 1, cz);
+    if (lx == Chunk::SIZE_X - 1) invalidateChunk(cx + 1, cz);
+    if (lz == 0) invalidateChunk(cx, cz - 1);
+    if (lz == Chunk::SIZE_Z - 1) invalidateChunk(cx, cz + 1);
 }
 
 
@@ -267,8 +251,7 @@ void World::setBlockShapeWorld(int wx, int wy, int wz, BlockShape shape) {
     }
 
     chunk->setBlockShape(lx, wy, lz, shape);
-    if (m_planetPrototype) m_meshes.clear();
-    else m_meshes.erase(packCoordinates(chunkPos));
+    m_meshes.erase(packCoordinates(chunkPos));
 }
 
 void World::generateCornerCutTestArrangement() {
