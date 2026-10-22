@@ -329,8 +329,12 @@ Mesh Chunk::buildMesh(
                 // templates and can lose the continuous world-space corner profile.
                 const int worldX = m_position.x * SIZE_X + x;
                 const int worldZ = m_position.z * SIZE_Z + z;
-                const bool naturalTerrainTop =
-                    blockType == BlockType::Grass &&
+                // Keep the shared terrain profile attached to the grass cell
+                // even when a placed block occupies the cell above it. Otherwise
+                // placing a block switches the grass to a cube-template mesh.
+                const bool naturalTerrainTop = blockType == BlockType::Grass;
+                const bool emitNaturalTerrainTop =
+                    naturalTerrainTop &&
                     getWorldBlock(worldX, y + 1, worldZ) == BlockType::Air;
                 if (naturalTerrainTop) {
                     const auto offsetAt = [&](int wx, int wz, int cx, int cz) {
@@ -398,12 +402,14 @@ Mesh Chunk::buildMesh(
                             useSwNeDiagonal = true;  // flat profile
                         }
 
-                        if (useSwNeDiagonal) {
-                            emitSlopeTriangle(sw, nw, ne);
-                            emitSlopeTriangle(sw, ne, se);
-                        } else {
-                            emitSlopeTriangle(sw, nw, se);
-                            emitSlopeTriangle(nw, ne, se);
+                        if (emitNaturalTerrainTop) {
+                            if (useSwNeDiagonal) {
+                                emitSlopeTriangle(sw, nw, ne);
+                                emitSlopeTriangle(sw, ne, se);
+                            } else {
+                                emitSlopeTriangle(sw, nw, se);
+                                emitSlopeTriangle(nw, ne, se);
+                            }
                         }
                     // Continue through the regular block-face pass below so
                     // the terrain cell still emits its sides and bottom. The
