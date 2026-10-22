@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <map>
+#include <tuple>
 #include <glm/glm.hpp>
 #include <glm/gtc/noise.hpp>
 
@@ -25,6 +27,17 @@ inline int rawHeight(int worldX, int worldZ, int maxHeight) {
 }
 
 inline int smoothedHeight(int worldX, int worldZ, int maxHeight) {
+    // Mesh construction and collision query the same nearby samples many
+    // times. Cache the deterministic result so those queries don't rerun 25
+    // noise samples for every corner of every terrain cell.
+    using CacheKey = std::tuple<int, int, int>;
+    static std::map<CacheKey, int> cache;
+    const CacheKey key{worldX, worldZ, maxHeight};
+    const auto cached = cache.find(key);
+    if (cached != cache.end()) {
+        return cached->second;
+    }
+
     constexpr int weights[5] = {1, 2, 3, 2, 1};
     int weightedHeight = 0;
     int totalWeight = 0;
@@ -37,8 +50,10 @@ inline int smoothedHeight(int worldX, int worldZ, int maxHeight) {
         }
     }
 
-    return std::max(1, std::min(
+    const int result = std::max(1, std::min(
         (weightedHeight + totalWeight / 2) / totalWeight, maxHeight));
+    cache.emplace(key, result);
+    return result;
 }
 
 
