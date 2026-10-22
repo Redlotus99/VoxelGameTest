@@ -783,9 +783,7 @@ Mesh Chunk::buildMesh(
                         // For every exposed natural grass top, compare against the
                         // same absolute shared-corner heights used to build its mesh.
                         const bool neighborIsNaturalTerrainTop =
-                            !neighborAir &&
-                            neighborBlock == BlockType::Grass &&
-                            getWorldBlock(neighborWorldX, ny + 1, neighborWorldZ) == BlockType::Air;
+                            !neighborAir && neighborBlock == BlockType::Grass;
                         if (neighborIsNaturalTerrainTop) {
                             if (xSide) {
                                 neighborLow = static_cast<float>(
