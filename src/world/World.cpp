@@ -8,6 +8,8 @@
 #include <cmath>
 #include <vector>
 #include <fstream>
+#include <filesystem>
+#include <system_error>
 
 World::World() = default;
 
@@ -25,32 +27,58 @@ std::uint32_t World::packBlockCoordinates(int x, int y, int z) const {
          | static_cast<std::uint32_t>(z);
 }
 
-bool World::savePlanetEdits(const std::string& path) const {
-    if (!m_planetPrototype) return false;
-    std::ofstream file(path, std::ios::trunc);
-    if (!file) return false;
-    file << "VOXEL_PLANET_EDITS 1 " << PLANET_SIZE << ' ' << Chunk::SIZE_Y << '\n';
-    for (const auto& entry : m_blockEdits) {
-        const std::uint32_t key = entry.first;
-        const int x = static_cast<int>((key >> 13) & 0x7f);
-        const int y = static_cast<int>((key >> 7) & 0x3f);
-        const int z = static_cast<int>(key & 0x7f);
-        file << x << ' ' << y << ' ' << z << ' '
-             << static_cast<unsigned int>(entry.second.type) << ' '
-             << static_cast<unsigned int>(entry.second.shape) << '\n';
+bool World::savePlanetEdits(const std::string& path, const std::string& planetId) const {
+    if (!m_planetPrototype || planetId.empty()) return false;
+    namespace fs = std::filesystem;
+    const fs::path target(path), temporary = target.string() + ".tmp", backup = target.string() + ".bak";
+    {
+        std::ofstream file(temporary, std::ios::trunc);
+        if (!file) return false;
+        file << "VOXEL_PLANET_EDITS 2 " << PLANET_SIZE << ' ' << Chunk::SIZE_Y << ' ' << planetId << '\n';
+        for (const auto& entry : m_blockEdits) {
+            const std::uint32_t key = entry.first;
+            const int x = static_cast<int>((key >> 13) & 0x7f);
+            const int y = static_cast<int>((key >> 7) & 0x3f);
+            const int z = static_cast<int>(key & 0x7f);
+            file << x << ' ' << y << ' ' << z << ' '
+                 << static_cast<unsigned int>(entry.second.type) << ' '
+                 << static_cast<unsigned int>(entry.second.shape) << '\n';
+        }
+        file.flush();
+        if (!file.good()) {
+            file.close();
+            std::error_code ignored; fs::remove(temporary, ignored);
+            return false;
+        }
     }
-    return file.good();
+    // Stage the new save first and preserve the previous good file for rollback.
+    std::error_code ec;
+    fs::remove(backup, ec); ec.clear();
+    const bool hadTarget = fs::exists(target, ec) && !ec;
+    if (hadTarget) {
+        fs::rename(target, backup, ec);
+        if (ec) { std::error_code ignored; fs::remove(temporary, ignored); return false; }
+    }
+    fs::rename(temporary, target, ec);
+    if (ec) {
+        if (hadTarget) { std::error_code restoreError; fs::rename(backup, target, restoreError); }
+        std::error_code ignored; fs::remove(temporary, ignored);
+        return false;
+    }
+    fs::remove(backup, ec);
+    return true;
 }
-
-bool World::loadPlanetEdits(const std::string& path) {
+bool World::loadPlanetEdits(const std::string& path, const std::string& planetId) {
     if (!m_planetPrototype) return false;
     std::ifstream file(path);
     if (!file) return false;
     std::string magic;
     int version = 0, worldSize = 0, worldHeight = 0;
-    if (!(file >> magic >> version >> worldSize >> worldHeight)
-        || magic != "VOXEL_PLANET_EDITS" || version != 1
-        || worldSize != PLANET_SIZE || worldHeight != Chunk::SIZE_Y) return false;
+    std::string savedPlanetId;
+    if (!(file >> magic >> version >> worldSize >> worldHeight >> savedPlanetId)
+        || magic != "VOXEL_PLANET_EDITS" || version != 2
+        || worldSize != PLANET_SIZE || worldHeight != Chunk::SIZE_Y
+        || savedPlanetId != planetId) return false;
 
     std::unordered_map<std::uint32_t, BlockEdit> loaded;
     int x = 0, y = 0, z = 0;
