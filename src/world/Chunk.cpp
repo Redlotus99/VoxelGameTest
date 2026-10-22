@@ -330,7 +330,7 @@ Mesh Chunk::buildMesh(
                         const BlockShape displayShape = usesExplicitBlockShapeGeometry(shape)
                             ? shape
                             : profile;
-                        const glm::vec3 terrainColor = kShapeDebugTintEnabled
+                        const glm::vec3 terrainColor = shapeDebugMode
                             ? getShapeDebugColor(displayShape)
                             : getBlockColor(blockType);
                         const glm::vec3 topColor = terrainColor * getFaceBrightness(0);
