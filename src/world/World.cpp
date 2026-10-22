@@ -336,6 +336,10 @@ bool World::isSolid(int wx, int wy, int wz) const {
     return getBlockWorld(wx, wy, wz) != BlockType::Air;
 }
 
+BlockType World::getBlockTypeAt(int wx, int wy, int wz) const {
+    return getBlockWorld(wx, wy, wz);
+}
+
 void World::setBlockWorld(int wx, int wy, int wz, BlockType type) {
     if (wy < 0 || wy >= Chunk::SIZE_Y) {
         return;
