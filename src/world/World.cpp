@@ -1,4 +1,5 @@
 #include "world/World.h"
+#include "world/TerrainHeight.h"
 #include "render/Shader.h"
 #include <algorithm>
 #include <glm/gtc/matrix_transform.hpp>
@@ -272,24 +273,7 @@ bool World::getTerrainSurfaceHeight(float worldX, float worldZ, float& height) c
     const float z = worldZ - static_cast<float>(cellZ);
 
     const auto smoothedHeight = [](int wx, int wz) {
-        const auto rawHeight = [](int x, int z) {
-            const float noise = glm::perlin(glm::vec2(
-                static_cast<float>(x), static_cast<float>(z)) * 0.01f);
-            return std::max(1, std::min(
-                static_cast<int>(noise * 18.0f + 24.0f), Chunk::SIZE_Y - 3));
-        };
-        constexpr int weights[5] = {1, 2, 3, 2, 1};
-        int sum = 0;
-        int total = 0;
-        for (int dz = -2; dz <= 2; ++dz) {
-            for (int dx = -2; dx <= 2; ++dx) {
-                const int weight = weights[dx + 2] * weights[dz + 2];
-                sum += rawHeight(wx + dx, wz + dz) * weight;
-                total += weight;
-            }
-        }
-        return std::max(1, std::min(
-            (sum + total / 2) / total, Chunk::SIZE_Y - 3));
+        return terrain::smoothedHeight(wx, wz, Chunk::SIZE_Y - 3);
     };
     const auto cornerHeight = [&](int cx, int cz) {
         int lowest = Chunk::SIZE_Y;
