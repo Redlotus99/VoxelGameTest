@@ -139,7 +139,8 @@ void Chunk::generateTerrain() {
 }
 Mesh Chunk::buildMesh(
     const std::function<BlockType(int wx, int wy, int wz)>& getWorldBlock,
-    const std::function<BlockShape(int wx, int wy, int wz)>& getWorldShape) const {
+    const std::function<BlockShape(int wx, int wy, int wz)>& getWorldShape,
+    bool shapeDebugMode) const {
     std::vector<float> vertices;
     std::vector<uint32_t> indices;
 
@@ -152,9 +153,6 @@ Mesh Chunk::buildMesh(
         }
     };
 
-    // Temporary diagnostic mode: color geometry by shape instead of material.
-    // Disable this switch to restore normal grass/dirt/stone coloring.
-    constexpr bool kShapeDebugTintEnabled = false;
     auto getShapeDebugColor = [](BlockShape shape) -> glm::vec3 {
         switch (shape) {
             case BlockShape::Cube: return glm::vec3(0.55f, 0.55f, 0.55f); // neutral gray
@@ -289,7 +287,7 @@ Mesh Chunk::buildMesh(
                 }
 
                 BlockShape shape = getBlockShape(x, y, z);
-                const glm::vec3 baseColor = kShapeDebugTintEnabled
+                const glm::vec3 baseColor = shapeDebugMode
                     ? getShapeDebugColor(shape)
                     : getBlockColor(blockType);
 
