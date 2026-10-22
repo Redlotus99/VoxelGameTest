@@ -88,7 +88,7 @@ void Chunk::generateTerrain() {
     // computes identical heights along shared boundaries.
     const auto rawHeight = [](int worldX, int worldZ) -> int {
         const float noise = glm::perlin(glm::vec2(
-            static_cast<float>(worldX), static_cast<float>(worldZ)) * 0.02f);
+            static_cast<float>(worldX), static_cast<float>(worldZ)) * 0.01f);
         return std::max(1, std::min(static_cast<int>(noise * 18.0f + 24.0f), SIZE_Y - 3));
     };
     // Smooth the height field with a weighted neighborhood average. The old
@@ -282,7 +282,7 @@ Mesh Chunk::buildMesh(
     const auto terrainHeightAt = [](int worldX, int worldZ) -> int {
         const auto rawHeight = [](int x, int z) {
             const float noise = glm::perlin(glm::vec2(
-                static_cast<float>(x), static_cast<float>(z)) * 0.02f);
+                static_cast<float>(x), static_cast<float>(z)) * 0.01f);
             return std::max(1, std::min(
                 static_cast<int>(noise * 18.0f + 24.0f), SIZE_Y - 3));
         };
