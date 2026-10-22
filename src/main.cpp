@@ -42,6 +42,11 @@ int main(int argc, char* argv[]) {
 
         if (planetTestMode) {
             world.generatePlanetPrototype();
+            if (world.loadPlanetEdits("planet_edits.dat")) {
+                std::cout << "Loaded saved planet edits from planet_edits.dat\n";
+            } else {
+                std::cout << "No compatible planet save found; starting with fresh terrain.\n";
+            }
             std::cout << "Planet prototype: 128x128 blocks, grassland, wraparound enabled.\n";
         } else {
             // Preserve the established terrain and shape-test baseline.
@@ -206,6 +211,14 @@ int main(int argc, char* argv[]) {
             }
         }
         
+        if (planetTestMode) {
+            if (world.savePlanetEdits("planet_edits.dat")) {
+                std::cout << "Saved planet edits to planet_edits.dat\n";
+            } else {
+                std::cerr << "Warning: could not save planet edits to planet_edits.dat\n";
+            }
+        }
+
         // Cleanup is handled by Mesh destructor
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
