@@ -265,24 +265,10 @@ Mesh Chunk::buildMesh(
     // These helpers are also used when clipping ordinary block faces against
     // a neighboring TerrainSurface, whose edge is not a full cube edge.
     const auto terrainHeightAt = [](int worldX, int worldZ) -> int {
-        const auto rawHeight = [](int x, int z) {
-            const float noise = glm::perlin(glm::vec2(
-                static_cast<float>(x), static_cast<float>(z)) * 0.01f);
-            return std::max(1, std::min(
-                static_cast<int>(noise * 18.0f + 24.0f), SIZE_Y - 3));
-        };
-        constexpr int weights[5] = {1, 2, 3, 2, 1};
-        int weightedHeight = 0;
-        int totalWeight = 0;
-        for (int dz = -2; dz <= 2; ++dz) {
-            for (int dx = -2; dx <= 2; ++dx) {
-                const int weight = weights[dx + 2] * weights[dz + 2];
-                weightedHeight += rawHeight(worldX + dx, worldZ + dz) * weight;
-                totalWeight += weight;
-            }
-        }
-        return std::max(1, std::min(
-            (weightedHeight + totalWeight / 2) / totalWeight, SIZE_Y - 3));
+        // Mesh vertices must use the exact same layered-noise sampler as
+        // terrain generation and player collision. A second, older noise
+        // formula here creates mismatched corner heights and visible gaps.
+        return terrain::smoothedHeight(worldX, worldZ, SIZE_Y - 3);
     };
     const auto terrainCornerWorldY = [&](int worldX, int worldZ, int cornerX, int cornerZ) {
         int level = SIZE_Y;
