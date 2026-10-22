@@ -142,14 +142,10 @@ bool World::getTerrainSurfaceHeight(float worldX, float worldZ, float& height) c
             ? terrain::surfaceHeightPeriodic(wx, wz, Chunk::SIZE_Y - 3, PLANET_SIZE)
             : terrain::surfaceHeight(wx, wz, Chunk::SIZE_Y - 3);
     };
-    const auto cornerHeight = [&](int cx, int cz) {
-        int lowest = Chunk::SIZE_Y;
-        for (int dz = cz - 1; dz <= cz; ++dz) {
-            for (int dx = cx - 1; dx <= cx; ++dx) {
-                lowest = std::min(lowest, surfaceHeight(dx, dz));
-            }
-        }
-        return static_cast<float>(lowest + 1);
+    const auto cornerHeight = [this](int cx, int cz) {
+        return static_cast<float>(m_planetPrototype
+            ? terrain::cornerHeightPeriodic(cx, cz, Chunk::SIZE_Y - 3, PLANET_SIZE)
+            : terrain::cornerHeight(cx, cz, Chunk::SIZE_Y - 3));
     };
 
     const float sw = cornerHeight(cellX, cellZ);
