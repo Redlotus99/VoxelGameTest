@@ -18,6 +18,7 @@ public:
     Chunk* getChunk(glm::ivec3 position);
     void draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection);
     bool isSolid(int wx, int wy, int wz) const;
+    BlockType getBlockTypeAt(int wx, int wy, int wz) const;
     BlockShape getShapeAt(int wx, int wy, int wz) const;
     // Exact shared-corner terrain height used by both rendering and collision.
     bool getTerrainSurfaceHeight(float worldX, float worldZ, float& height) const;
