@@ -3,6 +3,8 @@
 #include <unordered_map>
 #include <memory>
 #include <cstdint>
+#include <string>
+#include <unordered_map>
 #include "world/Chunk.h"
 #include "render/Mesh.h"
 #include <glm/glm.hpp>
@@ -17,6 +19,8 @@ public:
     void generate(int radius);
     // Small flat grassland used to validate finite-world wraparound.
     void generatePlanetPrototype();
+    bool loadPlanetEdits(const std::string& path);
+    bool savePlanetEdits(const std::string& path) const;
     bool isPlanetPrototype() const { return m_planetPrototype; }
     void wrapPosition(glm::vec3& position) const;
     Chunk* getChunk(glm::ivec3 position);
@@ -45,4 +49,7 @@ private:
     static constexpr int PLANET_CHUNKS = 8;
     static constexpr int PLANET_SIZE = PLANET_CHUNKS * Chunk::SIZE_X;
     int wrapCoordinate(int value) const;
+    std::uint32_t packBlockCoordinates(int x, int y, int z) const;
+    struct BlockEdit { BlockType type; BlockShape shape; };
+    std::unordered_map<std::uint32_t, BlockEdit> m_blockEdits;
 };
