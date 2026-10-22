@@ -15,6 +15,10 @@ public:
     ~World();
 
     void generate(int radius);
+    // Small flat grassland used to validate finite-world wraparound.
+    void generatePlanetPrototype();
+    bool isPlanetPrototype() const { return m_planetPrototype; }
+    void wrapPosition(glm::vec3& position) const;
     Chunk* getChunk(glm::ivec3 position);
     void draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection);
     void setShapeDebugMode(bool enabled) { m_shapeDebugMode = enabled; }
@@ -37,4 +41,8 @@ private:
     std::unordered_map<int64_t, std::unique_ptr<Chunk>> m_chunks;
     std::unordered_map<int64_t, Mesh> m_meshes;
     bool m_shapeDebugMode = false;
+    bool m_planetPrototype = false;
+    static constexpr int PLANET_CHUNKS = 8;
+    static constexpr int PLANET_SIZE = PLANET_CHUNKS * Chunk::SIZE_X;
+    int wrapCoordinate(int value) const;
 };
