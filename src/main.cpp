@@ -59,7 +59,9 @@ int main(int argc, char* argv[]) {
         if (shapeTestMode && !planetTestMode) {
             player.position = glm::vec3(5.5f, 41.5f, 8.5f);
         } else if (planetTestMode) {
-            player.position = glm::vec3(64.5f, 12.0f, 64.5f);
+            float spawnHeight = 24.0f;
+            world.getTerrainSurfaceHeight(64.5f, 64.5f, spawnHeight);
+            player.position = glm::vec3(64.5f, spawnHeight, 64.5f);
             camera.Position = player.getEyePosition();
         }
         
