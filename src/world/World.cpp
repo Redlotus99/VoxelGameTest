@@ -104,8 +104,12 @@ void World::generate(int radius) {
             // world-space corner heights, and all three cells must share the
             // same base height. Never guess from a single arm.
             bool armA = false, armB = false;
-            BlockShape redShape = BlockShape::CornerCutTopNorthEast;
-            BlockShape yellowShape = BlockShape::OpenBottomCornerComplementNorthEast;
+            // The generated terrain connectors were consistently facing
+            // opposite the intended diagonal. Rotate each template 180 degrees
+            // in place; keep the detected cell positions and the --shape-test
+            // reference arrangement unchanged.
+            BlockShape redShape = BlockShape::CornerCutTopSouthWest;
+            BlockShape yellowShape = BlockShape::OpenBottomCornerComplementSouthWest;
             int redAx = wx - 1, redAz = wz, redBx = wx, redBz = wz - 1;
             int orientation = 0;
 
@@ -123,8 +127,8 @@ void World::generate(int radius) {
             } else if (eastY == centerY && northY == centerY &&
                        east[0] > east[3] && north[0] > north[1]) {
                 armA = armB = true;
-                redShape = BlockShape::CornerCutTopSouthWest;
-                yellowShape = BlockShape::OpenBottomCornerComplementSouthWest;
+                redShape = BlockShape::CornerCutTopNorthEast;
+                yellowShape = BlockShape::OpenBottomCornerComplementNorthEast;
                 redAx = wx + 1; redAz = wz; redBx = wx; redBz = wz + 1;
                 orientation = 2;
             } else if (eastY == centerY && southY == centerY &&
