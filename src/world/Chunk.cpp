@@ -333,9 +333,9 @@ Mesh Chunk::buildMesh(
                 // even when a placed block occupies the cell above it. Otherwise
                 // placing a block switches the grass to a cube-template mesh.
                 const bool naturalTerrainTop = blockType == BlockType::Grass;
-                const bool emitNaturalTerrainTop =
-                    naturalTerrainTop &&
-                    getWorldBlock(worldX, y + 1, worldZ) == BlockType::Air;
+                // Do not remove the entire sloped surface when a block is above.
+                // Its shared-corner top is still needed to preserve the slope profile.
+                const bool emitNaturalTerrainTop = naturalTerrainTop;
                 if (naturalTerrainTop) {
                     const auto offsetAt = [&](int wx, int wz, int cx, int cz) {
                             return terrainCornerWorldY(wx, wz, cx, cz) - terrainHeightAt(wx, wz);
