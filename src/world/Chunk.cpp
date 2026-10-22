@@ -142,7 +142,8 @@ void Chunk::generateTerrain(int wrapSize) {
 Mesh Chunk::buildMesh(
     const std::function<BlockType(int wx, int wy, int wz)>& getWorldBlock,
     const std::function<BlockShape(int wx, int wy, int wz)>& getWorldShape,
-    bool shapeDebugMode) const {
+    bool shapeDebugMode,
+    int wrapSize) const {
     std::vector<float> vertices;
     std::vector<uint32_t> indices;
 
@@ -264,11 +265,13 @@ Mesh Chunk::buildMesh(
     // Recompute the same world-space terrain profile used by generation.
     // These helpers are also used when clipping ordinary block faces against
     // a neighboring TerrainSurface, whose edge is not a full cube edge.
-    const auto terrainHeightAt = [](int worldX, int worldZ) -> int {
-        // Mesh vertices must use the exact same layered-noise sampler as
-        // terrain generation and player collision. A second, older noise
-        // formula here creates mismatched corner heights and visible gaps.
-        return terrain::surfaceHeight(worldX, worldZ, SIZE_Y - 3);
+    const auto terrainHeightAt = [wrapSize](int worldX, int worldZ) -> int {
+        // Mesh vertices must use the exact same sampler as terrain generation
+        // and collision. The planet sampler is periodic; using the ordinary
+        // sampler here causes mismatched corners and visible clipping at seams.
+        return wrapSize > 0
+            ? terrain::surfaceHeightPeriodic(worldX, worldZ, SIZE_Y - 3, wrapSize)
+            : terrain::surfaceHeight(worldX, worldZ, SIZE_Y - 3);
     };
     const auto terrainCornerWorldY = [&](int worldX, int worldZ, int cornerX, int cornerZ) {
         int level = SIZE_Y;
