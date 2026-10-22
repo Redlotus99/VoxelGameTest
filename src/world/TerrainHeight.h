@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cmath>
 #include <glm/glm.hpp>
 #include <glm/gtc/noise.hpp>
 
@@ -10,10 +11,17 @@
 namespace terrain {
 
 inline int rawHeight(int worldX, int worldZ, int maxHeight) {
-    const float noise = glm::perlin(glm::vec2(
-        static_cast<float>(worldX), static_cast<float>(worldZ)) * 0.01f);
-    return std::max(1, std::min(
-        static_cast<int>(noise * 18.0f + 24.0f), maxHeight));
+    const glm::vec2 position(static_cast<float>(worldX), static_cast<float>(worldZ));
+
+    // Build terrain at several scales: broad landforms define the main hills
+    // and valleys, medium noise breaks up the silhouettes, and a small amount
+    // of fine detail keeps the surface from feeling overly uniform.
+    const float broad = glm::perlin(position * 0.0045f) * 20.0f;
+    const float medium = glm::perlin(position * 0.012f) * 8.0f;
+    const float detail = glm::perlin(position * 0.035f) * 2.0f;
+    const float height = 24.0f + broad + medium + detail;
+
+    return std::max(1, std::min(static_cast<int>(std::round(height)), maxHeight));
 }
 
 inline int smoothedHeight(int worldX, int worldZ, int maxHeight) {
