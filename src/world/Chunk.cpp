@@ -277,7 +277,7 @@ Mesh Chunk::buildMesh(
             ? terrain::surfaceHeightPeriodic(worldX, worldZ, SIZE_Y - 3, wrapSize, terrainSeed)
             : terrain::surfaceHeight(worldX, worldZ, SIZE_Y - 3);
     };
-    const auto terrainCornerWorldY = [wrapSize](int worldX, int worldZ, int cornerX, int cornerZ) {
+    const auto terrainCornerWorldY = [wrapSize, terrainSeed](int worldX, int worldZ, int cornerX, int cornerZ) {
         const int cx = worldX + cornerX;
         const int cz = worldZ + cornerZ;
         return wrapSize > 0
