@@ -4,6 +4,7 @@
 #include <cmath>
 #include <map>
 #include <tuple>
+#include <cstdint>
 #include <glm/glm.hpp>
 #include <glm/gtc/noise.hpp>
 
@@ -87,49 +88,50 @@ inline int wrapCoordinate(int value, int period) {
 
 // Periodic terrain for finite worlds: every component repeats exactly at the
 // world period, including the shared corner profile at the opposite edge.
-inline int rawHeightPeriodic(int worldX, int worldZ, int maxHeight, int period) {
+inline std::uint32_t mixPlanetSeed(std::uint32_t v) { v += 0x9e3779b9u; v = (v ^ (v >> 16)) * 0x85ebca6bu; v = (v ^ (v >> 13)) * 0xc2b2ae35u; return v ^ (v >> 16); }
+inline float planetSeedPhase(std::uint32_t seed, std::uint32_t lane) { if (seed == 0) return 0.0f; constexpr float tau = 6.2831853071795864769f; return tau * (static_cast<float>(mixPlanetSeed(seed ^ (lane * 0x45d9f3bu)) & 0x00ffffffu) / 16777216.0f); }
+inline int rawHeightPeriodic(int worldX, int worldZ, int maxHeight, int period, std::uint32_t seed = 0) {
     constexpr float tau = 6.2831853071795864769f;
     const float x = tau * static_cast<float>(wrapCoordinate(worldX, period)) / static_cast<float>(period);
     const float z = tau * static_cast<float>(wrapCoordinate(worldZ, period)) / static_cast<float>(period);
-    const float broad = std::sin(x) * std::cos(z * 2.0f) * 10.0f
-                      + std::cos(x * 2.0f) * std::sin(z) * 7.0f;
-    const float medium = std::sin(x * 4.0f + 0.4f) * std::cos(z * 3.0f) * 3.0f
-                       + std::cos(x * 3.0f) * std::sin(z * 5.0f + 0.8f) * 2.0f;
-    const float detail = std::sin(x * 8.0f + z * 6.0f) * 1.0f;
+    const float px = planetSeedPhase(seed, 1), pz = planetSeedPhase(seed, 2), p2 = planetSeedPhase(seed, 3), p3 = planetSeedPhase(seed, 4);
+    const float broad = std::sin(x + px) * std::cos(z * 2.0f + pz) * 10.0f + std::cos(x * 2.0f + p2) * std::sin(z + p3) * 7.0f;
+    const float medium = std::sin(x * 4.0f + 0.4f + p3) * std::cos(z * 3.0f + px) * 3.0f + std::cos(x * 3.0f + pz) * std::sin(z * 5.0f + 0.8f + p2) * 2.0f;
+    const float detail = std::sin(x * 8.0f + z * 6.0f + p2) * 1.0f;
     const float height = 24.0f + broad + medium + detail;
     return std::max(1, std::min(static_cast<int>(std::round(height)), maxHeight));
 }
 
-inline int smoothedHeightPeriodic(int worldX, int worldZ, int maxHeight, int period) {
+inline int smoothedHeightPeriodic(int worldX, int worldZ, int maxHeight, int period, std::uint32_t seed = 0) {
     constexpr int weights[5] = {1, 2, 3, 2, 1};
     int weightedHeight = 0;
     int totalWeight = 0;
     for (int dz = -2; dz <= 2; ++dz) {
         for (int dx = -2; dx <= 2; ++dx) {
             const int weight = weights[dx + 2] * weights[dz + 2];
-            weightedHeight += rawHeightPeriodic(worldX + dx, worldZ + dz, maxHeight, period) * weight;
+            weightedHeight += rawHeightPeriodic(worldX + dx, worldZ + dz, maxHeight, period, seed) * weight;
             totalWeight += weight;
         }
     }
     return std::max(1, std::min((weightedHeight + totalWeight / 2) / totalWeight, maxHeight));
 }
 
-inline int cornerHeightPeriodic(int cornerX, int cornerZ, int maxHeight, int period) {
+inline int cornerHeightPeriodic(int cornerX, int cornerZ, int maxHeight, int period, std::uint32_t seed = 0) {
     int lowest = maxHeight + 1;
     for (int dz = cornerZ - 1; dz <= cornerZ; ++dz) {
         for (int dx = cornerX - 1; dx <= cornerX; ++dx) {
-            lowest = std::min(lowest, smoothedHeightPeriodic(dx, dz, maxHeight, period));
+            lowest = std::min(lowest, smoothedHeightPeriodic(dx, dz, maxHeight, period, seed));
         }
     }
     return lowest + 1;
 }
 
-inline int surfaceHeightPeriodic(int worldX, int worldZ, int maxHeight, int period) {
+inline int surfaceHeightPeriodic(int worldX, int worldZ, int maxHeight, int period, std::uint32_t seed = 0) {
     return std::min({
-        cornerHeightPeriodic(worldX, worldZ, maxHeight, period),
-        cornerHeightPeriodic(worldX + 1, worldZ, maxHeight, period),
-        cornerHeightPeriodic(worldX + 1, worldZ + 1, maxHeight, period),
-        cornerHeightPeriodic(worldX, worldZ + 1, maxHeight, period)
+        cornerHeightPeriodic(worldX, worldZ, maxHeight, period, seed),
+        cornerHeightPeriodic(worldX + 1, worldZ, maxHeight, period, seed),
+        cornerHeightPeriodic(worldX + 1, worldZ + 1, maxHeight, period, seed),
+        cornerHeightPeriodic(worldX, worldZ + 1, maxHeight, period, seed)
     });
 }
 
