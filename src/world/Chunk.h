@@ -6,6 +6,7 @@
 #include "render/Mesh.h"
 #include <glm/glm.hpp>
 #include <functional>
+#include <cstdint>
 
 class Chunk {
 public:
@@ -23,12 +24,13 @@ public:
     void setBlockShape(int x, int y, int z, BlockShape shape);
 
     void generateFlat();
-    void generateTerrain(int wrapSize = 0);
+    void generateTerrain(int wrapSize = 0, std::uint32_t terrainSeed = 0);
     Mesh buildMesh(
         const std::function<BlockType(int wx, int wy, int wz)>& getWorldBlock,
         const std::function<BlockShape(int wx, int wy, int wz)>& getWorldShape,
         bool shapeDebugMode = false,
-        int wrapSize = 0) const;
+        int wrapSize = 0,
+        std::uint32_t terrainSeed = 0) const;
     
     glm::ivec3 getPosition() const { return m_position; }
     
