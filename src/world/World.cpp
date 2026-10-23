@@ -123,15 +123,16 @@ void World::wrapPosition(glm::vec3& position) const {
     if (position.z < 0.0f) position.z += size;
 }
 
-void World::generatePlanetPrototype() {
+void World::generatePlanetPrototype(std::uint32_t terrainSeed) {
     m_chunks.clear();
     m_meshes.clear();
     m_planetPrototype = true;
+    m_planetSeed = terrainSeed;
     for (int x = 0; x < PLANET_CHUNKS; ++x) {
         for (int z = 0; z < PLANET_CHUNKS; ++z) {
             const glm::ivec3 chunkPos(x, 0, z);
             auto chunk = std::make_unique<Chunk>(chunkPos);
-            chunk->generateTerrain(PLANET_SIZE);
+            chunk->generateTerrain(PLANET_SIZE, m_planetSeed);
             m_chunks.emplace(packCoordinates(chunkPos), std::move(chunk));
         }
     }
@@ -235,12 +236,12 @@ bool World::getTerrainSurfaceHeight(float worldX, float worldZ, float& height) c
 
     const auto surfaceHeight = [this](int wx, int wz) {
         return m_planetPrototype
-            ? terrain::surfaceHeightPeriodic(wx, wz, Chunk::SIZE_Y - 3, PLANET_SIZE)
+            ? terrain::surfaceHeightPeriodic(wx, wz, Chunk::SIZE_Y - 3, PLANET_SIZE, m_planetSeed)
             : terrain::surfaceHeight(wx, wz, Chunk::SIZE_Y - 3);
     };
     const auto cornerHeight = [this](int cx, int cz) {
         return static_cast<float>(m_planetPrototype
-            ? terrain::cornerHeightPeriodic(cx, cz, Chunk::SIZE_Y - 3, PLANET_SIZE)
+            ? terrain::cornerHeightPeriodic(cx, cz, Chunk::SIZE_Y - 3, PLANET_SIZE, m_planetSeed)
             : terrain::cornerHeight(cx, cz, Chunk::SIZE_Y - 3));
     };
 
@@ -576,7 +577,8 @@ void World::draw(Shader& shader, const glm::mat4& view, const glm::mat4& project
             
             Mesh mesh = chunk->buildMesh(
                 getWorldBlock, getWorldShape, m_shapeDebugMode,
-                m_planetPrototype ? PLANET_SIZE : 0);
+                m_planetPrototype ? PLANET_SIZE : 0,
+                m_planetPrototype ? m_planetSeed : 0);
             meshIt = m_meshes.emplace(packed, std::move(mesh)).first;
         }
         
