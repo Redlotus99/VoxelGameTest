@@ -85,13 +85,13 @@ void Chunk::generateFlat() {
     }
 }
 
-void Chunk::generateTerrain(int wrapSize) {
+void Chunk::generateTerrain(int wrapSize, std::uint32_t terrainSeed) {
     // Terrain is derived exclusively from world coordinates so every chunk
     // computes identical heights along shared boundaries.
     // Keep terrain generation and collision on one canonical height function.
-    const auto terrainHeight = [wrapSize](int worldX, int worldZ) -> int {
+    const auto terrainHeight = [wrapSize, terrainSeed](int worldX, int worldZ) -> int {
         return wrapSize > 0
-            ? terrain::surfaceHeightPeriodic(worldX, worldZ, SIZE_Y - 3, wrapSize)
+            ? terrain::surfaceHeightPeriodic(worldX, worldZ, SIZE_Y - 3, wrapSize, terrainSeed)
             : terrain::surfaceHeight(worldX, worldZ, SIZE_Y - 3);
     };
     // One canonical classifier defines the four-corner profile for every
@@ -126,7 +126,7 @@ void Chunk::generateTerrain(int wrapSize) {
                         const int worldCornerZ = m_position.z * SIZE_Z + cz;
                         const int cornerY = wrapSize > 0
                             ? terrain::cornerHeightPeriodic(
-                                  worldCornerX, worldCornerZ, SIZE_Y - 3, wrapSize)
+                                  worldCornerX, worldCornerZ, SIZE_Y - 3, wrapSize, terrainSeed)
                             : terrain::cornerHeight(
                                   worldCornerX, worldCornerZ, SIZE_Y - 3);
                         return cornerY - surfaceY;
@@ -146,7 +146,8 @@ Mesh Chunk::buildMesh(
     const std::function<BlockType(int wx, int wy, int wz)>& getWorldBlock,
     const std::function<BlockShape(int wx, int wy, int wz)>& getWorldShape,
     bool shapeDebugMode,
-    int wrapSize) const {
+    int wrapSize,
+    std::uint32_t terrainSeed) const {
     std::vector<float> vertices;
     std::vector<uint32_t> indices;
 
@@ -268,19 +269,19 @@ Mesh Chunk::buildMesh(
     // Recompute the same world-space terrain profile used by generation.
     // These helpers are also used when clipping ordinary block faces against
     // a neighboring TerrainSurface, whose edge is not a full cube edge.
-    const auto terrainHeightAt = [wrapSize](int worldX, int worldZ) -> int {
+    const auto terrainHeightAt = [wrapSize, terrainSeed](int worldX, int worldZ) -> int {
         // Mesh vertices must use the exact same sampler as terrain generation
         // and collision. The planet sampler is periodic; using the ordinary
         // sampler here causes mismatched corners and visible clipping at seams.
         return wrapSize > 0
-            ? terrain::surfaceHeightPeriodic(worldX, worldZ, SIZE_Y - 3, wrapSize)
+            ? terrain::surfaceHeightPeriodic(worldX, worldZ, SIZE_Y - 3, wrapSize, terrainSeed)
             : terrain::surfaceHeight(worldX, worldZ, SIZE_Y - 3);
     };
     const auto terrainCornerWorldY = [wrapSize](int worldX, int worldZ, int cornerX, int cornerZ) {
         const int cx = worldX + cornerX;
         const int cz = worldZ + cornerZ;
         return wrapSize > 0
-            ? terrain::cornerHeightPeriodic(cx, cz, SIZE_Y - 3, wrapSize)
+            ? terrain::cornerHeightPeriodic(cx, cz, SIZE_Y - 3, wrapSize, terrainSeed)
             : terrain::cornerHeight(cx, cz, SIZE_Y - 3);
     };
 
