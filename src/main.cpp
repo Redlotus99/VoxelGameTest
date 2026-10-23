@@ -8,9 +8,27 @@
 #include <glad/glad.h>
 #include <iostream>
 #include <string>
+#include <fstream>
+#include <cstdint>
+#include <limits>
+#include <cstdio>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
+namespace {
+struct PlanetMetadata { std::string id; std::uint32_t seed = 0; std::string biome = "grassland"; int width = 128; int depth = 128; int height = 64; };
+bool loadPlanetMetadata(const std::string& path, const std::string& expectedId, PlanetMetadata& out) {
+ std::ifstream in(path); if (!in) return false; std::string magic; int version=0; unsigned long long seed=0; PlanetMetadata m;
+ if (!(in>>magic>>version>>m.id>>seed>>m.biome>>m.width>>m.depth>>m.height)) return false;
+ if (magic!="VOXEL_PLANET_META" || version!=1 || m.id!=expectedId || seed>std::numeric_limits<std::uint32_t>::max() || m.width!=128 || m.depth!=128 || m.height!=64) return false;
+ m.seed=static_cast<std::uint32_t>(seed); out=m; return true;
+}
+bool savePlanetMetadata(const std::string& path, const PlanetMetadata& m) {
+ const std::string tmp=path+".tmp"; { std::ofstream out(tmp,std::ios::trunc); if(!out) return false; out<<"VOXEL_PLANET_META 1 "<<m.id<<' '<<m.seed<<' '<<m.biome<<' '<<m.width<<' '<<m.depth<<' '<<m.height<<'\n'; out.flush(); if(!out.good()) return false; }
+ std::remove(path.c_str()); return std::rename(tmp.c_str(),path.c_str())==0;
+}
+}
 
 int main(int argc, char* argv[]) {
     try {
@@ -34,12 +52,14 @@ int main(int argc, char* argv[]) {
         bool terrainShapeDebugMode = false;
         bool planetTestMode = false;
         std::string planetId = "grassland-01";
+        std::uint32_t requestedSeed = 0; bool seedWasProvided = false;
         for (int i = 1; i < argc; ++i) {
             const std::string argument = argv[i];
             if (argument == "--shape-test") shapeTestMode = true;
             else if (argument == "--terrain-shape-debug") terrainShapeDebugMode = true;
             else if (argument == "--planet-test") planetTestMode = true;
             else if (argument == "--planet-id" && i + 1 < argc) planetId = argv[++i];
+            else if (argument == "--planet-seed" && i + 1 < argc) { try { auto n=std::stoull(argv[++i]); if(n<=std::numeric_limits<std::uint32_t>::max()){requestedSeed=static_cast<std::uint32_t>(n);seedWasProvided=true;} else std::cerr<<"Planet seed out of range.\n"; } catch(...) { std::cerr<<"Invalid planet seed.\n"; } }
         }
 
         if (planetTestMode) {
@@ -50,7 +70,11 @@ int main(int argc, char* argv[]) {
                 if (!safe) ch = '_';
             }
             if (planetId.empty()) planetId = "grassland-01";
-            world.generatePlanetPrototype();
+            const std::string metadataPath = "planet_" + planetId + ".meta";
+            PlanetMetadata metadata;
+            if (!loadPlanetMetadata(metadataPath, planetId, metadata)) { metadata.id=planetId; metadata.seed=seedWasProvided?requestedSeed:0; metadata.biome="grassland"; if(!savePlanetMetadata(metadataPath,metadata)) std::cerr<<"Warning: could not save planet metadata.\n"; }
+            else if(seedWasProvided && requestedSeed!=metadata.seed) std::cout<<"Existing planet seed "<<metadata.seed<<" takes precedence over requested seed "<<requestedSeed<<".\n";
+            world.generatePlanetPrototype(metadata.seed);
             const std::string planetSavePath = "planet_" + planetId + "_edits.dat";
             bool loadedPlanet = world.loadPlanetEdits(planetSavePath, planetId);
             if (!loadedPlanet && planetId == "grassland-01") {
@@ -62,7 +86,7 @@ int main(int argc, char* argv[]) {
             } else {
                 std::cout << "No compatible save for planet '" << planetId << "'; starting with fresh terrain.\n";
             }
-            std::cout << "Planet prototype: 128x128 blocks, grassland, wraparound enabled.\n";
+            std::cout << "Planet prototype: 128x128 blocks, biome=" << metadata.biome << ", seed=" << metadata.seed << ", wraparound enabled.\n";
         } else {
             // Preserve the established terrain and shape-test baseline.
             world.generate(4);
