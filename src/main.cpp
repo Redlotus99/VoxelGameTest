@@ -48,9 +48,12 @@ bool loadPlanetMetadata(const std::string& path, const std::string& expectedId, 
 
     if (metadata.id != expectedId
         || seed > std::numeric_limits<std::uint32_t>::max()
-        || metadata.width != 128 || metadata.depth != 128 || metadata.height != 64
+        || metadata.width != 128 || metadata.depth != 128
+        || (metadata.height != 64 && metadata.height != 256)
         || metadata.seaLevel < 0 || metadata.seaLevel >= metadata.height) return false;
 
+    // Preserve existing planet identity/seed while upgrading legacy metadata.
+    metadata.height = 256;
     metadata.seed = static_cast<std::uint32_t>(seed);
     metadata.ensureName();
     out = metadata;
