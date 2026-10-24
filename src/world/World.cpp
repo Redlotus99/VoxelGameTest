@@ -397,9 +397,25 @@ void World::setBlockShapeWorld(int wx, int wy, int wz, BlockShape shape) {
 
     chunk->setBlockShape(lx, ly, lz, shape);
     if (m_planetPrototype) m_blockEdits[packBlockCoordinates(wx, wy, wz)] = {chunk->getBlock(lx, ly, lz), shape};
-    m_meshes.erase(packCoordinates(chunkPos));
-    if (m_planetPrototype && ly == 0) m_meshes.erase(packCoordinates(glm::ivec3(cx, cy - 1, cz)));
-    if (m_planetPrototype && ly == Chunk::SIZE_Y - 1) m_meshes.erase(packCoordinates(glm::ivec3(cx, cy + 1, cz)));
+
+    // Shape changes can alter the visible boundary just like block-type changes.
+    // Invalidate adjacent chunks when the edited cell lies on a chunk edge,
+    // wrapping X/Z so the planet seam is treated like every other boundary.
+    const auto invalidateChunk = [this](int chunkX, int chunkY, int chunkZ) {
+        if (m_planetPrototype) {
+            chunkX = (chunkX % PLANET_CHUNKS + PLANET_CHUNKS) % PLANET_CHUNKS;
+            chunkZ = (chunkZ % PLANET_CHUNKS + PLANET_CHUNKS) % PLANET_CHUNKS;
+        }
+        m_meshes.erase(packCoordinates(glm::ivec3(chunkX, chunkY, chunkZ)));
+    };
+
+    invalidateChunk(cx, cy, cz);
+    if (lx == 0) invalidateChunk(cx - 1, cy, cz);
+    if (lx == Chunk::SIZE_X - 1) invalidateChunk(cx + 1, cy, cz);
+    if (lz == 0) invalidateChunk(cx, cy, cz - 1);
+    if (lz == Chunk::SIZE_Z - 1) invalidateChunk(cx, cy, cz + 1);
+    if (m_planetPrototype && ly == 0) invalidateChunk(cx, cy - 1, cz);
+    if (m_planetPrototype && ly == Chunk::SIZE_Y - 1) invalidateChunk(cx, cy + 1, cz);
 }
 
 void World::generateCornerCutTestArrangement() {
