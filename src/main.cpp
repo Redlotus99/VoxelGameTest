@@ -158,7 +158,7 @@ int main(int argc, char* argv[]) {
             } else {
                 std::cout << "No compatible save for planet '" << planetId << "'; starting with fresh terrain.\n";
             }
-            std::cout << "Planet prototype: " << metadata.name << " (ID: " << metadata.id << "), 128x128 blocks, biome=" << metadata.biome << ", seed=" << metadata.seed << ", sea level=" << metadata.seaLevel << ", wraparound enabled.\n";
+            std::cout << "Planet prototype: " << metadata.name << " (ID: " << metadata.id << "), 128x128 blocks, biome=" << metadata.biome << ", seed=" << metadata.seed << ", sea level=" << metadata.seaLevel << ", underground depth=" << world.getUndergroundDepth() << ", wraparound enabled.\n";
         } else {
             // Preserve the established terrain and shape-test baseline.
             world.generate(4);
