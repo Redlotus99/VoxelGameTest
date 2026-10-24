@@ -131,8 +131,9 @@ void World::wrapPosition(glm::vec3& position) const {
 void World::generatePlanetPrototype(Planet planet, int undergroundDepth) {
     // Keep the current save-key encoding and chunk alignment: supported depths
     // are whole 16-block layers from 16 through 64 blocks.
-    undergroundDepth = std::clamp(undergroundDepth, Chunk::SIZE_Y, Chunk::SIZE_Y * 4);
-    undergroundDepth = ((undergroundDepth + Chunk::SIZE_Y / 2) / Chunk::SIZE_Y) * Chunk::SIZE_Y;
+    // Configurable depth uses 16-block increments; chunk storage remains 64 high.
+    undergroundDepth = std::clamp(undergroundDepth, 16, 64);
+    undergroundDepth = ((undergroundDepth + 8) / 16) * 16;
     m_undergroundDepth = undergroundDepth;
     std::cout << "World.cpp depth after assignment=" << m_undergroundDepth << "\\n";
     m_chunks.clear();
@@ -148,14 +149,14 @@ void World::generatePlanetPrototype(Planet planet, int undergroundDepth) {
             surface->generateTerrain(PLANET_SIZE, m_planet.seed);
             m_chunks.emplace(packCoordinates(surfacePos), std::move(surface));
 
-            // Generate configurable solid-stone layers below the unchanged
-            // surface. Each layer is a complete 16-block chunk for clean seams.
-            for (int chunkY = -1; chunkY >= -(m_undergroundDepth / Chunk::SIZE_Y); --chunkY) {
+            // Chunk storage is 64 blocks tall; fill only the requested depth below the surface.
+            for (int chunkY = -1; chunkY >= -1; --chunkY) {
                 const glm::ivec3 lowerPos(x, chunkY, z);
                 auto lower = std::make_unique<Chunk>(lowerPos);
                 for (int localZ = 0; localZ < Chunk::SIZE_Z; ++localZ) {
                     for (int localX = 0; localX < Chunk::SIZE_X; ++localX) {
-                        for (int localY = 0; localY < Chunk::SIZE_Y; ++localY) {
+                        for (int localY = Chunk::SIZE_Y - m_undergroundDepth;
+                             localY < Chunk::SIZE_Y; ++localY) {
                             lower->setBlock(localX, localY, localZ, BlockType::Stone);
                         }
                     }
