@@ -64,7 +64,16 @@ public:
 
     bool isHighlandSurface(int worldX, int worldZ, int wrapSize,
                            std::uint32_t seed) const override {
-        return biomeBlend(worldX, worldZ, wrapSize, seed) > 0.02f;
+        // A surface cell's top is built from four shared corner samples, so
+        // classify its material from the same footprint. If any corner has
+        // entered the highland side of the narrow transition, make the whole
+        // cell stone; otherwise a grass triangle can stretch up the cliff face.
+        return std::max({
+            biomeBlend(worldX,     worldZ,     wrapSize, seed),
+            biomeBlend(worldX + 1, worldZ,     wrapSize, seed),
+            biomeBlend(worldX + 1, worldZ + 1, wrapSize, seed),
+            biomeBlend(worldX,     worldZ + 1, wrapSize, seed)
+        }) > 0.02f;
     }
 
 private:
