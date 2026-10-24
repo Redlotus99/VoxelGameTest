@@ -23,8 +23,10 @@ int World::wrapCoordinate(int value) const {
 }
 
 std::uint32_t World::packBlockCoordinates(int x, int y, int z) const {
-    return (static_cast<std::uint32_t>(x) << 13)
-         | (static_cast<std::uint32_t>(y) << 7)
+    // Planet edit keys reserve 7 bits each for X, offset-Y, and Z.
+    // Offset-Y maps the supported world range [-64, 63] to [0, 127].
+    return (static_cast<std::uint32_t>(x) << 14)
+         | (static_cast<std::uint32_t>(y + 64) << 7)
          | static_cast<std::uint32_t>(z);
 }
 
@@ -35,11 +37,11 @@ bool World::savePlanetEdits(const std::string& path, const std::string& planetId
     {
         std::ofstream file(temporary, std::ios::trunc);
         if (!file) return false;
-        file << "VOXEL_PLANET_EDITS 2 " << PLANET_SIZE << ' ' << Chunk::SIZE_Y << ' ' << planetId << '\n';
+        file << "VOXEL_PLANET_EDITS 3 " << PLANET_SIZE << ' ' << (Chunk::SIZE_Y * 2) << ' ' << planetId << '\n';
         for (const auto& entry : m_blockEdits) {
             const std::uint32_t key = entry.first;
-            const int x = static_cast<int>((key >> 13) & 0x7f);
-            const int y = static_cast<int>((key >> 7) & 0x3f);
+            const int x = static_cast<int>((key >> 14) & 0x7f);
+            const int y = static_cast<int>((key >> 7) & 0x7f) - 64;
             const int z = static_cast<int>(key & 0x7f);
             file << x << ' ' << y << ' ' << z << ' '
                  << static_cast<unsigned int>(entry.second.type) << ' '
@@ -78,11 +80,12 @@ bool World::loadPlanetEdits(const std::string& path, const std::string& planetId
     std::string savedPlanetId;
     if (!(file >> magic >> version >> worldSize >> worldHeight)
         || magic != "VOXEL_PLANET_EDITS"
-        || (version != 1 && version != 2)
-        || worldSize != PLANET_SIZE || worldHeight != Chunk::SIZE_Y) return false;
+        || (version < 1 || version > 3)
+        || worldSize != PLANET_SIZE
+        || worldHeight != (version == 3 ? Chunk::SIZE_Y * 2 : Chunk::SIZE_Y)) return false;
     // Version 1 was the original single-planet save format. Accept it for
     // migration, while version 2 binds the file to its explicit planet ID.
-    if (version == 2 && (!(file >> savedPlanetId) || savedPlanetId != planetId)) return false;
+    if (version >= 2 && (!(file >> savedPlanetId) || savedPlanetId != planetId)) return false;
     if (version == 1 && planetId != "grassland-01") return false;
 
     std::unordered_map<std::uint32_t, BlockEdit> loaded;
@@ -90,7 +93,7 @@ bool World::loadPlanetEdits(const std::string& path, const std::string& planetId
     unsigned int type = 0, shape = 0;
     while (file >> x >> y >> z >> type >> shape) {
         if (x < 0 || x >= PLANET_SIZE || z < 0 || z >= PLANET_SIZE
-            || y < 0 || y >= Chunk::SIZE_Y
+            || (version == 3 ? (y < -Chunk::SIZE_Y || y >= Chunk::SIZE_Y) : (y < 0 || y >= Chunk::SIZE_Y))
             || type > static_cast<unsigned int>(BlockType::Stone)
             || shape >= static_cast<unsigned int>(BlockShape::Count)) return false;
         loaded[packBlockCoordinates(x, y, z)] = {
@@ -104,8 +107,8 @@ bool World::loadPlanetEdits(const std::string& path, const std::string& planetId
     m_blockEdits.clear();
     for (const auto& entry : loaded) {
         const std::uint32_t key = entry.first;
-        const int bx = static_cast<int>((key >> 13) & 0x7f);
-        const int by = static_cast<int>((key >> 7) & 0x3f);
+        const int bx = static_cast<int>((key >> 14) & 0x7f);
+        const int by = static_cast<int>((key >> 7) & 0x7f) - 64;
         const int bz = static_cast<int>(key & 0x7f);
         setBlockWorld(bx, by, bz, entry.second.type);
         if (entry.second.type != BlockType::Air) {
@@ -132,10 +135,23 @@ void World::generatePlanetPrototype(Planet planet) {
     m_planet = std::move(planet);
     for (int x = 0; x < PLANET_CHUNKS; ++x) {
         for (int z = 0; z < PLANET_CHUNKS; ++z) {
-            const glm::ivec3 chunkPos(x, 0, z);
-            auto chunk = std::make_unique<Chunk>(chunkPos);
-            chunk->generateTerrain(PLANET_SIZE, m_planet.seed);
-            m_chunks.emplace(packCoordinates(chunkPos), std::move(chunk));
+            const glm::ivec3 surfacePos(x, 0, z);
+            auto surface = std::make_unique<Chunk>(surfacePos);
+            surface->generateTerrain(PLANET_SIZE, m_planet.seed);
+            m_chunks.emplace(packCoordinates(surfacePos), std::move(surface));
+
+            // The first underground layer extends the planet downward without
+            // moving the generated surface or the existing spawn coordinates.
+            const glm::ivec3 lowerPos(x, -1, z);
+            auto lower = std::make_unique<Chunk>(lowerPos);
+            for (int localZ = 0; localZ < Chunk::SIZE_Z; ++localZ) {
+                for (int localX = 0; localX < Chunk::SIZE_X; ++localX) {
+                    for (int localY = 0; localY < Chunk::SIZE_Y; ++localY) {
+                        lower->setBlock(localX, localY, localZ, BlockType::Stone);
+                    }
+                }
+            }
+            m_chunks.emplace(packCoordinates(lowerPos), std::move(lower));
         }
     }
 }
@@ -170,6 +186,11 @@ Chunk* World::getChunk(glm::ivec3 position) {
 BlockType World::getBlockWorld(int wx, int wy, int wz) const {
     wx = wrapCoordinate(wx);
     wz = wrapCoordinate(wz);
+    if (m_planetPrototype) {
+        if (wy < -Chunk::SIZE_Y || wy >= Chunk::SIZE_Y) return BlockType::Air;
+    } else if (wy < 0 || wy >= Chunk::SIZE_Y) {
+        return BlockType::Air;
+    }
     // Calculate chunk coordinates
     int chunkX = wx / 16;
     int chunkZ = wz / 16;
@@ -182,8 +203,9 @@ BlockType World::getBlockWorld(int wx, int wy, int wz) const {
         chunkZ--;
     }
     
-    // Only consider chunks at y = 0 for terrain
-    glm::ivec3 chunkPos(chunkX, 0, chunkZ);
+    const int chunkY = m_planetPrototype
+        ? static_cast<int>(std::floor(static_cast<double>(wy) / Chunk::SIZE_Y)) : 0;
+    glm::ivec3 chunkPos(chunkX, chunkY, chunkZ);
     int64_t packed = packCoordinates(chunkPos);
     
     auto it = m_chunks.find(packed);
@@ -197,33 +219,33 @@ BlockType World::getBlockWorld(int wx, int wy, int wz) const {
     int localX = wx - (chunkX * 16);
     int localZ = wz - (chunkZ * 16);
     
-    // Check bounds for y coordinate
-    if (wy < 0 || wy >= Chunk::SIZE_Y) {
-        return BlockType::Air;
-    }
-    
-    // Return block at local coordinates
-    return chunk->getBlock(localX, wy, localZ);
+    const int localY = wy - chunkY * Chunk::SIZE_Y;
+    return chunk->getBlock(localX, localY, localZ);
 }
 
 BlockShape World::getBlockShapeWorld(int wx, int wy, int wz) const {
     wx = wrapCoordinate(wx);
     wz = wrapCoordinate(wz);
-    if (wy < 0 || wy >= Chunk::SIZE_Y) {
+    if (m_planetPrototype) {
+        if (wy < -Chunk::SIZE_Y || wy >= Chunk::SIZE_Y) return BlockShape::Cube;
+    } else if (wy < 0 || wy >= Chunk::SIZE_Y) {
         return BlockShape::Cube;
     }
 
     const int chunkX = static_cast<int>(std::floor(static_cast<float>(wx) / Chunk::SIZE_X));
     const int chunkZ = static_cast<int>(std::floor(static_cast<float>(wz) / Chunk::SIZE_Z));
-    const glm::ivec3 chunkPos(chunkX, 0, chunkZ);
+    const int chunkY = m_planetPrototype
+        ? static_cast<int>(std::floor(static_cast<double>(wy) / Chunk::SIZE_Y)) : 0;
+    const glm::ivec3 chunkPos(chunkX, chunkY, chunkZ);
     const auto it = m_chunks.find(packCoordinates(chunkPos));
     if (it == m_chunks.end()) {
         return BlockShape::Cube;
     }
 
     const int localX = wx - chunkX * Chunk::SIZE_X;
+    const int localY = wy - chunkY * Chunk::SIZE_Y;
     const int localZ = wz - chunkZ * Chunk::SIZE_Z;
-    return it->second->getBlockShape(localX, wy, localZ);
+    return it->second->getBlockShape(localX, localY, localZ);
 }
 
 BlockShape World::getShapeAt(int wx, int wy, int wz) const {
@@ -290,7 +312,9 @@ BlockType World::getBlockTypeAt(int wx, int wy, int wz) const {
 void World::setBlockWorld(int wx, int wy, int wz, BlockType type) {
     wx = wrapCoordinate(wx);
     wz = wrapCoordinate(wz);
-    if (wy < 0 || wy >= Chunk::SIZE_Y) {
+    if (m_planetPrototype) {
+        if (wy < -Chunk::SIZE_Y || wy >= Chunk::SIZE_Y) return;
+    } else if (wy < 0 || wy >= Chunk::SIZE_Y) {
         return;
     }
     
@@ -301,42 +325,49 @@ void World::setBlockWorld(int wx, int wy, int wz, BlockType type) {
     // Calculate local coordinates
     int lx = wx - cx * Chunk::SIZE_X;
     int lz = wz - cz * Chunk::SIZE_Z;
-    
+    const int cy = m_planetPrototype
+        ? static_cast<int>(std::floor(static_cast<double>(wy) / Chunk::SIZE_Y)) : 0;
+    const int ly = wy - cy * Chunk::SIZE_Y;
+
     // Get the chunk at this position
-    glm::ivec3 chunkPos(cx, 0, cz);
+    glm::ivec3 chunkPos(cx, cy, cz);
     Chunk* chunk = getChunk(chunkPos);
     if (chunk == nullptr) {
         return;
     }
     
     // Set the block in the chunk
-    chunk->setBlock(lx, wy, lz, type);
-    if (m_planetPrototype) m_blockEdits[packBlockCoordinates(wx, wy, wz)] = {type, chunk->getBlockShape(lx, wy, lz)};
+    chunk->setBlock(lx, ly, lz, type);
+    if (m_planetPrototype) m_blockEdits[packBlockCoordinates(wx, wy, wz)] = {type, chunk->getBlockShape(lx, ly, lz)};
 
     // A block edit only affects this chunk's mesh and, at a chunk edge,
     // the neighboring mesh that shares the edited boundary. In planet mode,
     // wrap neighboring chunk coordinates so edits at an outer edge invalidate
     // the matching chunk on the opposite side instead of clearing every mesh.
-    const auto invalidateChunk = [this](int chunkX, int chunkZ) {
+    const auto invalidateChunk = [this, cy](int chunkX, int chunkY, int chunkZ) {
         if (m_planetPrototype) {
             chunkX = (chunkX % PLANET_CHUNKS + PLANET_CHUNKS) % PLANET_CHUNKS;
             chunkZ = (chunkZ % PLANET_CHUNKS + PLANET_CHUNKS) % PLANET_CHUNKS;
         }
-        m_meshes.erase(packCoordinates(glm::ivec3(chunkX, 0, chunkZ)));
+        m_meshes.erase(packCoordinates(glm::ivec3(chunkX, chunkY, chunkZ)));
     };
 
-    invalidateChunk(cx, cz);
-    if (lx == 0) invalidateChunk(cx - 1, cz);
-    if (lx == Chunk::SIZE_X - 1) invalidateChunk(cx + 1, cz);
-    if (lz == 0) invalidateChunk(cx, cz - 1);
-    if (lz == Chunk::SIZE_Z - 1) invalidateChunk(cx, cz + 1);
+    invalidateChunk(cx, cy, cz);
+    if (lx == 0) invalidateChunk(cx - 1, cy, cz);
+    if (lx == Chunk::SIZE_X - 1) invalidateChunk(cx + 1, cy, cz);
+    if (lz == 0) invalidateChunk(cx, cy, cz - 1);
+    if (lz == Chunk::SIZE_Z - 1) invalidateChunk(cx, cy, cz + 1);
+    if (m_planetPrototype && ly == 0) invalidateChunk(cx, cy - 1, cz);
+    if (m_planetPrototype && ly == Chunk::SIZE_Y - 1) invalidateChunk(cx, cy + 1, cz);
 }
 
 
 void World::setBlockShapeWorld(int wx, int wy, int wz, BlockShape shape) {
     wx = wrapCoordinate(wx);
     wz = wrapCoordinate(wz);
-    if (wy < 0 || wy >= Chunk::SIZE_Y) {
+    if (m_planetPrototype) {
+        if (wy < -Chunk::SIZE_Y || wy >= Chunk::SIZE_Y) return;
+    } else if (wy < 0 || wy >= Chunk::SIZE_Y) {
         return;
     }
 
@@ -344,15 +375,20 @@ void World::setBlockShapeWorld(int wx, int wy, int wz, BlockShape shape) {
     const int cz = static_cast<int>(std::floor(static_cast<float>(wz) / Chunk::SIZE_Z));
     const int lx = wx - cx * Chunk::SIZE_X;
     const int lz = wz - cz * Chunk::SIZE_Z;
-    const glm::ivec3 chunkPos(cx, 0, cz);
+    const int cy = m_planetPrototype
+        ? static_cast<int>(std::floor(static_cast<double>(wy) / Chunk::SIZE_Y)) : 0;
+    const int ly = wy - cy * Chunk::SIZE_Y;
+    const glm::ivec3 chunkPos(cx, cy, cz);
     Chunk* chunk = getChunk(chunkPos);
-    if (chunk == nullptr || chunk->getBlock(lx, wy, lz) == BlockType::Air) {
+    if (chunk == nullptr || chunk->getBlock(lx, ly, lz) == BlockType::Air) {
         return;
     }
 
-    chunk->setBlockShape(lx, wy, lz, shape);
-    if (m_planetPrototype) m_blockEdits[packBlockCoordinates(wx, wy, wz)] = {chunk->getBlock(lx, wy, lz), shape};
+    chunk->setBlockShape(lx, ly, lz, shape);
+    if (m_planetPrototype) m_blockEdits[packBlockCoordinates(wx, wy, wz)] = {chunk->getBlock(lx, ly, lz), shape};
     m_meshes.erase(packCoordinates(chunkPos));
+    if (m_planetPrototype && ly == 0) m_meshes.erase(packCoordinates(glm::ivec3(cx, cy - 1, cz)));
+    if (m_planetPrototype && ly == Chunk::SIZE_Y - 1) m_meshes.erase(packCoordinates(glm::ivec3(cx, cy + 1, cz)));
 }
 
 void World::generateCornerCutTestArrangement() {
@@ -584,7 +620,11 @@ void World::draw(Shader& shader, const glm::mat4& view, const glm::mat4& project
             meshIt = m_meshes.emplace(packed, std::move(mesh)).first;
         }
         
-        const glm::vec3 basePos = chunk->getPosition() * 16;
+        const glm::ivec3 chunkPosition = chunk->getPosition();
+        const glm::vec3 basePos(
+            static_cast<float>(chunkPosition.x * Chunk::SIZE_X),
+            static_cast<float>(chunkPosition.y * Chunk::SIZE_Y),
+            static_cast<float>(chunkPosition.z * Chunk::SIZE_Z));
         const int copyMin = m_planetPrototype ? -1 : 0;
         const int copyMax = m_planetPrototype ? 1 : 0;
         for (int copyX = copyMin; copyX <= copyMax; ++copyX) {
