@@ -64,7 +64,7 @@ public:
 
     bool isHighlandSurface(int worldX, int worldZ, int wrapSize,
                            std::uint32_t seed) const override {
-        return biomeBlend(worldX, worldZ, wrapSize, seed) >= 0.5f;
+        return biomeBlend(worldX, worldZ, wrapSize, seed) > 0.02f;
     }
 
 private:
@@ -81,7 +81,8 @@ private:
             const glm::vec2 p(static_cast<float>(x) + 512.0f, static_cast<float>(z) + 512.0f);
             selector = glm::perlin(p * 0.006f);
         }
-        return glm::smoothstep(-0.03f, 0.03f, selector);
+        constexpr float BORDER_HALF_BAND = 0.01f;
+        return glm::smoothstep(-BORDER_HALF_BAND, BORDER_HALF_BAND, selector);
     }
 
     int rawHeight(int x, int z, int maxHeight, int wrapSize, std::uint32_t seed) const {
@@ -93,14 +94,17 @@ private:
             const float ax = tau * static_cast<float>(terrain::wrapCoordinate(x, wrapSize)) / wrapSize;
             const float az = tau * static_cast<float>(terrain::wrapCoordinate(z, wrapSize)) / wrapSize;
             const float px = terrain::planetSeedPhase(seed, 23), pz = terrain::planetSeedPhase(seed, 24);
-            grass = 20.0f + (std::sin(ax * 3.0f + px) + std::cos(az * 3.0f + pz)) * 1.5f;
+            grass = 20.0f
+                  + (std::sin(ax * 3.0f + px) + std::cos(az * 3.0f + pz)) * 1.5f
+                  + (std::sin(ax * 12.0f + px * 0.7f) + std::cos(az * 11.0f + pz * 0.7f)) * 0.6f;
             const float ridge = 1.0f - std::abs(std::sin(ax * 2.0f + std::sin(az + pz) * 0.4f + px));
             const float ridge2 = 1.0f - std::abs(std::sin(az * 3.0f + std::sin(ax + px) * 0.4f + pz));
             const float crag = std::sin(ax * 7.0f + px) * std::cos(az * 6.0f + pz) * 1.5f;
             high = 28.0f + (ridge * 0.65f + ridge2 * 0.35f) * 22.0f + crag;
         } else {
             const glm::vec2 p(static_cast<float>(x), static_cast<float>(z));
-            grass = 20.0f + glm::perlin(p * 0.015f) * 3.0f;
+            grass = 20.0f + glm::perlin(p * 0.015f) * 3.0f
+                  + glm::perlin((p + glm::vec2(40.0f, -40.0f)) * 0.06f) * 1.2f;
             const float n0 = glm::perlin((p + glm::vec2(-300.0f, 300.0f)) * 0.02f);
             const float n1 = glm::perlin((p + glm::vec2(-286.9f, 329.9f)) * 0.04f);
             const float n2 = glm::perlin((p + glm::vec2(-273.8f, 359.8f)) * 0.08f);
