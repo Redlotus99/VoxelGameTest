@@ -12,6 +12,7 @@ public:
     LineRenderer& operator=(const LineRenderer&) = delete;
 
     void drawCrosshair(float aspect);
+    void drawCoordinates(const glm::vec3& position, float aspect);
     void drawBlockOutline(const glm::mat4& view, const glm::mat4& projection, glm::ivec3 block);
 
 private:
