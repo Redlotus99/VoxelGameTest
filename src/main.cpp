@@ -75,6 +75,8 @@ bool savePlanetMetadata(const std::string& path, const PlanetMetadata& source) {
     return std::rename(temporaryPath.c_str(), path.c_str()) == 0;
 }
 
+}
+
 int main(int argc, char* argv[]) {
     try {
         Window window(1280, 720, "Voxel Game");
