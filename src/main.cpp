@@ -307,6 +307,7 @@ int main(int argc, char* argv[]) {
             if (found) {
                 lines.drawBlockOutline(view, projection, hit);
             }
+            lines.drawCoordinates(player.position, aspectRatio);
         }
         
         if (planetTestMode) {
