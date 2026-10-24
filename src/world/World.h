@@ -19,7 +19,8 @@ public:
 
     void generate(int radius);
     // Small flat grassland used to validate finite-world wraparound.
-    void generatePlanetPrototype(Planet planet);
+    void generatePlanetPrototype(Planet planet, int undergroundDepth = 64);
+    int getUndergroundDepth() const { return m_undergroundDepth; }
     bool loadPlanetEdits(const std::string& path, const std::string& planetId);
     bool savePlanetEdits(const std::string& path, const std::string& planetId) const;
     bool isPlanetPrototype() const { return m_planetPrototype; }
@@ -47,6 +48,7 @@ private:
     std::unordered_map<int64_t, Mesh> m_meshes;
     bool m_shapeDebugMode = false;
     bool m_planetPrototype = false;
+    int m_undergroundDepth = 64;
     Planet m_planet;
     static constexpr int PLANET_CHUNKS = 8;
     static constexpr int PLANET_SIZE = PLANET_CHUNKS * Chunk::SIZE_X;
