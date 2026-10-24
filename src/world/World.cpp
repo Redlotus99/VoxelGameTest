@@ -123,16 +123,17 @@ void World::wrapPosition(glm::vec3& position) const {
     if (position.z < 0.0f) position.z += size;
 }
 
-void World::generatePlanetPrototype(std::uint32_t terrainSeed) {
+void World::generatePlanetPrototype(Planet planet) {
     m_chunks.clear();
     m_meshes.clear();
     m_planetPrototype = true;
-    m_planetSeed = terrainSeed;
+    planet.ensureName();
+    m_planet = std::move(planet);
     for (int x = 0; x < PLANET_CHUNKS; ++x) {
         for (int z = 0; z < PLANET_CHUNKS; ++z) {
             const glm::ivec3 chunkPos(x, 0, z);
             auto chunk = std::make_unique<Chunk>(chunkPos);
-            chunk->generateTerrain(PLANET_SIZE, m_planetSeed);
+            chunk->generateTerrain(PLANET_SIZE, m_planet.seed);
             m_chunks.emplace(packCoordinates(chunkPos), std::move(chunk));
         }
     }
