@@ -119,8 +119,20 @@ int main(int argc, char* argv[]) {
             if (planetId.empty()) planetId = "grassland-01";
             const std::string metadataPath = "planet_" + planetId + ".meta";
             PlanetMetadata metadata;
-            if (!loadPlanetMetadata(metadataPath, planetId, metadata)) { metadata.id=planetId; metadata.seed=seedWasProvided?requestedSeed:0; metadata.biome="grassland"; metadata.name=Planet::generateName(metadata.id, metadata.seed); if(!savePlanetMetadata(metadataPath,metadata)) std::cerr<<"Warning: could not save planet metadata.\n"; }
-            else if(seedWasProvided && requestedSeed!=metadata.seed) std::cout<<"Existing planet seed "<<metadata.seed<<" takes precedence over requested seed "<<requestedSeed<<".\n";
+            if (!loadPlanetMetadata(metadataPath, planetId, metadata)) {
+                metadata.id = planetId;
+                metadata.seed = seedWasProvided ? requestedSeed : 0;
+                metadata.biome = "grassland";
+                metadata.name = Planet::generateName(metadata.id, metadata.seed);
+                if (!savePlanetMetadata(metadataPath, metadata)) std::cerr << "Warning: could not save planet metadata.\\n";
+            } else {
+                if (seedWasProvided && requestedSeed != metadata.seed) {
+                    std::cout << "Existing planet seed " << metadata.seed
+                              << " takes precedence over requested seed " << requestedSeed << ".\\n";
+                }
+                // Upgrade legacy metadata so the generated name is persisted.
+                if (!savePlanetMetadata(metadataPath, metadata)) std::cerr << "Warning: could not update planet metadata.\\n";
+            }
             world.generatePlanetPrototype(metadata);
             const std::string planetSavePath = "planet_" + planetId + "_edits.dat";
             bool loadedPlanet = world.loadPlanetEdits(planetSavePath, planetId);
