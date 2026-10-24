@@ -130,8 +130,8 @@ void World::wrapPosition(glm::vec3& position) const {
 }
 
 void World::generatePlanetPrototype(Planet planet) {
-    // All planets currently share one underground depth. Keep it centralized
-    // until the later full vertical-range implementation replaces this limit.
+    // Retain the original underground-depth setting for diagnostics/UI while
+    // the playable vertical bounds are controlled by PLANET_MIN_Y/MAX_Y.
     m_undergroundDepth = PLANET_UNDERGROUND_DEPTH;
     m_chunks.clear();
     m_meshes.clear();
