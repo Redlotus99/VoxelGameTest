@@ -143,6 +143,7 @@ void World::generatePlanetPrototype(Planet planet) {
             // Create every vertical chunk in the configured range. Only the
             // lower chunk is filled underground; upper chunks start as air.
             for (int chunkY = PLANET_MIN_CHUNK_Y; chunkY <= PLANET_MAX_CHUNK_Y; ++chunkY) {
+                if (chunkY == 0) continue; // Generated terrain occupies the surface chunk.
                 const glm::ivec3 chunkPos(x, chunkY, z);
                 auto chunk = std::make_unique<Chunk>(chunkPos);
                 if (chunkY == -1) {
