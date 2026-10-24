@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <system_error>
 #include <utility>
+#include <iostream>
 
 World::World() = default;
 
@@ -133,11 +134,13 @@ void World::generatePlanetPrototype(Planet planet, int undergroundDepth) {
     undergroundDepth = std::clamp(undergroundDepth, Chunk::SIZE_Y, Chunk::SIZE_Y * 4);
     undergroundDepth = ((undergroundDepth + Chunk::SIZE_Y / 2) / Chunk::SIZE_Y) * Chunk::SIZE_Y;
     m_undergroundDepth = undergroundDepth;
+    std::cout << "World.cpp depth after assignment=" << m_undergroundDepth << "\\n";
     m_chunks.clear();
     m_meshes.clear();
     m_planetPrototype = true;
     planet.ensureName();
     m_planet = std::move(planet);
+    std::cout << "World.cpp depth after planet assignment=" << m_undergroundDepth << "\\n";
     for (int x = 0; x < PLANET_CHUNKS; ++x) {
         for (int z = 0; z < PLANET_CHUNKS; ++z) {
             const glm::ivec3 surfacePos(x, 0, z);
