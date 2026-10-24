@@ -24,10 +24,10 @@ int World::wrapCoordinate(int value) const {
 }
 
 std::uint32_t World::packBlockCoordinates(int x, int y, int z) const {
-    // Planet edit keys reserve 7 bits each for X, offset-Y, and Z.
-    // Offset-Y maps the supported world range [-64, 63] to [0, 127].
-    return (static_cast<std::uint32_t>(x) << 14)
-         | (static_cast<std::uint32_t>(y + 64) << 7)
+    // X/Z each use 7 bits for the 128x128 planet; Y uses 8 bits for
+    // the expanded 256-block range [-64, 191].
+    return (static_cast<std::uint32_t>(x) << 15)
+         | (static_cast<std::uint32_t>(y - PLANET_MIN_Y) << 7)
          | static_cast<std::uint32_t>(z);
 }
 
@@ -38,11 +38,11 @@ bool World::savePlanetEdits(const std::string& path, const std::string& planetId
     {
         std::ofstream file(temporary, std::ios::trunc);
         if (!file) return false;
-        file << "VOXEL_PLANET_EDITS 3 " << PLANET_SIZE << ' ' << (Chunk::SIZE_Y * 2) << ' ' << planetId << '\n';
+        file << "VOXEL_PLANET_EDITS 4 " << PLANET_SIZE << ' ' << PLANET_VERTICAL_SIZE << ' ' << planetId << '\n';
         for (const auto& entry : m_blockEdits) {
             const std::uint32_t key = entry.first;
-            const int x = static_cast<int>((key >> 14) & 0x7f);
-            const int y = static_cast<int>((key >> 7) & 0x7f) - 64;
+            const int x = static_cast<int>((key >> 15) & 0x7f);
+            const int y = static_cast<int>((key >> 7) & 0xff) + PLANET_MIN_Y;
             const int z = static_cast<int>(key & 0x7f);
             file << x << ' ' << y << ' ' << z << ' '
                  << static_cast<unsigned int>(entry.second.type) << ' '
@@ -81,9 +81,9 @@ bool World::loadPlanetEdits(const std::string& path, const std::string& planetId
     std::string savedPlanetId;
     if (!(file >> magic >> version >> worldSize >> worldHeight)
         || magic != "VOXEL_PLANET_EDITS"
-        || (version < 1 || version > 3)
+        || (version < 1 || version > 4)
         || worldSize != PLANET_SIZE
-        || worldHeight != (version == 3 ? Chunk::SIZE_Y * 2 : Chunk::SIZE_Y)) return false;
+        || worldHeight != (version == 4 ? PLANET_VERTICAL_SIZE : (version == 3 ? Chunk::SIZE_Y * 2 : Chunk::SIZE_Y))) return false;
     // Version 1 was the original single-planet save format. Accept it for
     // migration, while version 2 binds the file to its explicit planet ID.
     if (version >= 2 && (!(file >> savedPlanetId) || savedPlanetId != planetId)) return false;
@@ -94,7 +94,8 @@ bool World::loadPlanetEdits(const std::string& path, const std::string& planetId
     unsigned int type = 0, shape = 0;
     while (file >> x >> y >> z >> type >> shape) {
         if (x < 0 || x >= PLANET_SIZE || z < 0 || z >= PLANET_SIZE
-            || (version == 3 ? (y < -Chunk::SIZE_Y || y >= Chunk::SIZE_Y) : (y < 0 || y >= Chunk::SIZE_Y))
+            || (version == 4 ? (y < PLANET_MIN_Y || y > PLANET_MAX_Y)
+                : (version == 3 ? (y < -Chunk::SIZE_Y || y >= Chunk::SIZE_Y) : (y < 0 || y >= Chunk::SIZE_Y)))
             || type > static_cast<unsigned int>(BlockType::Stone)
             || shape >= static_cast<unsigned int>(BlockShape::Count)) return false;
         loaded[packBlockCoordinates(x, y, z)] = {
@@ -108,8 +109,8 @@ bool World::loadPlanetEdits(const std::string& path, const std::string& planetId
     m_blockEdits.clear();
     for (const auto& entry : loaded) {
         const std::uint32_t key = entry.first;
-        const int bx = static_cast<int>((key >> 14) & 0x7f);
-        const int by = static_cast<int>((key >> 7) & 0x7f) - 64;
+        const int bx = static_cast<int>((key >> 15) & 0x7f);
+        const int by = static_cast<int>((key >> 7) & 0xff) + PLANET_MIN_Y;
         const int bz = static_cast<int>(key & 0x7f);
         setBlockWorld(bx, by, bz, entry.second.type);
         if (entry.second.type != BlockType::Air) {
@@ -139,26 +140,28 @@ void World::generatePlanetPrototype(Planet planet) {
     m_planet = std::move(planet);
     for (int x = 0; x < PLANET_CHUNKS; ++x) {
         for (int z = 0; z < PLANET_CHUNKS; ++z) {
+            // Create every vertical chunk in the configured range. Only the
+            // lower chunk is filled underground; upper chunks start as air.
+            for (int chunkY = PLANET_MIN_CHUNK_Y; chunkY <= PLANET_MAX_CHUNK_Y; ++chunkY) {
+                const glm::ivec3 chunkPos(x, chunkY, z);
+                auto chunk = std::make_unique<Chunk>(chunkPos);
+                if (chunkY == -1) {
+                    for (int localZ = 0; localZ < Chunk::SIZE_Z; ++localZ) {
+                        for (int localX = 0; localX < Chunk::SIZE_X; ++localX) {
+                            for (int localY = 0; localY < Chunk::SIZE_Y; ++localY) {
+                                chunk->setBlock(localX, localY, localZ, BlockType::Stone);
+                            }
+                        }
+                    }
+                }
+                m_chunks.emplace(packCoordinates(chunkPos), std::move(chunk));
+            }
+
             const glm::ivec3 surfacePos(x, 0, z);
             auto surface = std::make_unique<Chunk>(surfacePos);
             surface->generateTerrain(PLANET_SIZE, m_planet.seed);
             m_chunks.emplace(packCoordinates(surfacePos), std::move(surface));
 
-            // Chunk storage is 64 blocks tall; fill only the requested depth below the surface.
-            {
-                const int chunkY = -1;
-                const glm::ivec3 lowerPos(x, chunkY, z);
-                auto lower = std::make_unique<Chunk>(lowerPos);
-                for (int localZ = 0; localZ < Chunk::SIZE_Z; ++localZ) {
-                    for (int localX = 0; localX < Chunk::SIZE_X; ++localX) {
-                        for (int localY = Chunk::SIZE_Y - m_undergroundDepth;
-                             localY < Chunk::SIZE_Y; ++localY) {
-                            lower->setBlock(localX, localY, localZ, BlockType::Stone);
-                        }
-                    }
-                }
-                m_chunks.emplace(packCoordinates(lowerPos), std::move(lower));
-            }
         }
     }
 }
@@ -194,7 +197,7 @@ BlockType World::getBlockWorld(int wx, int wy, int wz) const {
     wx = wrapCoordinate(wx);
     wz = wrapCoordinate(wz);
     if (m_planetPrototype) {
-        if (wy < -m_undergroundDepth || wy >= Chunk::SIZE_Y) return BlockType::Air;
+        if (wy < PLANET_MIN_Y || wy > PLANET_MAX_Y) return BlockType::Air;
     } else if (wy < 0 || wy >= Chunk::SIZE_Y) {
         return BlockType::Air;
     }
@@ -234,7 +237,7 @@ BlockShape World::getBlockShapeWorld(int wx, int wy, int wz) const {
     wx = wrapCoordinate(wx);
     wz = wrapCoordinate(wz);
     if (m_planetPrototype) {
-        if (wy < -m_undergroundDepth || wy >= Chunk::SIZE_Y) return BlockShape::Cube;
+        if (wy < PLANET_MIN_Y || wy > PLANET_MAX_Y) return BlockShape::Cube;
     } else if (wy < 0 || wy >= Chunk::SIZE_Y) {
         return BlockShape::Cube;
     }
@@ -320,7 +323,7 @@ void World::setBlockWorld(int wx, int wy, int wz, BlockType type) {
     wx = wrapCoordinate(wx);
     wz = wrapCoordinate(wz);
     if (m_planetPrototype) {
-        if (wy < -m_undergroundDepth || wy >= Chunk::SIZE_Y) return;
+        if (wy < PLANET_MIN_Y || wy > PLANET_MAX_Y) return;
     } else if (wy < 0 || wy >= Chunk::SIZE_Y) {
         return;
     }
@@ -373,7 +376,7 @@ void World::setBlockShapeWorld(int wx, int wy, int wz, BlockShape shape) {
     wx = wrapCoordinate(wx);
     wz = wrapCoordinate(wz);
     if (m_planetPrototype) {
-        if (wy < -m_undergroundDepth || wy >= Chunk::SIZE_Y) return;
+        if (wy < PLANET_MIN_Y || wy > PLANET_MAX_Y) return;
     } else if (wy < 0 || wy >= Chunk::SIZE_Y) {
         return;
     }
