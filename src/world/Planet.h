@@ -4,8 +4,8 @@
 #include <string>
 
 // Lightweight persistent identity/configuration for a generated planet.
-// The current prototype still uses fixed 128x128x64 dimensions; these fields
-// establish the data model without changing terrain or chunk behavior.
+// Planet metadata describes the 128x128 surface footprint and a 256-block
+// vertical world. Chunk storage remains 64 blocks tall.
 struct Planet {
     std::string id = "grassland-01";
     std::string name;
@@ -13,7 +13,7 @@ struct Planet {
     std::string biome = "grassland";
     int width = 128;
     int depth = 128;
-    int height = 64;
+    int height = 256;
     int seaLevel = 24;
     std::uint32_t generationVersion = 1;
 
