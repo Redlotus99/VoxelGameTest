@@ -24,7 +24,7 @@ struct Planet {
         };
         static constexpr const char* endings[] = {
             "mora", "vox", "ara", "ion", "aris", "ora", "une", "eth",
-            " Prime", "os", "eria", "oth", "ara", "eon", "is", "a"
+            "Prime", "os", "eria", "oth", "ara", "eon", "is", "a"
         };
 
         // Stable, platform-independent FNV-1a-style mixing means the initial
