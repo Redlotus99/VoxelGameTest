@@ -113,10 +113,10 @@ int main(int argc, char* argv[]) {
                     if (requestedDepth >= 16 && requestedDepth <= 64 && requestedDepth % 16 == 0) {
                         undergroundDepth = requestedDepth;
                     } else {
-                        std::cerr << "Underground depth must be 16, 32, 48, or 64 blocks.\\n";
+                        std::cerr << "Underground depth must be 16, 32, 48, or 64 blocks.\n";
                     }
                 } catch (...) {
-                    std::cerr << "Invalid underground depth.\\n";
+                    std::cerr << "Invalid underground depth.\n";
                 }
             }
             else if (argument == "--planet-seed" && i + 1 < argc) { try { auto n=std::stoull(argv[++i]); if(n<=std::numeric_limits<std::uint32_t>::max()){requestedSeed=static_cast<std::uint32_t>(n);seedWasProvided=true;} else std::cerr<<"Planet seed out of range.\n"; } catch(...) { std::cerr<<"Invalid planet seed.\n"; } }
@@ -137,14 +137,14 @@ int main(int argc, char* argv[]) {
                 metadata.seed = seedWasProvided ? requestedSeed : 0;
                 metadata.biome = "grassland";
                 metadata.name = Planet::generateName(metadata.id, metadata.seed);
-                if (!savePlanetMetadata(metadataPath, metadata)) std::cerr << "Warning: could not save planet metadata.\\n";
+                if (!savePlanetMetadata(metadataPath, metadata)) std::cerr << "Warning: could not save planet metadata.\n";
             } else {
                 if (seedWasProvided && requestedSeed != metadata.seed) {
                     std::cout << "Existing planet seed " << metadata.seed
-                              << " takes precedence over requested seed " << requestedSeed << ".\\n";
+                              << " takes precedence over requested seed " << requestedSeed << ".\n";
                 }
                 // Upgrade legacy metadata so the generated name is persisted.
-                if (!savePlanetMetadata(metadataPath, metadata)) std::cerr << "Warning: could not update planet metadata.\\n";
+                if (!savePlanetMetadata(metadataPath, metadata)) std::cerr << "Warning: could not update planet metadata.\n";
             }
             world.generatePlanetPrototype(metadata, undergroundDepth);
             const std::string planetSavePath = "planet_" + planetId + "_edits.dat";
