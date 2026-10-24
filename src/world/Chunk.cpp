@@ -85,14 +85,12 @@ void Chunk::generateFlat() {
     }
 }
 
-void Chunk::generateTerrain(int wrapSize, std::uint32_t terrainSeed) {
-    // Terrain is derived exclusively from world coordinates so every chunk
-    // computes identical heights along shared boundaries.
-    // Keep terrain generation and collision on one canonical height function.
-    const auto terrainHeight = [wrapSize, terrainSeed](int worldX, int worldZ) -> int {
-        return wrapSize > 0
-            ? terrain::surfaceHeightPeriodic(worldX, worldZ, SIZE_Y - 3, wrapSize, terrainSeed)
-            : terrain::surfaceHeight(worldX, worldZ, SIZE_Y - 3);
+void Chunk::generateTerrain(const TerrainGenerator& generator, int wrapSize, std::uint32_t terrainSeed) {
+    // Chunk owns block storage; the selected generator owns terrain sampling.
+    // Samples are world-coordinate based so neighboring chunks share exact
+    // heights and periodic planets remain continuous across the wrap seam.
+    const auto terrainHeight = [&generator, wrapSize, terrainSeed](int worldX, int worldZ) -> int {
+        return generator.surfaceHeight(worldX, worldZ, SIZE_Y - 3, wrapSize, terrainSeed);
     };
     // One canonical classifier defines the four-corner profile for every
     // generated surface, including all rotated ramp/wedge orientations.
@@ -119,16 +117,11 @@ void Chunk::generateTerrain(int wrapSize, std::uint32_t terrainSeed) {
 
                     // Every surface cell derives its shape from the same
                     // four shared world-corner levels used by the mesh.
-                    // This makes the terrain use real ramp, wedge and saddle
-                    // geometry instead of treating those profiles as colors.
                     const auto cornerOffset = [&](int cx, int cz) {
                         const int worldCornerX = m_position.x * SIZE_X + cx;
                         const int worldCornerZ = m_position.z * SIZE_Z + cz;
-                        const int cornerY = wrapSize > 0
-                            ? terrain::cornerHeightPeriodic(
-                                  worldCornerX, worldCornerZ, SIZE_Y - 3, wrapSize, terrainSeed)
-                            : terrain::cornerHeight(
-                                  worldCornerX, worldCornerZ, SIZE_Y - 3);
+                        const int cornerY = generator.cornerHeight(
+                            worldCornerX, worldCornerZ, SIZE_Y - 3, wrapSize, terrainSeed);
                         return cornerY - surfaceY;
                     };
                     const int sw = cornerOffset(x,     z);
@@ -142,6 +135,7 @@ void Chunk::generateTerrain(int wrapSize, std::uint32_t terrainSeed) {
         }
     }
 }
+
 Mesh Chunk::buildMesh(
     const std::function<BlockType(int wx, int wy, int wz)>& getWorldBlock,
     const std::function<BlockShape(int wx, int wy, int wz)>& getWorldShape,
