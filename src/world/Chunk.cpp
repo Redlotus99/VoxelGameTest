@@ -126,12 +126,18 @@ void Chunk::generateTerrain(const TerrainGenerator& generator, int wrapSize, std
                     const int se = cornerOffset(x + 1, z);
                     const int ne = cornerOffset(x + 1, z + 1);
                     const int nw = cornerOffset(x,     z + 1);
-                    const int relief = std::max({sw, se, ne, nw}) - std::min({sw, se, ne, nw});
-                    const bool exposedRock = relief >= 3;
-                    setBlock(x, y, z, exposedRock ? BlockType::Stone : BlockType::Grass);
+                    const bool highland = generator.isHighlandSurface(
+                        m_position.x * SIZE_X + x, m_position.z * SIZE_Z + z,
+                        wrapSize, terrainSeed);
+                    setBlock(x, y, z, highland ? BlockType::Stone : BlockType::Grass);
                     setBlockShape(x, y, z, terrainProfileShape(sw, se, ne, nw));
-                } else if (y >= surfaceY - 3) setBlock(x, y, z, BlockType::Dirt);
-                else setBlock(x, y, z, BlockType::Stone);
+                } else {
+                    const bool highland = generator.isHighlandSurface(
+                        m_position.x * SIZE_X + x, m_position.z * SIZE_Z + z,
+                        wrapSize, terrainSeed);
+                    if (!highland && y >= surfaceY - 3) setBlock(x, y, z, BlockType::Dirt);
+                    else setBlock(x, y, z, BlockType::Stone);
+                }
             }
         }
     }
