@@ -127,7 +127,12 @@ void World::wrapPosition(glm::vec3& position) const {
     if (position.z < 0.0f) position.z += size;
 }
 
-void World::generatePlanetPrototype(Planet planet) {
+void World::generatePlanetPrototype(Planet planet, int undergroundDepth) {
+    // Keep the current save-key encoding and chunk alignment: supported depths
+    // are whole 16-block layers from 16 through 64 blocks.
+    undergroundDepth = std::clamp(undergroundDepth, Chunk::SIZE_Y, Chunk::SIZE_Y * 4);
+    undergroundDepth = ((undergroundDepth + Chunk::SIZE_Y / 2) / Chunk::SIZE_Y) * Chunk::SIZE_Y;
+    m_undergroundDepth = undergroundDepth;
     m_chunks.clear();
     m_meshes.clear();
     m_planetPrototype = true;
@@ -140,18 +145,20 @@ void World::generatePlanetPrototype(Planet planet) {
             surface->generateTerrain(PLANET_SIZE, m_planet.seed);
             m_chunks.emplace(packCoordinates(surfacePos), std::move(surface));
 
-            // The first underground layer extends the planet downward without
-            // moving the generated surface or the existing spawn coordinates.
-            const glm::ivec3 lowerPos(x, -1, z);
-            auto lower = std::make_unique<Chunk>(lowerPos);
-            for (int localZ = 0; localZ < Chunk::SIZE_Z; ++localZ) {
-                for (int localX = 0; localX < Chunk::SIZE_X; ++localX) {
-                    for (int localY = 0; localY < Chunk::SIZE_Y; ++localY) {
-                        lower->setBlock(localX, localY, localZ, BlockType::Stone);
+            // Generate configurable solid-stone layers below the unchanged
+            // surface. Each layer is a complete 16-block chunk for clean seams.
+            for (int chunkY = -1; chunkY >= -(m_undergroundDepth / Chunk::SIZE_Y); --chunkY) {
+                const glm::ivec3 lowerPos(x, chunkY, z);
+                auto lower = std::make_unique<Chunk>(lowerPos);
+                for (int localZ = 0; localZ < Chunk::SIZE_Z; ++localZ) {
+                    for (int localX = 0; localX < Chunk::SIZE_X; ++localX) {
+                        for (int localY = 0; localY < Chunk::SIZE_Y; ++localY) {
+                            lower->setBlock(localX, localY, localZ, BlockType::Stone);
+                        }
                     }
                 }
+                m_chunks.emplace(packCoordinates(lowerPos), std::move(lower));
             }
-            m_chunks.emplace(packCoordinates(lowerPos), std::move(lower));
         }
     }
 }
@@ -187,7 +194,7 @@ BlockType World::getBlockWorld(int wx, int wy, int wz) const {
     wx = wrapCoordinate(wx);
     wz = wrapCoordinate(wz);
     if (m_planetPrototype) {
-        if (wy < -Chunk::SIZE_Y || wy >= Chunk::SIZE_Y) return BlockType::Air;
+        if (wy < -m_undergroundDepth || wy >= Chunk::SIZE_Y) return BlockType::Air;
     } else if (wy < 0 || wy >= Chunk::SIZE_Y) {
         return BlockType::Air;
     }
@@ -227,7 +234,7 @@ BlockShape World::getBlockShapeWorld(int wx, int wy, int wz) const {
     wx = wrapCoordinate(wx);
     wz = wrapCoordinate(wz);
     if (m_planetPrototype) {
-        if (wy < -Chunk::SIZE_Y || wy >= Chunk::SIZE_Y) return BlockShape::Cube;
+        if (wy < -m_undergroundDepth || wy >= Chunk::SIZE_Y) return BlockShape::Cube;
     } else if (wy < 0 || wy >= Chunk::SIZE_Y) {
         return BlockShape::Cube;
     }
@@ -313,7 +320,7 @@ void World::setBlockWorld(int wx, int wy, int wz, BlockType type) {
     wx = wrapCoordinate(wx);
     wz = wrapCoordinate(wz);
     if (m_planetPrototype) {
-        if (wy < -Chunk::SIZE_Y || wy >= Chunk::SIZE_Y) return;
+        if (wy < -m_undergroundDepth || wy >= Chunk::SIZE_Y) return;
     } else if (wy < 0 || wy >= Chunk::SIZE_Y) {
         return;
     }
