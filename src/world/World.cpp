@@ -1,5 +1,6 @@
 #include "world/World.h"
 #include "world/TerrainHeight.h"
+#include "world/TerrainGenerator.h"
 #include "render/Shader.h"
 #include <algorithm>
 #include <array>
@@ -138,6 +139,7 @@ void World::generatePlanetPrototype(Planet planet) {
     m_planetPrototype = true;
     planet.ensureName();
     m_planet = std::move(planet);
+    const auto terrainGenerator = createTerrainGenerator(m_planet.biome);
     for (int x = 0; x < PLANET_CHUNKS; ++x) {
         for (int z = 0; z < PLANET_CHUNKS; ++z) {
             // Create every vertical chunk in the configured range. Only the
@@ -160,7 +162,7 @@ void World::generatePlanetPrototype(Planet planet) {
 
             const glm::ivec3 surfacePos(x, 0, z);
             auto surface = std::make_unique<Chunk>(surfacePos);
-            surface->generateTerrain(PLANET_SIZE, m_planet.seed);
+            surface->generateTerrain(*terrainGenerator, PLANET_SIZE, m_planet.seed);
             m_chunks.emplace(packCoordinates(surfacePos), std::move(surface));
 
         }
@@ -177,7 +179,7 @@ void World::generate(int radius) {
             
             if (m_chunks.find(packed) == m_chunks.end()) {
                 auto chunk = std::make_unique<Chunk>(chunkPos);
-                chunk->generateTerrain();
+                chunk->generateTerrain(*terrainGenerator);
                 m_chunks[packed] = std::move(chunk);
             }
         }
