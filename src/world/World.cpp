@@ -171,6 +171,7 @@ void World::generatePlanetPrototype(Planet planet) {
 
 void World::generate(int radius) {
     m_planetPrototype = false;
+    const auto terrainGenerator = createTerrainGenerator("grassland");
     for (int x = -radius; x <= radius; ++x) {
         for (int z = -radius; z <= radius; ++z) {
             // Only generate at y = 0
