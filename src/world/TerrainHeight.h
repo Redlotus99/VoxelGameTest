@@ -117,11 +117,13 @@ inline int rawHighlandsHeightPeriodic(int worldX, int worldZ, int maxHeight, int
     const float regional = 0.5f + 0.25f * std::sin(x + px) + 0.25f * std::cos(z + pz);
     const float mask = std::clamp((regional - 0.15f) / 0.7f, 0.0f, 1.0f);
     const float broad = (std::sin(x * 2.0f + std::sin(z + pz) * 0.5f + px)
-                       + std::cos(z * 2.0f + std::cos(x + p2) * 0.45f + pz)) * 5.0f;
+                       + std::cos(z * 2.0f + std::cos(x + p2) * 0.45f + pz)) * 8.0f;
     const float medium = (std::sin(x * 4.0f + p3) * std::cos(z * 3.0f + px)
-                        + std::cos(x * 3.0f + pz) * std::sin(z * 4.0f + p2)) * 1.5f;
-    const float detail = std::sin(x * 7.0f + z * 6.0f + p3) * 0.5f;
-    const float height = 18.0f + broad * (0.35f + 0.65f * mask) + medium + detail;
+                        + std::cos(x * 3.0f + pz) * std::sin(z * 4.0f + p2)) * 2.5f;
+    const float detail = std::sin(x * 7.0f + z * 6.0f + p3) * 0.8f;
+    // The mask raises whole mountain regions as well as allowing stronger
+    // relief there, separating highlands from the gentler grassland profile.
+    const float height = 15.0f + mask * 7.0f + broad * (0.25f + 0.75f * mask) + medium + detail;
     return std::max(1, std::min(static_cast<int>(std::round(height)), maxHeight));
 }
 
