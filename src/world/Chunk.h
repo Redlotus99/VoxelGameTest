@@ -31,7 +31,8 @@ public:
         const std::function<BlockShape(int wx, int wy, int wz)>& getWorldShape,
         bool shapeDebugMode = false,
         int wrapSize = 0,
-        std::uint32_t terrainSeed = 0) const;
+        std::uint32_t terrainSeed = 0,
+        const TerrainGenerator* terrainGenerator = nullptr) const;
     
     glm::ivec3 getPosition() const { return m_position; }
     
