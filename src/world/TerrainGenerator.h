@@ -126,14 +126,31 @@ private:
     }
 
     int smoothedHeight(int x, int z, int maxHeight, int wrapSize, std::uint32_t seed) const {
+        // Keep the height smoothing kernel inside the biome selected for its
+        // center sample. Mixing low grassland samples with highland samples
+        // across the boundary creates isolated intermediate-height columns;
+        // those can remain grass-colored and look like tall green spikes.
+        // The biome edge should be a cliff, not a height-blended ramp.
+        const bool centerHighland = biomeBlend(x, z, wrapSize, seed) > 0.5f;
         constexpr int weights[5] = {1,2,3,2,1};
-        int sum=0, total=0;
-        for(int dz=-2;dz<=2;++dz) for(int dx=-2;dx<=2;++dx) {
-            const int w=weights[dx+2]*weights[dz+2];
-            sum += rawHeight(x+dx,z+dz,maxHeight,wrapSize,seed)*w;
-            total += w;
+        int sum = 0;
+        int total = 0;
+        for (int dz = -2; dz <= 2; ++dz) {
+            for (int dx = -2; dx <= 2; ++dx) {
+                const int sampleX = x + dx;
+                const int sampleZ = z + dz;
+                const bool sampleHighland = biomeBlend(sampleX, sampleZ, wrapSize, seed) > 0.5f;
+                if (sampleHighland != centerHighland) {
+                    continue;
+                }
+                const int w = weights[dx + 2] * weights[dz + 2];
+                sum += rawHeight(sampleX, sampleZ, maxHeight, wrapSize, seed) * w;
+                total += w;
+            }
         }
-        return std::max(1,std::min((sum+total/2)/total,maxHeight));
+
+        // The center always matches its own biome, so total cannot be zero.
+        return std::max(1, std::min((sum + total / 2) / total, maxHeight));
     }
 };
 
