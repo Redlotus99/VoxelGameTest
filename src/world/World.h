@@ -6,6 +6,7 @@
 #include <string>
 #include <cstdint>
 #include "world/Chunk.h"
+#include "world/Planet.h"
 #include "render/Mesh.h"
 #include <glm/glm.hpp>
 
@@ -18,7 +19,7 @@ public:
 
     void generate(int radius);
     // Small flat grassland used to validate finite-world wraparound.
-    void generatePlanetPrototype(std::uint32_t terrainSeed = 0);
+    void generatePlanetPrototype(Planet planet);
     bool loadPlanetEdits(const std::string& path, const std::string& planetId);
     bool savePlanetEdits(const std::string& path, const std::string& planetId) const;
     bool isPlanetPrototype() const { return m_planetPrototype; }
@@ -46,7 +47,7 @@ private:
     std::unordered_map<int64_t, Mesh> m_meshes;
     bool m_shapeDebugMode = false;
     bool m_planetPrototype = false;
-    std::uint32_t m_planetSeed = 0;
+    Planet m_planet;
     static constexpr int PLANET_CHUNKS = 8;
     static constexpr int PLANET_SIZE = PLANET_CHUNKS * Chunk::SIZE_X;
     int wrapCoordinate(int value) const;
