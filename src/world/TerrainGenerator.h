@@ -68,7 +68,7 @@ private:
         const int base = wrapSize > 0
             ? terrain::rawHeightPeriodic(worldX, worldZ, maxHeight, wrapSize, seed)
             : terrain::rawHeight(worldX, worldZ, maxHeight);
-        constexpr float reliefScale = 1.65f;
+        constexpr float reliefScale = 1.4f;
         const int amplified = 24 + static_cast<int>(std::round((base - 24) * reliefScale));
         return std::max(1, std::min(amplified, maxHeight));
     }
