@@ -113,8 +113,6 @@ void Chunk::generateTerrain(const TerrainGenerator& generator, int wrapSize, std
             for (int y = 0; y < SIZE_Y; ++y) {
                 if (y > surfaceY) setBlock(x, y, z, BlockType::Air);
                 else if (y == surfaceY) {
-                    setBlock(x, y, z, BlockType::Grass);
-
                     // Every surface cell derives its shape from the same
                     // four shared world-corner levels used by the mesh.
                     const auto cornerOffset = [&](int cx, int cz) {
@@ -128,6 +126,9 @@ void Chunk::generateTerrain(const TerrainGenerator& generator, int wrapSize, std
                     const int se = cornerOffset(x + 1, z);
                     const int ne = cornerOffset(x + 1, z + 1);
                     const int nw = cornerOffset(x,     z + 1);
+                    const int relief = std::max({sw, se, ne, nw}) - std::min({sw, se, ne, nw});
+                    const bool exposedRock = relief >= 3;
+                    setBlock(x, y, z, exposedRock ? BlockType::Stone : BlockType::Grass);
                     setBlockShape(x, y, z, terrainProfileShape(sw, se, ne, nw));
                 } else if (y >= surfaceY - 3) setBlock(x, y, z, BlockType::Dirt);
                 else setBlock(x, y, z, BlockType::Stone);
