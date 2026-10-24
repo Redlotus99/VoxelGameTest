@@ -819,7 +819,14 @@ Mesh Chunk::buildMesh(
                             }
                         }
 
-                        const glm::vec3 sideColor = baseColor * getFaceBrightness(face);
+                        // Natural grass tops stay green, but exposed vertical
+                        // sides and undersides use dirt so sloped terrain reads
+                        // as a grassy cap over an earthy cliff face.
+                        const glm::vec3 sideBaseColor =
+                            naturalTerrainTop && face != 0
+                                ? getBlockColor(BlockType::Dirt)
+                                : baseColor;
+                        const glm::vec3 sideColor = sideBaseColor * getFaceBrightness(face);
                         const auto toWorld = [&](const SidePoint& p) {
                             if (face == 2) return glm::vec3(x + 1.0f, y + p.y, z + p.t);
                             if (face == 3) return glm::vec3(x, y + p.y, z + p.t);
