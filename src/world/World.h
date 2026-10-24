@@ -53,6 +53,12 @@ private:
     static constexpr int PLANET_CHUNKS = 8;
     static constexpr int PLANET_SIZE = PLANET_CHUNKS * Chunk::SIZE_X;
     static constexpr int PLANET_UNDERGROUND_DEPTH = 64;
+    // Preserve surface coordinates while expanding the planet to 256 vertical blocks.
+    static constexpr int PLANET_MIN_Y = -64;
+    static constexpr int PLANET_MAX_Y = 191;
+    static constexpr int PLANET_VERTICAL_SIZE = PLANET_MAX_Y - PLANET_MIN_Y + 1;
+    static constexpr int PLANET_MIN_CHUNK_Y = PLANET_MIN_Y / Chunk::SIZE_Y;
+    static constexpr int PLANET_MAX_CHUNK_Y = PLANET_MAX_Y / Chunk::SIZE_Y;
     int wrapCoordinate(int value) const;
     std::uint32_t packBlockCoordinates(int x, int y, int z) const;
     struct BlockEdit { BlockType type; BlockShape shape; };
