@@ -236,6 +236,25 @@ Mesh Chunk::buildMesh(
         indices.insert(indices.end(), {base, base + 1, base + 2});
     };
 
+    // Terrain-only gradient triangles blend biome materials smoothly across
+    // the same shared surface geometry. Other block shapes keep flat colors.
+    auto emitGradientTriangle = [&](const glm::vec3& a, const glm::vec3& b,
+                                    const glm::vec3& c, const glm::vec3& colorA,
+                                    const glm::vec3& colorB, const glm::vec3& colorC) {
+        const uint32_t base = static_cast<uint32_t>(vertices.size() / 6);
+        const glm::vec3 points[3] = {a, b, c};
+        const glm::vec3 colors[3] = {colorA, colorB, colorC};
+        for (int i = 0; i < 3; ++i) {
+            vertices.push_back(points[i].x);
+            vertices.push_back(points[i].y);
+            vertices.push_back(points[i].z);
+            vertices.push_back(colors[i].r);
+            vertices.push_back(colors[i].g);
+            vertices.push_back(colors[i].b);
+        }
+        indices.insert(indices.end(), {base, base + 1, base + 2});
+    };
+
     auto emitQuad = [&](const glm::vec3 corners[4], const glm::vec3& color) {
         emitTriangle(corners[0], corners[1], corners[2], color);
         emitTriangle(corners[0], corners[2], corners[3], color);
@@ -347,16 +366,46 @@ Mesh Chunk::buildMesh(
                             ? getShapeDebugColor(displayShape)
                             : getBlockColor(blockType);
                         const glm::vec3 topColor = terrainColor * getFaceBrightness(0);
-                        // Shade each terrain triangle from its actual slope normal:
-                        // horizontal surfaces stay bright, steeper faces darken.
+                        // Blend grass -> dirt -> stone by local steepness and
+                        // elevation. Shared corner colors make adjacent terrain
+                        // cells meet without abrupt material-color boundaries.
+                        const glm::vec3 grassColor(0.30f, 0.70f, 0.20f);
+                        const glm::vec3 dirtColor(0.50f, 0.30f, 0.15f);
+                        const glm::vec3 stoneColor(0.50f, 0.50f, 0.50f);
+                        const auto mixColor = [](const glm::vec3& a, const glm::vec3& b, float t) {
+                            return a * (1.0f - t) + b * t;
+                        };
+                        const auto materialColor = [&](int cornerHeight, int localSlope) {
+                            // Higher ground becomes progressively rockier; steep
+                            // local faces expose rock even at lower elevations.
+                            const float heightRock = std::clamp((static_cast<float>(y + cornerHeight) - 24.0f) / 22.0f, 0.0f, 1.0f);
+                            const float slopeRock = std::clamp(static_cast<float>(localSlope) / 3.0f, 0.0f, 1.0f);
+                            const float rock = std::max(heightRock * 0.65f, slopeRock);
+                            const float dirt = (1.0f - rock) * std::clamp(static_cast<float>(localSlope) / 4.0f, 0.0f, 0.55f);
+                            return mixColor(mixColor(grassColor, dirtColor, dirt), stoneColor, rock) * getFaceBrightness(0);
+                        };
+                        const int swSlope = std::abs(seH - swH) + std::abs(nwH - swH);
+                        const int seSlope = std::abs(swH - seH) + std::abs(neH - seH);
+                        const int neSlope = std::abs(seH - neH) + std::abs(nwH - neH);
+                        const int nwSlope = std::abs(swH - nwH) + std::abs(neH - nwH);
+                        const glm::vec3 swColor = materialColor(swH, swSlope);
+                        const glm::vec3 seColor = materialColor(seH, seSlope);
+                        const glm::vec3 neColor = materialColor(neH, neSlope);
+                        const glm::vec3 nwColor = materialColor(nwH, nwSlope);
+                        // Shade each triangle by its true normal while retaining
+                        // per-corner material colors for a smooth transition.
                         const auto emitSlopeTriangle = [&](const glm::vec3& a,
                                                             const glm::vec3& b,
-                                                            const glm::vec3& c) {
+                                                            const glm::vec3& c,
+                                                            const glm::vec3& colorA,
+                                                            const glm::vec3& colorB,
+                                                            const glm::vec3& colorC) {
                             glm::vec3 normal = glm::normalize(glm::cross(b - a, c - a));
                             if (normal.y < 0.0f) normal = -normal;
                             const float slopeBrightness = 0.55f + 0.45f *
                                 std::clamp(normal.y, 0.0f, 1.0f);
-                            emitTriangle(a, b, c, topColor * slopeBrightness);
+                            emitGradientTriangle(a, b, c, colorA * slopeBrightness,
+                                                 colorB * slopeBrightness, colorC * slopeBrightness);
                         };
 
                         // Choose the diagonal from the actual corner profile,
@@ -385,11 +434,11 @@ Mesh Chunk::buildMesh(
 
                         if (emitNaturalTerrainTop) {
                             if (useSwNeDiagonal) {
-                                emitSlopeTriangle(sw, nw, ne);
-                                emitSlopeTriangle(sw, ne, se);
+                                emitSlopeTriangle(sw, nw, ne, swColor, nwColor, neColor);
+                                emitSlopeTriangle(sw, ne, se, swColor, neColor, seColor);
                             } else {
-                                emitSlopeTriangle(sw, nw, se);
-                                emitSlopeTriangle(nw, ne, se);
+                                emitSlopeTriangle(sw, nw, se, swColor, nwColor, seColor);
+                                emitSlopeTriangle(nw, ne, se, nwColor, neColor, seColor);
                             }
                         }
                     // Continue through the regular block-face pass below so
