@@ -128,20 +128,15 @@ void World::wrapPosition(glm::vec3& position) const {
     if (position.z < 0.0f) position.z += size;
 }
 
-void World::generatePlanetPrototype(Planet planet, int undergroundDepth) {
-    // Keep the current save-key encoding and chunk alignment: supported depths
-    // are whole 16-block layers from 16 through 64 blocks.
-    // Configurable depth uses 16-block increments; chunk storage remains 64 high.
-    undergroundDepth = std::clamp(undergroundDepth, 16, 64);
-    undergroundDepth = ((undergroundDepth + 8) / 16) * 16;
-    m_undergroundDepth = undergroundDepth;
-    std::cout << "World.cpp depth after assignment=" << m_undergroundDepth << "\\n";
+void World::generatePlanetPrototype(Planet planet) {
+    // All planets currently share one underground depth. Keep it centralized
+    // until the later full vertical-range implementation replaces this limit.
+    m_undergroundDepth = PLANET_UNDERGROUND_DEPTH;
     m_chunks.clear();
     m_meshes.clear();
     m_planetPrototype = true;
     planet.ensureName();
     m_planet = std::move(planet);
-    std::cout << "World.cpp depth after planet assignment=" << m_undergroundDepth << "\\n";
     for (int x = 0; x < PLANET_CHUNKS; ++x) {
         for (int z = 0; z < PLANET_CHUNKS; ++z) {
             const glm::ivec3 surfacePos(x, 0, z);
@@ -150,7 +145,8 @@ void World::generatePlanetPrototype(Planet planet, int undergroundDepth) {
             m_chunks.emplace(packCoordinates(surfacePos), std::move(surface));
 
             // Chunk storage is 64 blocks tall; fill only the requested depth below the surface.
-            for (int chunkY = -1; chunkY >= -1; --chunkY) {
+            {
+                const int chunkY = -1;
                 const glm::ivec3 lowerPos(x, chunkY, z);
                 auto lower = std::make_unique<Chunk>(lowerPos);
                 for (int localZ = 0; localZ < Chunk::SIZE_Z; ++localZ) {
