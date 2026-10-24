@@ -122,6 +122,8 @@ int main(int argc, char* argv[]) {
             else if (argument == "--planet-seed" && i + 1 < argc) { try { auto n=std::stoull(argv[++i]); if(n<=std::numeric_limits<std::uint32_t>::max()){requestedSeed=static_cast<std::uint32_t>(n);seedWasProvided=true;} else std::cerr<<"Planet seed out of range.\n"; } catch(...) { std::cerr<<"Invalid planet seed.\n"; } }
         }
 
+        std::cout << "CLI underground depth=" << undergroundDepth << "\\n";
+
         if (planetTestMode) {
             // Keep planet IDs filename-safe and deterministic.
             for (char& ch : planetId) {
@@ -146,7 +148,9 @@ int main(int argc, char* argv[]) {
                 // Upgrade legacy metadata so the generated name is persisted.
                 if (!savePlanetMetadata(metadataPath, metadata)) std::cerr << "Warning: could not update planet metadata.\n";
             }
+            std::cout << "Generating planet with requested depth=" << undergroundDepth << "\\n";
             world.generatePlanetPrototype(metadata, undergroundDepth);
+            std::cout << "World depth immediately after generation=" << world.getUndergroundDepth() << "\\n";
             const std::string planetSavePath = "planet_" + planetId + "_edits.dat";
             bool loadedPlanet = world.loadPlanetEdits(planetSavePath, planetId);
             if (!loadedPlanet && planetId == "grassland-01") {
