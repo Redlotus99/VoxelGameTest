@@ -104,6 +104,8 @@ inline int rawHeightPeriodic(int worldX, int worldZ, int maxHeight, int period, 
 
 // Rocky Highlands use a distinct ridged profile rather than merely
 // scaling grassland heights. Integer angular harmonics preserve exact wrapping.
+// A broad periodic mask creates distinct mountain regions. Within those
+// regions, squared ridged noise produces sharper crests with varied heights.
 inline int rawHighlandsHeightPeriodic(int worldX, int worldZ, int maxHeight, int period, std::uint32_t seed = 0) {
     constexpr float tau = 6.2831853071795864769f;
     const float x = tau * static_cast<float>(wrapCoordinate(worldX, period)) / static_cast<float>(period);
@@ -111,41 +113,46 @@ inline int rawHighlandsHeightPeriodic(int worldX, int worldZ, int maxHeight, int
     const float px = planetSeedPhase(seed, 11), pz = planetSeedPhase(seed, 12);
     const float p2 = planetSeedPhase(seed, 13), p3 = planetSeedPhase(seed, 14);
 
-    // Smooth, broad landforms plus a low-frequency regional mask. Unlike
-    // abs(sin()) ridges, the smooth field does not force every crest toward
-    // the same height. All frequencies are integer harmonics, preserving wrap.
     const float regional = 0.5f + 0.25f * std::sin(x + px) + 0.25f * std::cos(z + pz);
     const float mask = std::clamp((regional - 0.15f) / 0.7f, 0.0f, 1.0f);
-    const float broad = (std::sin(x * 2.0f + std::sin(z + pz) * 0.5f + px)
-                       + std::cos(z * 2.0f + std::cos(x + p2) * 0.45f + pz)) * 8.0f;
-    const float medium = (std::sin(x * 4.0f + p3) * std::cos(z * 3.0f + px)
-                        + std::cos(x * 3.0f + pz) * std::sin(z * 4.0f + p2)) * 2.5f;
-    const float detail = std::sin(x * 7.0f + z * 6.0f + p3) * 0.8f;
-    // The mask raises whole mountain regions as well as allowing stronger
-    // relief there, separating highlands from the gentler grassland profile.
-    const float height = 15.0f + mask * 7.0f + broad * (0.25f + 0.75f * mask) + medium + detail;
+    const float ridge0 = 1.0f - std::abs(std::sin(x * 2.0f + std::sin(z + pz) * 0.45f + px));
+    const float ridge1 = 1.0f - std::abs(std::sin(z * 3.0f + std::sin(x + p2) * 0.4f + pz));
+    const float ridge2 = 1.0f - std::abs(std::sin(x * 5.0f + z * 4.0f + p3));
+    const float ridges = 0.62f * ridge0 * ridge0 + 0.28f * ridge1 * ridge1 + 0.10f * ridge2 * ridge2;
+    const float broad = std::sin(x + px) * std::cos(z * 2.0f + pz) * 5.0f
+                      + std::cos(x * 2.0f + p2) * std::sin(z + p3) * 4.0f;
+    const float foothills = (std::sin(x * 3.0f + p3) * std::cos(z * 2.0f + px)
+                           + std::cos(x * 2.0f + pz) * std::sin(z * 4.0f + p2)) * 2.0f;
+    const float height = 17.0f + mask * 7.0f + broad * 0.55f
+                       + mask * (ridges * 25.0f + foothills);
     return std::max(1, std::min(static_cast<int>(std::round(height)), maxHeight));
+}
+
+inline float highlandMask(int worldX, int worldZ) {
+    const glm::vec2 p(static_cast<float>(worldX), static_cast<float>(worldZ));
+    const float regional = glm::perlin(p * 0.0018f + glm::vec2(173.0f, 91.0f));
+    return glm::smoothstep(-0.2f, 0.35f, regional);
 }
 
 inline int rawHighlandsHeight(int worldX, int worldZ, int maxHeight) {
     const glm::vec2 p(static_cast<float>(worldX), static_cast<float>(worldZ));
-    // Four gentle fBm octaves: each octave doubles frequency and halves
-    // amplitude. A separate low-frequency mask makes some regions foothills
-    // and others mountainous, naturally varying peak heights.
-    float detail = 0.0f;
+    const float mask = highlandMask(worldX, worldZ);
+    const float hills = glm::perlin(p * 0.004f + glm::vec2(13.0f, 71.0f)) * 6.0f
+                      + glm::perlin(p * 0.009f + glm::vec2(43.0f, 19.0f)) * 3.0f;
+    float ridges = 0.0f;
     float amplitude = 1.0f;
-    float frequency = 0.006f;
+    float frequency = 0.012f;
     float normalization = 0.0f;
     for (int octave = 0; octave < 4; ++octave) {
-        detail += glm::perlin(p * frequency + glm::vec2(37.1f * octave, 11.7f * octave)) * amplitude;
+        const float n = glm::perlin(p * frequency + glm::vec2(13.1f * octave, 29.9f * octave));
+        const float ridge = 1.0f - std::abs(n);
+        ridges += amplitude * ridge * ridge;
         normalization += amplitude;
         amplitude *= 0.5f;
         frequency *= 2.0f;
     }
-    detail /= normalization;
-    const float maskNoise = glm::perlin(p * 0.0018f + glm::vec2(173.0f, 91.0f));
-    const float mask = glm::smoothstep(-0.2f, 0.35f, maskNoise);
-    const float height = 22.0f + detail * (5.0f + 24.0f * mask);
+    ridges /= normalization;
+    const float height = 19.0f + hills * 0.55f + mask * (5.0f + ridges * 29.0f);
     return std::max(1, std::min(static_cast<int>(std::round(height)), maxHeight));
 }
 
