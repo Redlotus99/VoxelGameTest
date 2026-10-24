@@ -142,7 +142,8 @@ Mesh Chunk::buildMesh(
     const std::function<BlockShape(int wx, int wy, int wz)>& getWorldShape,
     bool shapeDebugMode,
     int wrapSize,
-    std::uint32_t terrainSeed) const {
+    std::uint32_t terrainSeed,
+    const TerrainGenerator* terrainGenerator) const {
     std::vector<float> vertices;
     std::vector<uint32_t> indices;
 
@@ -264,17 +265,25 @@ Mesh Chunk::buildMesh(
     // Recompute the same world-space terrain profile used by generation.
     // These helpers are also used when clipping ordinary block faces against
     // a neighboring TerrainSurface, whose edge is not a full cube edge.
-    const auto terrainHeightAt = [wrapSize, terrainSeed](int worldX, int worldZ) -> int {
-        // Mesh vertices must use the exact same sampler as terrain generation
-        // and collision. The planet sampler is periodic; using the ordinary
-        // sampler here causes mismatched corners and visible clipping at seams.
+    const auto terrainHeightAt = [wrapSize, terrainSeed, terrainGenerator](int worldX, int worldZ) -> int {
+        // Mesh vertices must use the exact same selected biome sampler as
+        // terrain generation; falling back to grassland here causes gaps when
+        // a different generator is active.
+        if (terrainGenerator) {
+            return terrainGenerator->surfaceHeight(
+                worldX, worldZ, SIZE_Y - 3, wrapSize, terrainSeed);
+        }
         return wrapSize > 0
             ? terrain::surfaceHeightPeriodic(worldX, worldZ, SIZE_Y - 3, wrapSize, terrainSeed)
             : terrain::surfaceHeight(worldX, worldZ, SIZE_Y - 3);
     };
-    const auto terrainCornerWorldY = [wrapSize, terrainSeed](int worldX, int worldZ, int cornerX, int cornerZ) {
+    const auto terrainCornerWorldY = [wrapSize, terrainSeed, terrainGenerator](int worldX, int worldZ, int cornerX, int cornerZ) {
         const int cx = worldX + cornerX;
         const int cz = worldZ + cornerZ;
+        if (terrainGenerator) {
+            return terrainGenerator->cornerHeight(
+                cx, cz, SIZE_Y - 3, wrapSize, terrainSeed);
+        }
         return wrapSize > 0
             ? terrain::cornerHeightPeriodic(cx, cz, SIZE_Y - 3, wrapSize, terrainSeed)
             : terrain::cornerHeight(cx, cz, SIZE_Y - 3);
