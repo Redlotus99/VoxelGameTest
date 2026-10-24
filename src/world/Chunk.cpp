@@ -713,7 +713,7 @@ Mesh Chunk::buildMesh(
                         neighborShape = getBlockShape(nx, ny, nz);
                     } else {
                         const int worldX = m_position.x * SIZE_X + nx;
-                        const int worldY = ny;
+                        const int worldY = m_position.y * SIZE_Y + ny;
                         const int worldZ = m_position.z * SIZE_Z + nz;
                         neighborBlock = getWorldBlock(worldX, worldY, worldZ);
                         if (neighborBlock != BlockType::Air) {
