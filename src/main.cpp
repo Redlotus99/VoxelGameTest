@@ -17,17 +17,62 @@
 #include <glm/gtc/type_ptr.hpp>
 
 namespace {
-struct PlanetMetadata { std::string id; std::uint32_t seed = 0; std::string biome = "grassland"; int width = 128; int depth = 128; int height = 64; };
+using PlanetMetadata = Planet;
+
 bool loadPlanetMetadata(const std::string& path, const std::string& expectedId, PlanetMetadata& out) {
- std::ifstream in(path); if (!in) return false; std::string magic; int version=0; unsigned long long seed=0; PlanetMetadata m;
- if (!(in>>magic>>version>>m.id>>seed>>m.biome>>m.width>>m.depth>>m.height)) return false;
- if (magic!="VOXEL_PLANET_META" || version!=1 || m.id!=expectedId || seed>std::numeric_limits<std::uint32_t>::max() || m.width!=128 || m.depth!=128 || m.height!=64) return false;
- m.seed=static_cast<std::uint32_t>(seed); out=m; return true;
+    std::ifstream in(path);
+    if (!in) return false;
+
+    std::string magic;
+    int version = 0;
+    unsigned long long seed = 0;
+    PlanetMetadata metadata;
+    if (!(in >> magic >> version) || magic != "VOXEL_PLANET_META") return false;
+
+    if (version == 1) {
+        if (!(in >> metadata.id >> seed >> metadata.biome
+                 >> metadata.width >> metadata.depth >> metadata.height)) return false;
+        metadata.seaLevel = 24;
+        metadata.generationVersion = 1;
+        metadata.name = Planet::generateName(metadata.id, static_cast<std::uint32_t>(seed));
+    } else if (version == 2) {
+        unsigned long long generationVersion = 0;
+        if (!(in >> metadata.id >> seed >> metadata.biome
+                 >> metadata.width >> metadata.depth >> metadata.height
+                 >> metadata.seaLevel >> generationVersion >> metadata.name)) return false;
+        if (generationVersion > std::numeric_limits<std::uint32_t>::max()) return false;
+        metadata.generationVersion = static_cast<std::uint32_t>(generationVersion);
+    } else {
+        return false;
+    }
+
+    if (metadata.id != expectedId
+        || seed > std::numeric_limits<std::uint32_t>::max()
+        || metadata.width != 128 || metadata.depth != 128 || metadata.height != 64
+        || metadata.seaLevel < 0 || metadata.seaLevel >= metadata.height) return false;
+
+    metadata.seed = static_cast<std::uint32_t>(seed);
+    metadata.ensureName();
+    out = metadata;
+    return true;
 }
-bool savePlanetMetadata(const std::string& path, const PlanetMetadata& m) {
- const std::string tmp=path+".tmp"; { std::ofstream out(tmp,std::ios::trunc); if(!out) return false; out<<"VOXEL_PLANET_META 1 "<<m.id<<' '<<m.seed<<' '<<m.biome<<' '<<m.width<<' '<<m.depth<<' '<<m.height<<'\n'; out.flush(); if(!out.good()) return false; }
- std::remove(path.c_str()); return std::rename(tmp.c_str(),path.c_str())==0;
-}
+
+bool savePlanetMetadata(const std::string& path, const PlanetMetadata& source) {
+    PlanetMetadata metadata = source;
+    metadata.ensureName();
+    const std::string temporaryPath = path + ".tmp";
+    {
+        std::ofstream out(temporaryPath, std::ios::trunc);
+        if (!out) return false;
+        out << "VOXEL_PLANET_META 2 " << metadata.id << ' ' << metadata.seed << ' '
+            << metadata.biome << ' ' << metadata.width << ' ' << metadata.depth << ' '
+            << metadata.height << ' ' << metadata.seaLevel << ' '
+            << metadata.generationVersion << ' ' << metadata.name << '\n';
+        out.flush();
+        if (!out.good()) return false;
+    }
+    std::remove(path.c_str());
+    return std::rename(temporaryPath.c_str(), path.c_str()) == 0;
 }
 
 int main(int argc, char* argv[]) {
@@ -72,9 +117,9 @@ int main(int argc, char* argv[]) {
             if (planetId.empty()) planetId = "grassland-01";
             const std::string metadataPath = "planet_" + planetId + ".meta";
             PlanetMetadata metadata;
-            if (!loadPlanetMetadata(metadataPath, planetId, metadata)) { metadata.id=planetId; metadata.seed=seedWasProvided?requestedSeed:0; metadata.biome="grassland"; if(!savePlanetMetadata(metadataPath,metadata)) std::cerr<<"Warning: could not save planet metadata.\n"; }
+            if (!loadPlanetMetadata(metadataPath, planetId, metadata)) { metadata.id=planetId; metadata.seed=seedWasProvided?requestedSeed:0; metadata.biome="grassland"; metadata.name=Planet::generateName(metadata.id, metadata.seed); if(!savePlanetMetadata(metadataPath,metadata)) std::cerr<<"Warning: could not save planet metadata.\n"; }
             else if(seedWasProvided && requestedSeed!=metadata.seed) std::cout<<"Existing planet seed "<<metadata.seed<<" takes precedence over requested seed "<<requestedSeed<<".\n";
-            world.generatePlanetPrototype(metadata.seed);
+            world.generatePlanetPrototype(metadata);
             const std::string planetSavePath = "planet_" + planetId + "_edits.dat";
             bool loadedPlanet = world.loadPlanetEdits(planetSavePath, planetId);
             if (!loadedPlanet && planetId == "grassland-01") {
