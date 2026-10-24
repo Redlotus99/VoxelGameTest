@@ -237,12 +237,12 @@ bool World::getTerrainSurfaceHeight(float worldX, float worldZ, float& height) c
 
     const auto surfaceHeight = [this](int wx, int wz) {
         return m_planetPrototype
-            ? terrain::surfaceHeightPeriodic(wx, wz, Chunk::SIZE_Y - 3, PLANET_SIZE, m_planetSeed)
+            ? terrain::surfaceHeightPeriodic(wx, wz, Chunk::SIZE_Y - 3, PLANET_SIZE, m_planet.seed)
             : terrain::surfaceHeight(wx, wz, Chunk::SIZE_Y - 3);
     };
     const auto cornerHeight = [this](int cx, int cz) {
         return static_cast<float>(m_planetPrototype
-            ? terrain::cornerHeightPeriodic(cx, cz, Chunk::SIZE_Y - 3, PLANET_SIZE, m_planetSeed)
+            ? terrain::cornerHeightPeriodic(cx, cz, Chunk::SIZE_Y - 3, PLANET_SIZE, m_planet.seed)
             : terrain::cornerHeight(cx, cz, Chunk::SIZE_Y - 3));
     };
 
@@ -579,7 +579,7 @@ void World::draw(Shader& shader, const glm::mat4& view, const glm::mat4& project
             Mesh mesh = chunk->buildMesh(
                 getWorldBlock, getWorldShape, m_shapeDebugMode,
                 m_planetPrototype ? PLANET_SIZE : 0,
-                m_planetPrototype ? m_planetSeed : 0);
+                m_planetPrototype ? m_planet.seed : 0);
             meshIt = m_meshes.emplace(packed, std::move(mesh)).first;
         }
         
