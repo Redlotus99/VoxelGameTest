@@ -627,6 +627,10 @@ void World::draw(Shader& shader, const glm::mat4& view, const glm::mat4& project
     shader.setMat4("view", view);
     shader.setMat4("projection", projection);
     
+    // Keep mesh sampling aligned with the active planet biome.
+    const auto terrainGenerator = createTerrainGenerator(
+        m_planetPrototype ? m_planet.biome : "grassland");
+
     // Draw each chunk
     for (auto& pair : m_chunks) {
         int64_t packed = pair.first;
@@ -646,7 +650,8 @@ void World::draw(Shader& shader, const glm::mat4& view, const glm::mat4& project
             Mesh mesh = chunk->buildMesh(
                 getWorldBlock, getWorldShape, m_shapeDebugMode,
                 m_planetPrototype ? PLANET_SIZE : 0,
-                m_planetPrototype ? m_planet.seed : 0);
+                m_planetPrototype ? m_planet.seed : 0,
+                terrainGenerator.get());
             meshIt = m_meshes.emplace(packed, std::move(mesh)).first;
         }
         
