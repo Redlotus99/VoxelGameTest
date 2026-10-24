@@ -102,6 +102,8 @@ int main(int argc, char* argv[]) {
         bool terrainShapeDebugMode = false;
         bool planetTestMode = false;
         std::string planetId = "grassland-01";
+        std::string requestedBiome;
+        bool biomeWasProvided = false;
         std::uint32_t requestedSeed = 0; bool seedWasProvided = false;
         for (int i = 1; i < argc; ++i) {
             const std::string argument = argv[i];
@@ -109,6 +111,7 @@ int main(int argc, char* argv[]) {
             else if (argument == "--terrain-shape-debug") terrainShapeDebugMode = true;
             else if (argument == "--planet-test") planetTestMode = true;
             else if (argument == "--planet-id" && i + 1 < argc) planetId = argv[++i];
+            else if (argument == "--planet-biome" && i + 1 < argc) { requestedBiome = argv[++i]; biomeWasProvided = true; }
             else if (argument == "--planet-seed" && i + 1 < argc) { try { auto n=std::stoull(argv[++i]); if(n<=std::numeric_limits<std::uint32_t>::max()){requestedSeed=static_cast<std::uint32_t>(n);seedWasProvided=true;} else std::cerr<<"Planet seed out of range.\n"; } catch(...) { std::cerr<<"Invalid planet seed.\n"; } }
         }
 
@@ -125,7 +128,7 @@ int main(int argc, char* argv[]) {
             if (!loadPlanetMetadata(metadataPath, planetId, metadata)) {
                 metadata.id = planetId;
                 metadata.seed = seedWasProvided ? requestedSeed : 0;
-                metadata.biome = "grassland";
+                metadata.biome = biomeWasProvided ? requestedBiome : "grassland";
                 metadata.name = Planet::generateName(metadata.id, metadata.seed);
                 if (!savePlanetMetadata(metadataPath, metadata)) std::cerr << "Warning: could not save planet metadata.\n";
             } else {
@@ -133,6 +136,9 @@ int main(int argc, char* argv[]) {
                     std::cout << "Existing planet seed " << metadata.seed
                               << " takes precedence over requested seed " << requestedSeed << ".\n";
                 }
+                // Explicit command-line biome selection updates persistent
+                // metadata; otherwise the saved biome remains authoritative.
+                if (biomeWasProvided) metadata.biome = requestedBiome;
                 // Upgrade legacy metadata so the generated name is persisted.
                 if (!savePlanetMetadata(metadataPath, metadata)) std::cerr << "Warning: could not update planet metadata.\n";
             }
