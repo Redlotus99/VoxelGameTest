@@ -65,12 +65,9 @@ public:
 private:
     int rawHighlandHeight(int worldX, int worldZ, int maxHeight,
                           int wrapSize, std::uint32_t seed) const {
-        const int base = wrapSize > 0
-            ? terrain::rawHeightPeriodic(worldX, worldZ, maxHeight, wrapSize, seed)
-            : terrain::rawHeight(worldX, worldZ, maxHeight);
-        constexpr float reliefScale = 1.4f;
-        const int amplified = 24 + static_cast<int>(std::round((base - 24) * reliefScale));
-        return std::max(1, std::min(amplified, maxHeight));
+        return wrapSize > 0
+            ? terrain::rawHighlandsHeightPeriodic(worldX, worldZ, maxHeight, wrapSize, seed)
+            : terrain::rawHighlandsHeight(worldX, worldZ, maxHeight);
     }
 
     int smoothedHeight(int worldX, int worldZ, int maxHeight,
