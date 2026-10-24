@@ -113,22 +113,22 @@ inline int rawHighlandsHeightPeriodic(int worldX, int worldZ, int maxHeight, int
 
     const float ridgeA = 1.0f - std::abs(std::sin(x * 2.0f + std::sin(z + pz) * 0.65f + px));
     const float ridgeB = 1.0f - std::abs(std::sin(z * 3.0f + std::cos(x * 2.0f + p2) * 0.45f + pz));
-    const float broad = ((ridgeA + ridgeB) * 0.5f - 0.5f) * 25.0f;
-    const float medium = (std::sin(x * 5.0f + p3) * std::cos(z * 4.0f + px)
-                        + std::cos(x * 7.0f + pz) * std::sin(z * 6.0f + p2)) * 3.2f;
-    const float detail = std::sin(x * 11.0f + z * 9.0f + p3) * 1.2f;
-    const float height = 25.0f + broad + medium + detail;
+    const float broad = ((ridgeA + ridgeB) * 0.5f - 0.5f) * 20.0f;
+    const float medium = (std::sin(x * 4.0f + p3) * std::cos(z * 3.0f + px)
+                        + std::cos(x * 5.0f + pz) * std::sin(z * 4.0f + p2)) * 1.25f;
+    const float detail = std::sin(x * 7.0f + z * 6.0f + p3) * 0.6f;
+    const float height = 14.0f + broad + medium + detail;
     return std::max(1, std::min(static_cast<int>(std::round(height)), maxHeight));
 }
 
 inline int rawHighlandsHeight(int worldX, int worldZ, int maxHeight) {
     const glm::vec2 p(static_cast<float>(worldX), static_cast<float>(worldZ));
-    const float n0 = glm::perlin(p * 0.0032f);
-    const float n1 = glm::perlin(p * 0.0085f);
-    const float n2 = glm::perlin(p * 0.021f);
+    const float n0 = glm::perlin(p * 0.0028f);
+    const float n1 = glm::perlin(p * 0.0065f);
+    const float n2 = glm::perlin(p * 0.014f);
     const float ridge0 = 1.0f - std::abs(n0);
     const float ridge1 = 1.0f - std::abs(n1);
-    const float height = 18.0f + ridge0 * 19.0f + ridge1 * 7.0f + n2 * 2.5f;
+    const float height = 15.0f + ridge0 * 10.0f + ridge1 * 3.0f + n2 * 1.2f;
     return std::max(1, std::min(static_cast<int>(std::round(height)), maxHeight));
 }
 
