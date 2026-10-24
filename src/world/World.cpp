@@ -373,7 +373,7 @@ void World::setBlockShapeWorld(int wx, int wy, int wz, BlockShape shape) {
     wx = wrapCoordinate(wx);
     wz = wrapCoordinate(wz);
     if (m_planetPrototype) {
-        if (wy < -Chunk::SIZE_Y || wy >= Chunk::SIZE_Y) return;
+        if (wy < -m_undergroundDepth || wy >= Chunk::SIZE_Y) return;
     } else if (wy < 0 || wy >= Chunk::SIZE_Y) {
         return;
     }
