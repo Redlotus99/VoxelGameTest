@@ -100,29 +100,14 @@ int main(int argc, char* argv[]) {
         bool planetTestMode = false;
         std::string planetId = "grassland-01";
         std::uint32_t requestedSeed = 0; bool seedWasProvided = false;
-        int undergroundDepth = 64;
         for (int i = 1; i < argc; ++i) {
             const std::string argument = argv[i];
             if (argument == "--shape-test") shapeTestMode = true;
             else if (argument == "--terrain-shape-debug") terrainShapeDebugMode = true;
             else if (argument == "--planet-test") planetTestMode = true;
             else if (argument == "--planet-id" && i + 1 < argc) planetId = argv[++i];
-            else if (argument == "--underground-depth" && i + 1 < argc) {
-                try {
-                    const int requestedDepth = std::stoi(argv[++i]);
-                    if (requestedDepth >= 16 && requestedDepth <= 64 && requestedDepth % 16 == 0) {
-                        undergroundDepth = requestedDepth;
-                    } else {
-                        std::cerr << "Underground depth must be 16, 32, 48, or 64 blocks.\n";
-                    }
-                } catch (...) {
-                    std::cerr << "Invalid underground depth.\n";
-                }
-            }
             else if (argument == "--planet-seed" && i + 1 < argc) { try { auto n=std::stoull(argv[++i]); if(n<=std::numeric_limits<std::uint32_t>::max()){requestedSeed=static_cast<std::uint32_t>(n);seedWasProvided=true;} else std::cerr<<"Planet seed out of range.\n"; } catch(...) { std::cerr<<"Invalid planet seed.\n"; } }
         }
-
-        std::cout << "CLI underground depth=" << undergroundDepth << "\\n";
 
         if (planetTestMode) {
             // Keep planet IDs filename-safe and deterministic.
@@ -148,9 +133,7 @@ int main(int argc, char* argv[]) {
                 // Upgrade legacy metadata so the generated name is persisted.
                 if (!savePlanetMetadata(metadataPath, metadata)) std::cerr << "Warning: could not update planet metadata.\n";
             }
-            std::cout << "Generating planet with requested depth=" << undergroundDepth << "\\n";
-            world.generatePlanetPrototype(metadata, undergroundDepth);
-            std::cout << "World depth immediately after generation=" << world.getUndergroundDepth() << "\\n";
+            world.generatePlanetPrototype(metadata);
             const std::string planetSavePath = "planet_" + planetId + "_edits.dat";
             bool loadedPlanet = world.loadPlanetEdits(planetSavePath, planetId);
             if (!loadedPlanet && planetId == "grassland-01") {
